@@ -1,0 +1,150 @@
+{
+    "sh8vmr@localhost": {
+        "created_at": 1758469107,
+        "expires_at": 1761061107,
+        "sender_whitelist": [
+            "@gmail.com"
+        ],
+        "emails": []
+    },
+    "work-reports@localhost": {
+        "created_at": 1758469107,
+        "expires_at": 1761061107,
+        "sender_whitelist": [
+            "boss@company.com",
+            "hr@company.com"
+        ],
+        "emails": []
+    },
+    "smkfp9@localhost": {
+        "created_at": 1758469107,
+        "expires_at": 1759073907,
+        "sender_whitelist": [
+            "noreply@github.com",
+            "@company.com",
+            "*@notifications.com"
+        ],
+        "emails": []
+    },
+    "msc7og@localhost": {
+        "created_at": 1758469576,
+        "expires_at": 1758555976,
+        "sender_whitelist": [],
+        "emails": []
+    },
+    "m9kfa7@localhost": {
+        "created_at": 1758469629,
+        "expires_at": 1758556029,
+        "sender_whitelist": [
+            "boss@company.com"
+        ],
+        "emails": []
+    },
+    "0mbajl@localhost": {
+        "created_at": 1758469819,
+        "expires_at": 1758556219,
+        "sender_whitelist": [
+            "test@example.com"
+        ],
+        "emails": []
+    },
+    "2xu8bk@localhost": {
+        "created_at": 1758470411,
+        "expires_at": 1761062720,
+        "sender_whitelist": [
+            "test@example.com",
+            "357418341@qq.com"
+        ],
+        "emails": []
+    },
+    "d0uie1@localhost": {
+        "created_at": 1758470934,
+        "expires_at": 1761062934,
+        "sender_whitelist": [
+            "test@example.com"
+        ],
+        "emails": []
+    },
+    "bj7qrf@saga.sch.quest": {
+        "created_at": 1758508679,
+        "expires_at": 1761100679,
+        "sender_whitelist": [
+            "test@example.com"
+        ],
+        "emails": [
+            {
+                "From": "test@example.com",
+                "To": "bj7qrf@saga.sch.quest",
+                "Subject": "=?utf-8?b?QVBJ5rWL6K+V6YKu5Lu2?=",
+                "Timestamp": 1758509039,
+                "Sent": "Sep 22 at 02:43:59",
+                "Body": "\u8fd9\u662f\u901a\u8fc7API\u6d4b\u8bd5\u53d1\u9001\u7684\u90ae\u4ef6",
+                "ContentType": "Text"
+            }
+        ]
+    },
+    "nxydl02131@cipher.sch.quest": {
+        "created_at": 1758510011,
+        "expires_at": 1761102011,
+        "sender_whitelist": [
+            "test@example.com"
+        ],
+        "emails": [
+            {
+                "From": "test@example.com",
+                "To": "nxydl02131@cipher.sch.quest",
+                "Subject": "=?utf-8?b?QVBJ5rWL6K+V6YKu5Lu2?=",
+                "Timestamp": 1758510015,
+                "Sent": "Sep 22 at 03:00:15",
+                "Body": "\u8fd9\u662f\u901a\u8fc7API\u6d4b\u8bd5\u53d1\u9001\u7684\u90ae\u4ef6",
+                "ContentType": "Text"
+            }
+        ]
+    },
+    "pyyhjj@dearmer.edu.kg": {
+        "created_at": 1758510728,
+        "expires_at": 1761102728,
+        "sender_whitelist": [
+            "test@example.com"
+        ],
+        "emails": [
+            {
+                "From": "test@example.com",
+                "To": "pyyhjj@dearmer.edu.kg",
+                "Subject": "=?utf-8?b?QVBJ5rWL6K+V6YKu5Lu2?=",
+                "Timestamp": 1758510732,
+                "Sent": "Sep 22 at 03:12:12",
+                "Body": "\u8fd9\u662f\u901a\u8fc7API\u6d4b\u8bd5\u53d1\u9001\u7684\u90ae\u4ef6",
+                "ContentType": "Text"
+            },
+            {
+                "From": "test@example.com",
+                "To": "pyyhjj@dearmer.edu.kg",
+                "Subject": "=?utf-8?b?QVBJ5rWL6K+V6YKu5Lu2?=",
+                "Timestamp": 1758510731,
+                "Sent": "Sep 22 at 03:12:11",
+                "Body": "\u8fd9\u662f\u901a\u8fc7API\u6d4b\u8bd5\u53d1\u9001\u7684\u90ae\u4ef6",
+                "ContentType": "Text"
+            }
+        ]
+    },
+    "b8l4w2@ivy.sch.pics": {
+        "created_at": 1758510936,
+        "expires_at": 1761102936,
+        "sender_whitelist": [
+            "test@example.com"
+        ],
+        "emails": [
+            {
+                "id": "7dcd109c-fe2c-431f-924c-ef2f8a59f7aa",
+                "From": "test@example.com",
+                "To": "b8l4w2@ivy.sch.pics",
+                "Subject": "=?utf-8?b?QVBJ5rWL6K+V6YKu5Lu2?=",
+                "Timestamp": 1758510939,
+                "Sent": "Sep 22 at 03:15:39",
+                "Body": "\u8fd9\u662f\u901a\u8fc7API\u6d4b\u8bd5\u53d1\u9001\u7684\u90ae\u4ef6",
+                "ContentType": "Text"
+            }
+        ]
+    }
+}
