@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maildrop - Admin Panel</title>
+    <title>TempMail - Admin Panel</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/admin.css') }}">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='resources/favicon.ico') }}">
@@ -18,27 +18,27 @@
         <header class="header">
             <h1>
                 <img src="{{ url_for('static', filename='resources/mail-icon.svg') }}" alt="Mail Icon">
-                maildrop admin
+                TempMail admin
             </h1>
-            <p>IP Whitelist Management</p>
+            <p>IP白名单管理</p>
         </header>
 <!-- Login Section -->
         <section id="login-section" class="admin-panel">
-            <h2>Admin Login</h2>
+            <h2>管理员登录</h2>
             <div class="form-group">
-                <label for="admin-password">Admin Password:</label>
-                <input type="password" id="admin-password" placeholder="Enter admin password">
+                <label for="admin-password">管理员密码:</label>
+                <input type="password" id="admin-password" placeholder="请输入管理员密码">
             </div>
-            <button id="login-btn" class="btn btn-primary">Login</button>
+            <button id="login-btn" class="btn btn-primary">登录</button>
             <div id="login-error" class="error-message"></div>
         </section>
         <!-- Admin Panel -->
         <section id="admin-panel" class="admin-panel" style="display: none;">
             <div class="panel-header">
-                <h2>IP Whitelist Settings</h2>
+                <h2>IP白名单设置</h2>
                 <div class="panel-actions">
                     <div class="current-ip">
-                        Your IP: <span id="current-ip">Loading...</span>
+                        您的IP: <span id="current-ip">加载中...</span>
                     </div>
                     <div class="action-buttons">
                         <a href="/api-test" class="btn btn-primary">API测试</a>
@@ -51,48 +51,48 @@
                 <label class="toggle-label">
                     <input type="checkbox" id="whitelist-enabled">
                     <span class="toggle-slider"></span>
-                    Enable IP Whitelist
+                    启用IP白名单
                 </label>
-                <p class="help-text">When enabled, only IPs in the whitelist can send emails and access the API</p>
+                <p class="help-text">启用后，只有白名单中的IP地址可以发送邮件和访问API</p>
             </div>
             <!-- Whitelist IPs -->
             <div class="form-group">
-                <label for="whitelist-ips">Allowed IPs and Networks:</label>
+                <label for="whitelist-ips">允许的IP地址和网络:</label>
                 <textarea id="whitelist-ips" rows="8" placeholder="127.0.0.1
 ::1
 192.168.0.0/16
 10.0.0.0/8"></textarea>
                 <p class="help-text">
-                    Enter one IP address or CIDR block per line.<br>
-                    Examples: 127.0.0.1 (single IP), 192.168.1.0/24 (network), ::1 (IPv6)
+                    每行输入一个IP地址或CIDR网络块。<br>
+                    示例: 127.0.0.1 (单个IP), 192.168.1.0/24 (网络), ::1 (IPv6)
                 </p>
             </div>
             <!-- Test IP -->
             <div class="form-group">
-                <label for="test-ip">Test IP Address:</label>
+                <label for="test-ip">测试IP地址:</label>
                 <div class="test-ip-container">
-                    <input type="text" id="test-ip" placeholder="Enter IP to test">
-                    <button id="test-ip-btn" class="btn btn-secondary">Test</button>
+                    <input type="text" id="test-ip" placeholder="输入要测试的IP地址">
+                    <button id="test-ip-btn" class="btn btn-secondary">测试</button>
                 </div>
                 <div id="test-result" class="test-result"></div>
             </div>
             <!-- Action Buttons -->
             <div class="action-buttons">
-                <button id="save-btn" class="btn btn-primary">Save Settings</button>
-                <button id="reload-btn" class="btn btn-secondary">Reload</button>
+                <button id="save-btn" class="btn btn-primary">保存设置</button>
+                <button id="reload-btn" class="btn btn-secondary">重新加载</button>
             </div>
             <!-- Status Messages -->
             <div id="status-message" class="status-message"></div>
         </section>
         <!-- Quick Add Section -->
         <section id="quick-add" class="admin-panel" style="display: none;">
-            <h3>Quick Add Common Networks</h3>
+            <h3>快速添加常用网络</h3>
             <div class="quick-add-buttons">
-                <button class="btn btn-secondary quick-add-btn" data-ip="127.0.0.1">Localhost IPv4</button>
-                <button class="btn btn-secondary quick-add-btn" data-ip="::1">Localhost IPv6</button>
-                <button class="btn btn-secondary quick-add-btn" data-ip="192.168.0.0/16">Private Network 192.168.x.x</button>
-                <button class="btn btn-secondary quick-add-btn" data-ip="10.0.0.0/8">Private Network 10.x.x.x</button>
-                <button class="btn btn-secondary quick-add-btn" data-ip="172.16.0.0/12">Private Network 172.16-31.x.x</button>
+                <button class="btn btn-secondary quick-add-btn" data-ip="127.0.0.1">本地主机 IPv4</button>
+                <button class="btn btn-secondary quick-add-btn" data-ip="::1">本地主机 IPv6</button>
+                <button class="btn btn-secondary quick-add-btn" data-ip="192.168.0.0/16">私有网络 192.168.x.x</button>
+                <button class="btn btn-secondary quick-add-btn" data-ip="10.0.0.0/8">私有网络 10.x.x.x</button>
+                <button class="btn btn-secondary quick-add-btn" data-ip="172.16.0.0/12">私有网络 172.16-31.x.x</button>
             </div>
         </section>
         <!-- 快捷操作区域 -->

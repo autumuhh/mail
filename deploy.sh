@@ -69,7 +69,7 @@ create_dirs() {
 
 # 启动服务
 start_service() {
-    log_info "启动Maildrop服务..."
+    log_info "启动TempMail服务..."
     docker-compose up -d
     
     log_info "等待服务启动..."
@@ -89,13 +89,13 @@ start_service() {
 
 # 停止服务
 stop_service() {
-    log_info "停止Maildrop服务..."
+    log_info "停止TempMail服务..."
     docker-compose down
 }
 
 # 重启服务
 restart_service() {
-    log_info "重启Maildrop服务..."
+    log_info "重启TempMail服务..."
     docker-compose restart
 }
 

@@ -1,9 +1,9 @@
 version: "3.8"
 
 services:
-  maildrop:
+  tempmail:
     build: .
-    container_name: maildrop
+    container_name: tempmail
     restart: unless-stopped
     env_file:
       - .env

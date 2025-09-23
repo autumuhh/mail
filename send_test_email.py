@@ -126,7 +126,7 @@ def test_whitelist_functionality(to_email):
 
 def main():
     print("=== 邮件发送测试工具 ===")
-    print("请确保 maildrop 应用正在运行 (python app.py)")
+    print("请确保 TempMail 应用正在运行 (python app.py)")
     print("请确保已在网页 http://localhost:5000 生成了邮箱地址")
     print()
     

@@ -142,5 +142,105 @@
         "expires_at": 1761151623,
         "sender_whitelist": [],
         "emails": []
+    },
+    "y83silnfrwr8ilwt@aegis.sch.quest": {
+        "created_at": 1758596122,
+        "expires_at": 1761188122,
+        "sender_whitelist": [],
+        "emails": []
+    },
+    "2e34vkybh1m06f9z@aegis.sch.quest": {
+        "created_at": 1758596180,
+        "expires_at": 1761188180,
+        "sender_whitelist": [],
+        "emails": []
+    },
+    "gq2jbd27qpc56rqb@aegis.sch.quest": {
+        "created_at": 1758596185,
+        "expires_at": 1761188185,
+        "sender_whitelist": [],
+        "emails": []
+    },
+    "bx43e3nw1u6pgh40@aegis.sch.quest": {
+        "created_at": 1758596195,
+        "expires_at": 1761188195,
+        "sender_whitelist": [],
+        "emails": []
+    },
+    "k1dth9hdrb3f9ki2@aegis.sch.quest": {
+        "created_at": 1758596676,
+        "expires_at": 1761188676,
+        "sender_whitelist": [],
+        "emails": []
+    },
+    "hql7ezl1vq8tdap0@aegis.sch.quest": {
+        "created_at": 1758596836,
+        "expires_at": 1761188836,
+        "sender_whitelist": [],
+        "emails": []
+    },
+    "6o1qnwze8qgmn59j@aegis.sch.quest": {
+        "created_at": 1758597029,
+        "expires_at": 1761189029,
+        "sender_whitelist": [],
+        "emails": []
+    },
+    "lqoc8y4ec66hr3x8@aegis.sch.quest": {
+        "created_at": 1758597773,
+        "expires_at": 1761189773,
+        "sender_whitelist": [],
+        "emails": []
+    },
+    "obumxreiarcput9r@aegis.sch.quest": {
+        "created_at": 1758598663,
+        "expires_at": 1761190663,
+        "sender_whitelist": [],
+        "emails": []
+    },
+    "ypiu86thz0pxj4ng@aegis.sch.quest": {
+        "created_at": 1758598677,
+        "expires_at": 1761190677,
+        "sender_whitelist": [],
+        "emails": [
+            {
+                "id": "b53fd288-fe0b-4d1a-8c2b-f667cc9775c5",
+                "From": "test@example.com",
+                "To": "ypiu86thz0pxj4ng@aegis.sch.quest",
+                "Subject": "=?utf-8?b?QVBJ5rWL6K+V6YKu5Lu2?=",
+                "Timestamp": 1758598680,
+                "Sent": "Sep 23 at 03:38:00",
+                "Body": "\u8fd9\u662f\u901a\u8fc7API\u6d4b\u8bd5\u53d1\u9001\u7684\u90ae\u4ef6",
+                "ContentType": "Text"
+            }
+        ]
+    },
+    "0dhlv7ntqikmsee2@aegis.sch.quest": {
+        "created_at": 1758598919,
+        "expires_at": 1761190919,
+        "sender_whitelist": [],
+        "emails": []
+    },
+    "b8l4w2@ivy.sch.pics": {
+        "created_at": 1758598932,
+        "expires_at": 1761190932,
+        "sender_whitelist": [],
+        "emails": [
+            {
+                "id": "c71ae220-c6c1-47ec-8686-72afc71f13fb",
+                "From": "test@example.com",
+                "To": "b8l4w2@ivy.sch.pics",
+                "Subject": "=?utf-8?b?QVBJ5rWL6K+V6YKu5Lu2?=",
+                "Timestamp": 1758598989,
+                "Sent": "Sep 23 at 03:43:09",
+                "Body": "\u8fd9\u662f\u901a\u8fc7API\u6d4b\u8bd5\u53d1\u9001\u7684\u90ae\u4ef6",
+                "ContentType": "Text"
+            }
+        ]
+    },
+    "357418341@qq.com": {
+        "created_at": 1758599359,
+        "expires_at": 1761191359,
+        "sender_whitelist": [],
+        "emails": []
     }
 }

@@ -178,6 +178,21 @@ def get_email():
         if email.get("id") == email_id:
             return jsonify(email), 200
 
+    # 如果没有找到匹配的ID，尝试按索引查找（备用方案）
+    if email_id.startswith("email-") and "-" in email_id:
+        try:
+            parts = email_id.split("-")
+            if len(parts) >= 2:
+                index = int(parts[1])
+                if 0 <= index < len(emails):
+                    email = emails[index]
+                    # 确保邮件有ID
+                    if not email.get("id"):
+                        email["id"] = email_id
+                    return jsonify(email), 200
+        except (ValueError, IndexError):
+            pass
+
     return jsonify({"error": "Email not found"}), 404
 
 # Admin login endpoint

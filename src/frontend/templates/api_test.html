@@ -104,38 +104,81 @@
             <h2>邮箱查看</h2>
             <div class="form-group">
                 <label for="view-email">邮箱地址:</label>
-                <input type="text" id="view-email" placeholder="输入要查看的邮箱地址">
-                <button id="view-mailbox-btn" class="btn btn-secondary">查看邮箱</button>
-                <button id="view-emails-btn" class="btn btn-secondary">查看邮件</button>
-            </div>
-            
-            <div id="mailbox-info" class="info-box" style="display: none;">
-                <h3>邮箱信息</h3>
-                <div class="info-grid">
-                    <div class="info-item">
-                        <label>地址:</label>
-                        <span id="info-address">-</span>
-                    </div>
-                    <div class="info-item">
-                        <label>创建时间:</label>
-                        <span id="info-created">-</span>
-                    </div>
-                    <div class="info-item">
-                        <label>过期时间:</label>
-                        <span id="info-expires">-</span>
-                    </div>
-                    <div class="info-item">
-                        <label>邮件数量:</label>
-                        <span id="info-count">-</span>
-                    </div>
-                    <div class="info-item">
-                        <label>是否过期:</label>
-                        <span id="info-expired">-</span>
+                <div class="input-with-buttons">
+                    <input type="text" id="view-email" placeholder="输入要查看的邮箱地址">
+                    <div class="input-buttons">
+                        <button id="view-mailbox-btn" class="btn btn-secondary">
+                            <span>📋</span>
+                            <span>查看邮箱</span>
+                        </button>
+                        <button id="view-emails-btn" class="btn btn-secondary">
+                            <span>📧</span>
+                            <span>查看邮件</span>
+                        </button>
                     </div>
                 </div>
-                <div class="whitelist-info">
-                    <h4>发送方白名单:</h4>
-                    <ul id="whitelist-display"></ul>
+            </div>
+            
+            <div id="mailbox-info" class="mailbox-info-card" style="display: none;">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="card-icon">📮</span>
+                        <h3>邮箱信息</h3>
+                    </div>
+                    <div class="card-actions">
+                        <div class="card-status" id="mailbox-status">
+                            <span class="status-badge" id="status-badge">活跃</span>
+                        </div>
+                        <button id="close-mailbox-info" class="close-card-btn" title="关闭">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card-content">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-icon">📧</div>
+                            <div class="info-details">
+                                <label>邮箱地址</label>
+                                <span id="info-address">-</span>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-icon">📅</div>
+                            <div class="info-details">
+                                <label>创建时间</label>
+                                <span id="info-created">-</span>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-icon">⏰</div>
+                            <div class="info-details">
+                                <label>过期时间</label>
+                                <span id="info-expires">-</span>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-icon">📊</div>
+                            <div class="info-details">
+                                <label>邮件数量</label>
+                                <span id="info-count">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="whitelist-section">
+                        <div class="section-header">
+                            <span class="section-icon">🛡️</span>
+                            <h4>发送方白名单</h4>
+                        </div>
+                        <div class="whitelist-content">
+                            <ul id="whitelist-display"></ul>
+                        </div>
+                    </div>
                 </div>
             </div>
             

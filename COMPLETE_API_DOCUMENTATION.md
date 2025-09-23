@@ -1,8 +1,8 @@
-# Maildrop API 文档
+# TempMail API 文档
 
 ## 概述
 
-Maildrop 是一个功能完整的自托管临时邮箱服务，提供 RESTful API 接口。
+TempMail 是一个功能完整的自托管临时邮箱服务，提供 RESTful API 接口。
 
 ### 主要功能
 - 🌐 多域名支持
@@ -747,7 +747,7 @@ Content-Type: application/json
 import requests
 import json
 
-class MaildropClient:
+class TempMailClient:
     def __init__(self, base_url, admin_password=None):
         self.base_url = base_url.rstrip('/')
         self.admin_password = admin_password
@@ -781,7 +781,7 @@ class MaildropClient:
         return response.json()
 
 # 使用示例
-client = MaildropClient('http://localhost:5000')
+client = TempMailClient('http://localhost:5000')
 
 # 创建只接收Gmail的邮箱
 mailbox = client.create_mailbox(['@gmail.com'], retention_days=7)
@@ -795,7 +795,7 @@ print(f"收到 {len(emails)} 封邮件")
 ### JavaScript SDK示例
 
 ```javascript
-class MaildropClient {
+class TempMailClient {
     constructor(baseUrl, adminPassword = null) {
         this.baseUrl = baseUrl.replace(/\/$/, '');
         this.adminPassword = adminPassword;
@@ -839,7 +839,7 @@ class MaildropClient {
 }
 
 // 使用示例
-const client = new MaildropClient('http://localhost:5000');
+const client = new TempMailClient('http://localhost:5000');
 
 // 创建邮箱并发送测试邮件
 async function example() {

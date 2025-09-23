@@ -88,13 +88,13 @@ document.addEventListener("DOMContentLoaded", () => {
     async function login() {
         const password = adminPassword.value.trim();
         if (!password) {
-            showError(loginError, 'Please enter password');
+            showError(loginError, '请输入密码');
             return;
         }
 
         // Disable login button during operation
         loginBtn.disabled = true;
-        loginBtn.textContent = 'Logging in...';
+        loginBtn.textContent = '登录中...';
         loginError.style.display = 'none';
 
         try {
@@ -118,14 +118,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 await loadSettings();
             } else {
                 const data = await response.json();
-                showError(loginError, data.error || 'Login failed');
+                showError(loginError, data.error || '登录失败');
             }
         } catch (error) {
-            showError(loginError, 'Connection error');
+            showError(loginError, '连接错误');
         } finally {
             // Re-enable login button
             loginBtn.disabled = false;
-            loginBtn.textContent = 'Login';
+            loginBtn.textContent = '登录';
         }
     }
 
@@ -155,7 +155,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // Disable reload button during operation
         if (reloadBtn) {
             reloadBtn.disabled = true;
-            reloadBtn.textContent = 'Loading...';
+            reloadBtn.textContent = '加载中...';
         }
 
         try {
@@ -175,18 +175,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 testIpInput.value = data.current_ip;
 
                 if (reloadBtn) {
-                    showStatus('Settings reloaded successfully', 'success');
+                    showStatus('设置重新加载成功', 'success');
                 }
             } else {
-                showStatus('Failed to load settings', 'error');
+                showStatus('加载设置失败', 'error');
             }
         } catch (error) {
-            showStatus('Connection error', 'error');
+            showStatus('连接错误', 'error');
         } finally {
             // Re-enable reload button
             if (reloadBtn) {
                 reloadBtn.disabled = false;
-                reloadBtn.textContent = 'Reload';
+                reloadBtn.textContent = '重新加载';
             }
         }
     }
@@ -194,14 +194,13 @@ document.addEventListener("DOMContentLoaded", () => {
     async function saveSettings() {
         // Disable save button during operation
         saveBtn.disabled = true;
-        saveBtn.textContent = 'Saving...';
+        saveBtn.textContent = '保存中...';
 
         const settings = {
             enabled: whitelistEnabled.checked,
             whitelist: whitelistIps.value.trim()
         };
 
-        console.log('[DEBUG] Saving settings:', settings);
 
         try {
             const response = await fetch('/admin/whitelist', {
@@ -216,29 +215,29 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await response.json();
 
             if (response.ok) {
-                showStatus(data.message, 'success');
+                showStatus('设置保存成功', 'success');
             } else {
-                showStatus(data.error || 'Save failed', 'error');
+                showStatus(data.error || '保存失败', 'error');
             }
         } catch (error) {
-            showStatus('Connection error', 'error');
+            showStatus('连接错误', 'error');
         } finally {
             // Re-enable save button
             saveBtn.disabled = false;
-            saveBtn.textContent = 'Save Settings';
+            saveBtn.textContent = '保存设置';
         }
     }
     
     async function testIp() {
         const testIp = testIpInput.value.trim();
         if (!testIp) {
-            showTestResult('Please enter an IP address', 'error');
+            showTestResult('请输入IP地址', 'error');
             return;
         }
 
         // Disable test button during operation
         testIpBtn.disabled = true;
-        testIpBtn.textContent = 'Testing...';
+        testIpBtn.textContent = '测试中...';
 
         const settings = {
             ip: testIp,
@@ -262,20 +261,20 @@ document.addEventListener("DOMContentLoaded", () => {
                 const resultClass = data.allowed ? 'success' : 'error';
                 showTestResult(`${data.ip}: ${data.message}`, resultClass);
             } else {
-                showTestResult(data.error || 'Test failed', 'error');
+                showTestResult(data.error || '测试失败', 'error');
             }
         } catch (error) {
-            showTestResult('Connection error', 'error');
+            showTestResult('连接错误', 'error');
         } finally {
             // Re-enable test button
             testIpBtn.disabled = false;
-            testIpBtn.textContent = 'Test';
+            testIpBtn.textContent = '测试';
         }
     }
     
     function addToWhitelist(ip) {
         if (!ip || !ip.trim()) {
-            showStatus('Invalid IP address', 'error');
+            showStatus('无效的IP地址', 'error');
             return;
         }
 
@@ -285,9 +284,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!ips.includes(ip)) {
             ips.push(ip);
             whitelistIps.value = ips.join('\n');
-            showStatus(`Added ${ip} to whitelist`, 'success');
+            showStatus(`已将 ${ip} 添加到白名单`, 'success');
         } else {
-            showStatus(`${ip} is already in whitelist`, 'warning');
+            showStatus(`${ip} 已在白名单中`, 'warning');
         }
     }
     

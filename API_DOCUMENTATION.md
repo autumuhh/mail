@@ -1,4 +1,4 @@
-# Maildrop API 文档
+# TempMail API 文档
 
 ## 创建受限邮箱 API
 

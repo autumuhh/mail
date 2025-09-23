@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const mailboxInfo = document.getElementById('mailbox-info');
     const emailsList = document.getElementById('emails-list');
     const closeDetailBtn = document.getElementById('close-detail-btn');
+    const closeMailboxInfoBtn = document.getElementById('close-mailbox-info');
     
     const statusMessage = document.getElementById('status-message');
 
@@ -119,6 +120,7 @@ document.addEventListener('DOMContentLoaded', function() {
     viewMailboxBtn.addEventListener('click', viewMailbox);
     viewEmailsBtn.addEventListener('click', viewEmails);
     closeDetailBtn.addEventListener('click', closeEmailDetail);
+    closeMailboxInfoBtn.addEventListener('click', closeMailboxInfo);
     
     // 快速发送方按钮
     document.querySelectorAll('.quick-sender-btn').forEach(btn => {
@@ -250,15 +252,27 @@ document.addEventListener('DOMContentLoaded', function() {
             const result = await response.json();
 
             if (response.ok) {
+                // 更新基本信息
                 document.getElementById('info-address').textContent = result.address;
-                document.getElementById('info-created').textContent = 
+                document.getElementById('info-created').textContent =
                     result.created_at ? formatTime(result.created_at) : '未知';
-                document.getElementById('info-expires').textContent = 
+                document.getElementById('info-expires').textContent =
                     result.expires_at ? formatTime(result.expires_at) : '未知';
                 document.getElementById('info-count').textContent = result.email_count;
-                document.getElementById('info-expired').textContent = 
-                    result.is_expired ? '是' : '否';
 
+                // 更新状态显示
+                const statusBadge = document.getElementById('status-badge');
+                if (result.is_expired) {
+                    statusBadge.textContent = '已过期';
+                    statusBadge.style.background = 'rgba(239, 68, 68, 0.2)';
+                    statusBadge.style.color = '#ef4444';
+                } else {
+                    statusBadge.textContent = '活跃';
+                    statusBadge.style.background = 'rgba(34, 197, 94, 0.2)';
+                    statusBadge.style.color = '#22c55e';
+                }
+
+                // 更新白名单显示
                 const whitelistDisplay = document.getElementById('whitelist-display');
                 whitelistDisplay.innerHTML = '';
                 if (result.sender_whitelist && result.sender_whitelist.length > 0) {
@@ -269,8 +283,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 } else {
                     const li = document.createElement('li');
-                    li.textContent = '无限制';
+                    li.textContent = '无限制 - 接收所有发送方的邮件';
                     li.style.fontStyle = 'italic';
+                    li.style.color = 'var(--text-dark-color)';
                     whitelistDisplay.appendChild(li);
                 }
 
@@ -305,7 +320,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (emails.length === 0) {
                     emailsContent.innerHTML = '<p>暂无邮件</p>';
                 } else {
-                    emails.forEach(email => {
+                    emails.forEach((email, index) => {
+                        console.log('[DEBUG] Email object:', email);
+                        const emailId = email.id || `email-${index}-${Date.now()}`;
+                        console.log('[DEBUG] Using email ID:', emailId);
+
                         const emailDiv = document.createElement('div');
                         emailDiv.className = 'email-item';
                         emailDiv.innerHTML = `
@@ -314,8 +333,15 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <span class="email-time">${formatTime(email.Timestamp)}</span>
                             </div>
                             <div class="email-subject">${email.Subject || '无主题'}</div>
-                            <div class="email-body">${(email.Body || '无内容').substring(0, 100)}${email.Body && email.Body.length > 100 ? '...' : ''}</div>
-                            <button class="btn btn-primary view-detail-btn" data-email-id="${email.id}" data-address="${viewEmail.value.trim()}">查看详情</button>
+                            <div class="email-body">${getEmailPreview(email.Body || '无内容')}</div>
+                            <div class="email-actions">
+                                <button class="btn btn-secondary view-detail-btn" data-email-id="${emailId}" data-address="${viewEmail.value.trim()}">
+                                    <span>查看详情</span>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="m9 18 6-6-6-6"/>
+                                    </svg>
+                                </button>
+                            </div>
                         `;
                         emailsContent.appendChild(emailDiv);
                     });
@@ -344,6 +370,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 查看邮件详情
     async function viewEmailDetail(address, emailId) {
+        console.log('[DEBUG] viewEmailDetail called with:', { address, emailId });
+
         if (!address || !emailId) {
             showStatus('邮箱地址或邮件ID缺失', 'error');
             return;
@@ -351,7 +379,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         try {
             const response = await fetch(`/get_email?address=${encodeURIComponent(address)}&id=${encodeURIComponent(emailId)}`);
+            console.log('[DEBUG] Email detail response status:', response.status);
+
             const email = await response.json();
+            console.log('[DEBUG] Email detail response:', email);
 
             if (response.ok) {
                 // 填充邮件详情
@@ -359,8 +390,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('detail-to').textContent = email.To || '未知';
                 document.getElementById('detail-subject').textContent = email.Subject || '无主题';
                 document.getElementById('detail-time').textContent = formatTime(email.Timestamp);
-                document.getElementById('detail-id').textContent = email.id || '未知';
-                document.getElementById('detail-body-content').textContent = email.Body || '无内容';
+                document.getElementById('detail-id').textContent = email.id || emailId;
+                // 处理邮件内容显示
+                const bodyContent = email.Body || '无内容';
+                const detailBodyElement = document.getElementById('detail-body-content');
+
+                if (bodyContent.includes('<') && bodyContent.includes('>')) {
+                    // HTML内容，直接渲染
+                    detailBodyElement.innerHTML = bodyContent;
+                } else {
+                    // 纯文本内容，保持换行
+                    detailBodyElement.innerHTML = bodyContent.replace(/\n/g, '<br>');
+                }
 
                 // 显示详情面板
                 document.getElementById('email-detail').style.display = 'block';
@@ -369,6 +410,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 showStatus(`获取邮件详情失败: ${email.error}`, 'error');
             }
         } catch (error) {
+            console.error('[DEBUG] Error fetching email detail:', error);
             showStatus('网络连接失败', 'error');
         }
     }
@@ -376,6 +418,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // 关闭邮件详情
     function closeEmailDetail() {
         document.getElementById('email-detail').style.display = 'none';
+    }
+
+    // 关闭邮箱信息卡片
+    function closeMailboxInfo() {
+        mailboxInfo.style.display = 'none';
     }
 
     // 显示结果
@@ -401,5 +448,26 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!timestamp) return '未知';
         const date = new Date(timestamp * 1000);
         return date.toLocaleString('zh-CN');
+    }
+
+    // 获取邮件预览内容
+    function getEmailPreview(body) {
+        if (!body) return '无内容';
+
+        // 如果是HTML内容，提取纯文本
+        let textContent = body;
+        if (body.includes('<') && body.includes('>')) {
+            // 创建临时DOM元素来解析HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = body;
+            textContent = tempDiv.textContent || tempDiv.innerText || '';
+        }
+
+        // 限制预览长度
+        const maxLength = 100;
+        if (textContent.length > maxLength) {
+            return textContent.substring(0, maxLength) + '...';
+        }
+        return textContent;
     }
 });

@@ -1,5 +1,4 @@
 import os
-import sys
 import threading
 import time
 import config
@@ -76,9 +75,7 @@ if __name__ == "__main__":
     if not check_admin_privileges() and not is_docker:
         print("Warning: This script should be run with administrator privileges to bind to port 25")
         print("You can still run it, but SMTP server might not work properly on port 25")
-        response = input("Continue anyway? (y/n): ")
-        if response.lower() != 'y':
-            sys.exit(1)
+        print("Continuing anyway...")
     elif not check_admin_privileges() and is_docker:
         print("Running in Docker container - continuing without admin privileges check")
 

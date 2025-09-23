@@ -33,10 +33,10 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:5000/ || exit 1
 
 # 创建非root用户
-RUN useradd -m -u 1000 maildrop && \
-    chown -R maildrop:maildrop /app
+RUN useradd -m -u 1000 tempmail && \
+    chown -R tempmail:tempmail /app
 
-USER maildrop
+USER tempmail
 
 # 启动应用
 CMD ["python", "app.py"]

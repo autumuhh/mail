@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maildrop</title>
+    <title>TempMail</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/style.css') }}">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='resources/favicon.ico') }}">
 </head>
@@ -18,7 +18,7 @@
         <header class="header">
             <h1>
                 <img src="{{ url_for('static', filename='resources/mail-icon.svg') }}" alt="Mail Icon">
-                maildrop
+                TempMail
             </h1>
             <p>Your free and open source disposable email inbox.</p>
         </header>
@@ -94,7 +94,7 @@
         <main class="inbox-section">
             <div class="inbox-header">
                 <h2>Your Inbox</h2>
-                <button id="refresh-btn" title="Refresh Inbox">
+                <button id="refresh-btn" class="btn btn-secondary" title="Refresh Inbox">
                     <img src="{{ url_for('static', filename='resources/refresh-icon.svg') }}" alt="Refresh Icon">
                 </button>
             </div>

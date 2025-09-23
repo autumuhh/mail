@@ -142,11 +142,32 @@ nav {
     padding: 1rem;
     white-space: pre-wrap;
     word-wrap: break-word;
-    max-height: 300px;
+    max-height: 400px;
     overflow-y: auto;
-    font-family: monospace;
+    font-family: -apple-system, system-ui, sans-serif;
     font-size: 0.9rem;
-    line-height: 1.4;
+    line-height: 1.5;
+}
+
+/* HTML邮件内容样式 */
+#detail-body-content * {
+    max-width: 100%;
+}
+
+#detail-body-content img {
+    max-width: 100%;
+    height: auto;
+}
+
+#detail-body-content table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+#detail-body-content td,
+#detail-body-content th {
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
 }
 
 .email-item {
@@ -186,9 +207,39 @@ nav {
     line-height: 1.4;
 }
 
+.email-actions {
+    margin-top: 1rem;
+    text-align: right;
+    border-top: 1px solid var(--border-color);
+    padding-top: 0.75rem;
+}
+
 .view-detail-btn {
     padding: 0.5rem 1rem;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.view-detail-btn:hover {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+    transform: translateY(-1px);
+}
+
+.view-detail-btn svg {
+    transition: transform 0.2s ease;
+}
+
+.view-detail-btn:hover svg {
+    transform: translateX(2px);
 }
 
 .result-box.success {
@@ -352,6 +403,216 @@ nav {
     }
 }
 
+/* 输入框与按钮组合 */
+.input-with-buttons {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-end;
+}
+
+.input-with-buttons input {
+    flex: 1;
+}
+
+.input-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.input-buttons .btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.input-buttons .btn span:first-child {
+    font-size: 1rem;
+}
+
+/* 邮箱信息卡片样式 */
+.mailbox-info-card {
+    margin-top: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background: var(--surface-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover-color));
+    color: white;
+}
+
+.card-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.card-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.card-icon {
+    font-size: 1.5rem;
+}
+
+.card-title h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+.close-card-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: white;
+    padding: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-card-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.card-content {
+    padding: 1.5rem;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.info-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--background-color);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+
+.info-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.info-icon {
+    font-size: 1.25rem;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+.info-details {
+    flex: 1;
+}
+
+.info-details label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-dark-color);
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.info-details span {
+    font-size: 0.95rem;
+    color: var(--text-color);
+    font-weight: 500;
+    word-break: break-all;
+}
+
+.whitelist-section {
+    border-top: 1px solid var(--border-color);
+    padding-top: 1.5rem;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.section-icon {
+    font-size: 1.25rem;
+}
+
+.section-header h4 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.whitelist-content {
+    background: var(--background-color);
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+}
+
+.whitelist-content ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.whitelist-content li {
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.5rem;
+    background: var(--surface-color);
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    font-family: monospace;
+    font-size: 0.9rem;
+    color: var(--text-color);
+}
+
+.whitelist-content li:last-child {
+    margin-bottom: 0;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
     .container {
@@ -364,10 +625,33 @@ nav {
         text-align: center;
     }
     
+    .input-with-buttons {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .input-buttons {
+        margin-top: 0.75rem;
+        justify-content: stretch;
+    }
+
+    .input-buttons .btn {
+        flex: 1;
+        justify-content: center;
+    }
+
     .info-grid {
         grid-template-columns: 1fr;
     }
-    
+
+    .card-header {
+        padding: 1rem;
+    }
+
+    .card-content {
+        padding: 1rem;
+    }
+
     .quick-sender-btn {
         display: block;
         width: 100%;

@@ -42,8 +42,8 @@ sudo firewall-cmd --reload
 ### 4. 部署应用
 ```bash
 # 克隆代码到服务器
-git clone <your-repo> maildrop
-cd maildrop
+git clone <your-repo> tempmail
+cd tempmail
 
 # 准备环境变量（生产示例已提供）
 cp .env.production .env
@@ -125,8 +125,8 @@ telnet mail.yourdomain.com 25
 ### Web 无法访问
 ```bash
 docker compose ps
-docker compose port maildrop 5000
-docker compose logs maildrop
+docker compose port tempmail 5000
+docker compose logs tempmail
 ```
 
 ## 📊 性能与伸缩
@@ -135,7 +135,7 @@ docker compose logs maildrop
 ```yaml
 # 在 docker-compose.yml 中添加
 services:
-  maildrop:
+  tempmail:
     deploy:
       resources:
         limits:
@@ -154,7 +154,7 @@ MAILBOX_RETENTION_DAYS=30     # 邮箱保留 30 天
 ### 3. 水平扩展（需前置负载均衡）
 ```bash
 # 仅示例：Compose 原地扩容
-docker compose up --scale maildrop=3 -d
+docker compose up --scale tempmail=3 -d
 # 注意：需要前置负载均衡（如 Nginx/HAProxy/LB）对 Web 层做轮询；
 # SMTP 25 端口通常由单实例接收或通过外部 MTA 路由。
 ```
