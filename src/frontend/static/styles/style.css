@@ -127,9 +127,66 @@ body {
 
 /* action button container */
 .action-buttons {
-    display: flex;
-    gap: 0.75rem;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    width: 100%;
+}
+
+/* 首页主要操作按钮的专用样式 */
+.main-action-btn {
+    padding: 1rem 1.5rem;
+    justify-content: center;
+    width: 100%;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.main-action-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.main-action-btn:hover::before {
+    left: 100%;
+}
+
+.main-action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.main-action-btn:active {
+    transform: translateY(0);
+    transition: transform 0.1s;
+}
+
+.main-action-btn img {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.3s ease;
+    position: relative;
+    z-index: 1;
+}
+
+.main-action-btn:hover img {
+    transform: scale(1.1);
+}
+
+.main-action-btn .button-text {
+    position: relative;
+    z-index: 1;
 }
 
 /* action buttons */
@@ -177,6 +234,21 @@ body {
     transform: translateY(-2px);
 }
 
+/* 主要按钮的特殊渐变效果 */
+.main-action-btn.btn-primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover-color));
+    box-shadow:
+        0 4px 15px rgba(var(--primary-color-rgb), 0.3),
+        0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.main-action-btn.btn-primary:hover {
+    background: linear-gradient(135deg, var(--primary-hover-color), #8a7ce8);
+    box-shadow:
+        0 8px 30px rgba(var(--primary-color-rgb), 0.4),
+        0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
 /* secondary buttons */
 .btn-secondary {
     background-color: #333;
@@ -187,6 +259,25 @@ body {
 .btn-secondary:hover {
     background-color: #444;
     transform: translateY(-2px);
+}
+
+/* 主要次要按钮的特殊效果 */
+.main-action-btn.btn-secondary {
+    background: linear-gradient(135deg, var(--surface-color), var(--bg-color));
+    border: 2px solid var(--border-color);
+    color: var(--text-color);
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.main-action-btn.btn-secondary:hover {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover-color));
+    border-color: var(--primary-color);
+    color: white;
+    box-shadow:
+        0 8px 25px rgba(var(--primary-color-rgb), 0.3),
+        0 4px 15px rgba(0, 0, 0, 0.15);
 }
 
 /* 浅色主题下的次要按钮 */
@@ -438,61 +529,80 @@ body {
     display: flex;
     align-items: center;
     border: 2px solid var(--border-color);
-    border-radius: 8px;
-    background: var(--bg-color);
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--surface-color), var(--bg-color));
     overflow: hidden;
-    transition: border-color 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
 }
 
 .email-input-container:focus-within {
     border-color: var(--primary-color);
+    box-shadow:
+        0 4px 20px rgba(var(--primary-color-rgb), 0.2),
+        0 0 0 3px rgba(var(--primary-color-rgb), 0.1);
+    transform: translateY(-1px);
 }
 
 .email-prefix {
-    flex: 1;
-    padding: 12px 16px;
+    flex: 2;
+    padding: 16px 20px;
     border: none;
     background: transparent;
     color: var(--text-color);
     font-size: 16px;
+    font-weight: 500;
     outline: none;
-    min-width: 120px;
+    min-width: 0;
 }
 
 .email-prefix::placeholder {
-    color: var(--text-muted);
+    color: var(--text-dark-color);
+    font-weight: 400;
 }
 
 .email-prefix[readonly] {
     cursor: pointer;
-    background: rgba(var(--primary-color-rgb), 0.05);
+    background: rgba(var(--primary-color-rgb), 0.08);
+    border-radius: 8px 0 0 8px;
 }
 
 .email-prefix[readonly]:hover {
-    background: rgba(var(--primary-color-rgb), 0.1);
+    background: rgba(var(--primary-color-rgb), 0.15);
 }
 
 .at-symbol {
-    padding: 0 8px;
-    color: var(--text-muted);
-    font-size: 16px;
-    font-weight: 500;
+    padding: 0 12px;
+    color: var(--primary-color);
+    font-size: 18px;
+    font-weight: 600;
+    flex-shrink: 0;
 }
 
 .domain-selector {
-    padding: 12px 16px;
+    flex: 1;
+    padding: 16px 20px;
     border: none;
-    background: transparent;
+    background: rgba(var(--primary-color-rgb), 0.05);
     color: var(--text-color);
     font-size: 16px;
+    font-weight: 500;
     outline: none;
     cursor: pointer;
-    min-width: 180px;
+    border-radius: 0 8px 8px 0;
+    min-width: 0;
+    transition: background-color 0.3s ease;
+}
+
+.domain-selector:hover {
+    background: rgba(var(--primary-color-rgb), 0.1);
 }
 
 .domain-selector option {
-    background: var(--bg-color);
+    background: var(--surface-color);
     color: var(--text-color);
+    padding: 8px 12px;
 }
 
 /* Toast 提示样式 */
@@ -545,7 +655,18 @@ body {
     }
 
     .action-buttons {
-        justify-content: center;
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    .main-action-btn {
+        padding: 0.875rem 1.25rem;
+        font-size: 0.95rem;
+    }
+
+    .main-action-btn img {
+        width: 18px;
+        height: 18px;
     }
 
     .mailbox-info {
