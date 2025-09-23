@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  maildrop:
+    build: .
+    container_name: maildrop
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8081:5000"   # Web (external 8081 -> container 5000)
+      - "25:25"       # SMTP (host 25 -> container 25)
+    volumes:
+      - ./data:/app/data

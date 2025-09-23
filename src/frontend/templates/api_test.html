@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API测试 - Maildrop</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/admin.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/api_test.css') }}">
+</head>
+<body>
+    <!-- 主题切换按钮 -->
+    <button class="theme-toggle" id="theme-toggle" title="切换主题">
+        <span class="icon sun-icon">☀️</span>
+        <span class="icon moon-icon">🌙</span>
+    </button>
+
+    <div class="container">
+        <header>
+            <h1>API功能测试</h1>
+            <nav>
+                <a href="/" class="btn btn-secondary">返回主页</a>
+                <a href="/admin" class="btn btn-secondary">管理面板</a>
+                <button id="logout-btn" class="btn btn-secondary" style="display: none;">退出登录</button>
+            </nav>
+        </header>
+
+        <!-- Login Section -->
+        <section id="login-section" class="admin-panel">
+            <h2>API测试登录</h2>
+            <div class="form-group">
+                <label for="admin-password">管理员密码:</label>
+                <input type="password" id="admin-password" placeholder="输入管理员密码">
+            </div>
+            <button id="login-btn" class="btn btn-primary">登录</button>
+            <div id="login-error" class="error-message"></div>
+        </section>
+
+        <!-- API Test Panel -->
+        <div id="api-test-panel" style="display: none;">
+        <!-- 创建邮箱区域 -->
+        <section class="test-section">
+            <h2>创建受限邮箱</h2>
+            <div class="form-group">
+                <label for="custom-address">自定义地址 (可选):</label>
+                <input type="text" id="custom-address" placeholder="留空自动生成">
+            </div>
+            
+            <div class="form-group">
+                <label for="retention-days">保留天数:</label>
+                <input type="number" id="retention-days" value="30" min="1" max="365">
+            </div>
+            
+            <div class="form-group">
+                <label for="sender-whitelist">发送方白名单 (每行一个):</label>
+                <textarea id="sender-whitelist" rows="5" placeholder="@gmail.com&#10;boss@company.com&#10;*@notifications.com"></textarea>
+                <small>支持: 精确邮箱、@域名、*@域名</small>
+            </div>
+            
+            <button id="create-mailbox-btn" class="btn btn-primary">创建邮箱</button>
+            
+            <div id="create-result" class="result-box" style="display: none;"></div>
+        </section>
+
+        <!-- 邮件发送测试区域 -->
+        <section class="test-section">
+            <h2>邮件发送测试</h2>
+            <div class="form-group">
+                <label for="target-email">目标邮箱:</label>
+                <input type="text" id="target-email" placeholder="输入要测试的邮箱地址">
+            </div>
+            
+            <div class="form-group">
+                <label for="sender-email">发送方邮箱:</label>
+                <input type="text" id="sender-email" value="test@example.com">
+            </div>
+            
+            <div class="form-group">
+                <label for="email-subject">邮件主题:</label>
+                <input type="text" id="email-subject" value="API测试邮件">
+            </div>
+            
+            <div class="form-group">
+                <label for="email-body">邮件内容:</label>
+                <textarea id="email-body" rows="3">这是通过API测试发送的邮件</textarea>
+            </div>
+            
+            <button id="send-email-btn" class="btn btn-primary">发送邮件</button>
+            
+            <div class="quick-senders">
+                <h3>快速发送方测试</h3>
+                <button class="quick-sender-btn" data-sender="allowed@gmail.com">Gmail发送方</button>
+                <button class="quick-sender-btn" data-sender="boss@company.com">公司老板</button>
+                <button class="quick-sender-btn" data-sender="spam@badsite.com">垃圾邮件</button>
+                <button class="quick-sender-btn" data-sender="noreply@github.com">GitHub通知</button>
+                <button class="quick-sender-btn" data-sender="test@company.com">公司测试</button>
+            </div>
+            
+            <div id="send-result" class="result-box" style="display: none;"></div>
+        </section>
+
+        <!-- 邮箱查看区域 -->
+        <section class="test-section">
+            <h2>邮箱查看</h2>
+            <div class="form-group">
+                <label for="view-email">邮箱地址:</label>
+                <input type="text" id="view-email" placeholder="输入要查看的邮箱地址">
+                <button id="view-mailbox-btn" class="btn btn-secondary">查看邮箱</button>
+                <button id="view-emails-btn" class="btn btn-secondary">查看邮件</button>
+            </div>
+            
+            <div id="mailbox-info" class="info-box" style="display: none;">
+                <h3>邮箱信息</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>地址:</label>
+                        <span id="info-address">-</span>
+                    </div>
+                    <div class="info-item">
+                        <label>创建时间:</label>
+                        <span id="info-created">-</span>
+                    </div>
+                    <div class="info-item">
+                        <label>过期时间:</label>
+                        <span id="info-expires">-</span>
+                    </div>
+                    <div class="info-item">
+                        <label>邮件数量:</label>
+                        <span id="info-count">-</span>
+                    </div>
+                    <div class="info-item">
+                        <label>是否过期:</label>
+                        <span id="info-expired">-</span>
+                    </div>
+                </div>
+                <div class="whitelist-info">
+                    <h4>发送方白名单:</h4>
+                    <ul id="whitelist-display"></ul>
+                </div>
+            </div>
+            
+            <div id="emails-list" class="emails-box" style="display: none;">
+                <h3>邮件列表</h3>
+                <div id="emails-content"></div>
+            </div>
+
+            <div id="email-detail" class="email-detail-box" style="display: none;">
+                <h3>邮件详情</h3>
+                <button id="close-detail-btn" class="btn btn-secondary close-btn">关闭</button>
+                <div class="email-detail-content">
+                    <div class="detail-item">
+                        <label>发件人:</label>
+                        <span id="detail-from">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>收件人:</label>
+                        <span id="detail-to">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>主题:</label>
+                        <span id="detail-subject">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>时间:</label>
+                        <span id="detail-time">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>邮件ID:</label>
+                        <span id="detail-id">-</span>
+                    </div>
+                    <div class="detail-body">
+                        <label>邮件内容:</label>
+                        <div id="detail-body-content"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 状态消息 -->
+        <div id="status-message" class="status-message" style="display: none;"></div>
+        </div> <!-- 关闭 api-test-panel -->
+    </div>
+
+    <script src="{{ url_for('static', filename='scripts/theme.js') }}"></script>
+    <script src="{{ url_for('static', filename='scripts/api_test.js') }}"></script>
+</body>
+</html>

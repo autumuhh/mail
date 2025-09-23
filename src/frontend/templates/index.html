@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maildrop</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/style.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='resources/favicon.ico') }}">
+</head>
+<body>
+    <!-- 主题切换按钮 -->
+    <button class="theme-toggle" id="theme-toggle" title="切换主题">
+        <span class="icon sun-icon">☀️</span>
+        <span class="icon moon-icon">🌙</span>
+    </button>
+
+    <div class="container">
+        <header class="header">
+            <h1>
+                <img src="{{ url_for('static', filename='resources/mail-icon.svg') }}" alt="Mail Icon">
+                maildrop
+            </h1>
+            <p>Your free and open source disposable email inbox.</p>
+        </header>
+        <section class="email-panel">
+            <div class="email-display">
+                <div class="email-input-container">
+                    <input type="text" id="email-prefix" placeholder="username" class="email-prefix" readonly>
+                    <span class="at-symbol">@</span>
+                    <select id="domain-selector" class="domain-selector">
+                        <option value="">Select Domain</option>
+                    </select>
+                </div>
+                <input type="hidden" id="email-input" value="">
+            </div>
+            <div class="action-buttons">
+                <button id="random-btn" class="btn btn-primary">
+                    <img src="{{ url_for('static', filename='resources/random-icon.svg') }}" alt="Random Icon">
+                    <span class="button-text">Generate Random</span>
+                </button>
+                <button id="copy-btn" class="btn btn-secondary">
+                    <img src="{{ url_for('static', filename='resources/copy-icon.svg') }}" alt="Copy Icon">
+                    <span class="button-text">Copy Email</span>
+                </button>
+                <!--
+                <button id="custom-btn" class="btn btn-secondary">
+                    <img src="{{ url_for('static', filename='resources/edit-icon.svg') }}" alt="Edit Icon">
+                    <span class="button-text">Use Custom</span>
+                </button>
+                <button id="manage-btn" class="btn btn-secondary">
+                    <img src="{{ url_for('static', filename='resources/edit-icon.svg') }}" alt="Manage Icon">
+                    <span class="button-text">Manage</span>
+                </button>
+                -->
+            </div>
+        </section>
+
+        <!-- Mailbox Management Section -->
+        <section id="mailbox-management" class="mailbox-section" style="display: none;">
+            <div class="mailbox-header">
+                <h2>Mailbox Management</h2>
+                <button id="close-manage-btn" class="btn btn-secondary">Close</button>
+            </div>
+            <div id="mailbox-info" class="mailbox-info">
+                <div class="info-item">
+                    <label>Created:</label>
+                    <span id="created-time">-</span>
+                </div>
+                <div class="info-item">
+                    <label>Expires:</label>
+                    <span id="expires-time">-</span>
+                </div>
+                <div class="info-item">
+                    <label>Email Count:</label>
+                    <span id="email-count">0</span>
+                </div>
+            </div>
+
+            <div class="sender-whitelist">
+                <h3>Sender Whitelist</h3>
+                <p class="help-text">Only emails from these senders will be accepted. Leave empty to accept all.</p>
+                <div class="whitelist-controls">
+                    <input type="text" id="sender-input" placeholder="Enter email or @domain.com">
+                    <button id="add-sender-btn" class="btn btn-primary">Add</button>
+                </div>
+                <ul id="sender-list"></ul>
+            </div>
+
+            <div class="mailbox-actions">
+                <button id="extend-mailbox-btn" class="btn btn-primary">Extend 30 Days</button>
+            </div>
+        </section>
+
+        <main class="inbox-section">
+            <div class="inbox-header">
+                <h2>Your Inbox</h2>
+                <button id="refresh-btn" title="Refresh Inbox">
+                    <img src="{{ url_for('static', filename='resources/refresh-icon.svg') }}" alt="Refresh Icon">
+                </button>
+            </div>
+            <ul id="inbox-list"></ul>
+            <div id="inbox-placeholder">
+                <p>Your emails will appear here. Refresh to check for new mail.</p>
+            </div>
+        </main>
+    </div>
+    <script src="{{ url_for('static', filename='scripts/theme.js') }}"></script>
+    <script src="{{ url_for('static', filename='scripts/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='scripts/api.js') }}"></script>
+</body>
+</html>
