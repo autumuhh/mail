@@ -630,6 +630,31 @@ body {
 
 /* mobile design */
 @media (max-width: 600px) {
+    /* 整体容器优化 */
+    .container {
+        padding: 1rem;
+        max-width: 100%;
+    }
+
+    /* 头部标题优化 */
+    .header h1 {
+        font-size: 1.8rem;
+        margin-bottom: 0.5rem;
+        text-align: center;
+    }
+
+    .header p {
+        font-size: 0.9rem;
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+
+    /* 邮箱面板优化 */
+    .email-panel {
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
     /* make buttons turn into icons */
     .button-text {
         display: none;
@@ -638,11 +663,17 @@ body {
     /* 手机端集成式邮箱输入框 */
     .email-input-container {
         flex-direction: column;
+        border-radius: 16px;
+        padding: 0;
+        gap: 0;
     }
 
     .email-prefix {
         border-bottom: 1px solid var(--border-color);
         min-width: unset;
+        padding: 1rem 1.25rem;
+        border-radius: 16px 16px 0 0;
+        font-size: 16px; /* 防止iOS缩放 */
     }
 
     .at-symbol {
@@ -652,21 +683,112 @@ body {
     .domain-selector {
         min-width: unset;
         width: 100%;
+        padding: 1rem 1.25rem;
+        border-radius: 0 0 16px 16px;
+        font-size: 16px; /* 防止iOS缩放 */
+        background: rgba(var(--primary-color-rgb), 0.08);
     }
 
+    /* 移动端按钮布局 */
     .action-buttons {
-        grid-template-columns: 1fr;
-        gap: 0.75rem;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-top: 1.5rem;
     }
 
     .main-action-btn {
-        padding: 0.875rem 1.25rem;
-        font-size: 0.95rem;
+        padding: 1rem;
+        font-size: 0.9rem;
+        border-radius: 16px;
+        min-height: 56px;
+        flex-direction: column;
+        gap: 0.5rem;
     }
 
     .main-action-btn img {
+        width: 24px;
+        height: 24px;
+        margin-bottom: 0.25rem;
+    }
+
+    /* 移动端显示按钮文字 */
+    .main-action-btn .button-text {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-align: center;
+    }
+
+    /* 收件箱区域优化 */
+    .inbox-section {
+        padding: 1.25rem;
+        border-radius: 16px;
+        margin-top: 1.5rem;
+    }
+
+    .inbox-header {
+        margin-bottom: 1.25rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .inbox-header h2 {
+        font-size: 1.1rem;
+        flex: 1;
+        min-width: 0;
+    }
+
+    /* 刷新按钮移动端优化 */
+    .refresh-btn {
+        padding: 0.75rem;
+        border-radius: 12px;
+        background: var(--surface-color);
+        border: 1px solid var(--border-color);
+    }
+
+    .refresh-btn img {
         width: 18px;
         height: 18px;
+    }
+
+    /* 邮件列表优化 */
+    .email-item {
+        border-radius: 12px;
+        margin-bottom: 0.75rem;
+        border: 1px solid var(--border-color);
+        background: var(--surface-color);
+    }
+
+    .email-item:last-child {
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .email-summary {
+        padding: 1rem;
+    }
+
+    .email-details .sender {
+        font-size: 0.9rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .email-details .subject {
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+    .time {
+        font-size: 0.8rem;
+        margin-top: 0.5rem;
+    }
+
+    .email-body {
+        padding: 0 1rem 1rem;
+    }
+
+    .email-body-iframe {
+        height: 300px;
+        border-radius: 12px;
     }
 
     .mailbox-info {
@@ -679,6 +801,30 @@ body {
 
     .mailbox-actions {
         flex-direction: column;
+    }
+
+    /* 移动端占位符优化 */
+    #inbox-placeholder {
+        padding: 2rem 1rem;
+        text-align: center;
+        font-size: 0.9rem;
+    }
+
+    /* 移动端滚动优化 */
+    body {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* 移动端点击区域优化 */
+    .email-item {
+        min-height: 60px;
+    }
+
+    .email-summary {
+        min-height: 44px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
     }
 }
 
