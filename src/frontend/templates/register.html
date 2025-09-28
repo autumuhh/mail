@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户注册 - TempMail</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/register.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="register-container">
+        <!-- 背景装饰 -->
+        <div class="background-decoration">
+            <div class="circle circle-1"></div>
+            <div class="circle circle-2"></div>
+            <div class="circle circle-3"></div>
+        </div>
+
+        <!-- 管理员登录验证 -->
+        <div id="admin-login-section" class="admin-login-section">
+            <div class="admin-login-card">
+                <div class="admin-login-header">
+                    <i class="fas fa-user-shield"></i>
+                    <h2>管理员验证</h2>
+                    <p>注册功能需要管理员权限</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="admin-password">管理员密码:</label>
+                    <input type="password" id="admin-password" placeholder="请输入管理员密码">
+                </div>
+
+                <button id="admin-login-btn" class="btn btn-primary">
+                    <i class="fas fa-sign-in-alt"></i>
+                    验证管理员身份
+                </button>
+
+                <div id="admin-login-error" class="error-message"></div>
+
+                <div class="admin-login-footer">
+                    <a href="/" class="back-link">
+                        <i class="fas fa-arrow-left"></i>
+                        返回首页
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 注册卡片 -->
+        <div id="register-card" class="register-card">
+            <!-- 头部 -->
+            <div class="register-header">
+                <div class="logo">
+                    <i class="fas fa-user-plus"></i>
+                    <h1>创建账户</h1>
+                </div>
+                <p class="subtitle">加入 TempMail 开始使用临时邮箱服务</p>
+            </div>
+
+            <!-- 注册表单 -->
+            <form class="register-form" id="register-form">
+                <div class="form-group">
+                    <label for="username">
+                        <i class="fas fa-user"></i>
+                        用户名
+                    </label>
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        placeholder="输入用户名"
+                        required
+                        autocomplete="username"
+                        minlength="3"
+                        maxlength="20"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="email">
+                        <i class="fas fa-at"></i>
+                        邮箱地址 (可选)
+                    </label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        placeholder="输入您的邮箱地址"
+                        autocomplete="email"
+                    >
+                    <small class="form-hint">用于找回账户和接收通知</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">
+                        <i class="fas fa-lock"></i>
+                        密码
+                    </label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="输入密码"
+                        required
+                        autocomplete="new-password"
+                        minlength="8"
+                    >
+                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility('password')">
+                        <i class="fas fa-eye" id="password-toggle-icon"></i>
+                    </button>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirm-password">
+                        <i class="fas fa-lock"></i>
+                        确认密码
+                    </label>
+                    <input
+                        type="password"
+                        id="confirm-password"
+                        name="confirm-password"
+                        placeholder="再次输入密码"
+                        required
+                        autocomplete="new-password"
+                    >
+                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility('confirm-password')">
+                        <i class="fas fa-eye" id="confirm-password-toggle-icon"></i>
+                    </button>
+                </div>
+
+                <!-- 邮箱创建选项 -->
+                <div class="form-group checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="create-mailbox" name="create-mailbox" checked>
+                        <span class="checkmark"></span>
+                        同时创建一个临时邮箱
+                    </label>
+                </div>
+
+                <div class="form-group checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="agree-terms" name="agree-terms" required>
+                        <span class="checkmark"></span>
+                        我同意 <a href="#" class="terms-link">服务条款</a> 和 <a href="#" class="terms-link">隐私政策</a>
+                    </label>
+                </div>
+
+                <button type="submit" class="register-btn" id="register-btn">
+                    <i class="fas fa-user-plus"></i>
+                    <span>创建账户</span>
+                    <div class="loading-spinner" style="display: none;">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                </button>
+            </form>
+
+            <!-- 注册进度 -->
+            <div class="register-progress" id="register-progress" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <p class="progress-text" id="progress-text">正在创建账户...</p>
+            </div>
+
+            <!-- 帮助信息 -->
+            <div class="help-section">
+                <div class="help-item">
+                    <i class="fas fa-info-circle"></i>
+                    <div class="help-content">
+                        <h4>账户说明</h4>
+                        <p>注册账户后，您可以管理多个临时邮箱，设置更长的保留时间。</p>
+                    </div>
+                </div>
+
+                <div class="help-item">
+                    <i class="fas fa-shield-alt"></i>
+                    <div class="help-content">
+                        <h4>隐私保护</h4>
+                        <p>我们承诺保护您的隐私，账户信息仅用于提供服务。</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底部链接 -->
+            <div class="register-footer">
+                <button id="admin-logout-btn" class="btn btn-secondary">
+                    <i class="fas fa-sign-out-alt"></i>
+                    退出管理员
+                </button>
+
+                <a href="/" class="back-link">
+                    <i class="fas fa-arrow-left"></i>
+                    返回首页
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 通知容器 -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="{{ url_for('static', filename='scripts/register.js') }}"></script>
+</body>
+</html>

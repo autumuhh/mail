@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TempMail - 邮箱管理</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/mailbox_manager.css') }}?v=2">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-envelope-open"></i>
+                    <span>TempMail</span>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item active" data-view="inbox">
+                        <i class="fas fa-inbox"></i>
+                        <span>收件箱</span>
+                        <span class="badge" id="unread-count">0</span>
+                    </li>
+                    <li class="nav-item" data-view="sent">
+                        <i class="fas fa-paper-plane"></i>
+                        <span>已发送</span>
+                    </li>
+                    <li class="nav-item" data-view="settings">
+                        <i class="fas fa-cog"></i>
+                        <span>设置</span>
+                    </li>
+                    <li class="nav-item" data-view="info">
+                        <i class="fas fa-info-circle"></i>
+                        <span>邮箱信息</span>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <button class="btn btn-logout" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>退出登录</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 顶部栏 -->
+            <header class="top-bar">
+                <div class="mailbox-info">
+                    <h1 id="mailbox-address">加载中...</h1>
+                    <p class="mailbox-status" id="mailbox-status">正在获取邮箱信息...</p>
+                </div>
+                
+                <div class="top-actions">
+                    <button class="btn btn-refresh" onclick="refreshEmails()">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>刷新</span>
+                    </button>
+                    <button class="btn btn-compose" onclick="showCompose()">
+                        <i class="fas fa-plus"></i>
+                        <span>写邮件</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- 内容视图 -->
+            <div class="content-views">
+                <!-- 收件箱视图 -->
+                <div class="view inbox-view active" id="inbox-view">
+                    <div class="view-header">
+                        <h2>
+                            <i class="fas fa-inbox"></i>
+                            收件箱
+                        </h2>
+                        <div class="view-actions">
+                            <button class="btn btn-sm" onclick="markAllRead()">
+                                <i class="fas fa-check-double"></i>
+                                全部标记已读
+                            </button>
+                            <button class="btn btn-sm" onclick="deleteSelected()">
+                                <i class="fas fa-trash"></i>
+                                删除选中
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="email-list" id="email-list">
+                        <div class="loading-placeholder">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>正在快速加载...</p>
+                            <div style="margin-top: 1rem; font-size: 0.875rem; color: var(--text-secondary);">
+                                <p>并行加载邮箱信息和邮件列表...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 邮件详情视图 -->
+                <div class="view email-detail-view" id="email-detail-view" style="display: none;">
+                    <div class="email-detail-header">
+                        <button class="btn btn-back" onclick="showInbox()">
+                            <i class="fas fa-arrow-left"></i>
+                            返回收件箱
+                        </button>
+                        <div class="email-actions">
+                            <button class="btn btn-sm" onclick="replyEmail()">
+                                <i class="fas fa-reply"></i>
+                                回复
+                            </button>
+                            <button class="btn btn-sm" onclick="forwardEmail()">
+                                <i class="fas fa-share"></i>
+                                转发
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteCurrentEmail()">
+                                <i class="fas fa-trash"></i>
+                                删除
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="email-detail-content" id="email-detail-content">
+                        <div style="display: flex; align-items: center; justify-content: center; height: 300px; color: var(--text-muted); text-align: center;">
+                            <div>
+                                <i class="fas fa-envelope-open" style="font-size: 4rem; margin-bottom: 1rem; color: var(--primary-color); opacity: 0.5;"></i>
+                                <h3 style="margin-bottom: 0.5rem; color: var(--text-secondary);">选择邮件查看详情</h3>
+                                <p>在左侧收件箱中点击邮件来查看其内容</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 设置视图 -->
+                <div class="view settings-view" id="settings-view">
+                    <div class="view-header">
+                        <h2>
+                            <i class="fas fa-cog"></i>
+                            邮箱设置
+                        </h2>
+                    </div>
+                    
+                    <div class="settings-content">
+                        <div class="setting-group">
+                            <h3>发件人白名单</h3>
+                            <p class="setting-description">只接收来自这些发件人的邮件</p>
+                            <div class="whitelist-manager">
+                                <div class="whitelist-toggle">
+                                    <label class="toggle-label">
+                                        <input type="checkbox" id="whitelist-enabled" onchange="toggleWhitelist()">
+                                        <span class="toggle-switch"></span>
+                                        启用白名单过滤
+                                    </label>
+                                    <span class="toggle-status" id="whitelist-status">已关闭</span>
+                                </div>
+                                <div class="whitelist-input" id="whitelist-input-section" style="display: none;">
+                                    <input type="email" id="new-sender" placeholder="输入邮箱地址或域名 (如: @gmail.com)">
+                                    <button class="btn btn-primary" onclick="addSender()">
+                                        <i class="fas fa-plus"></i>
+                                        添加
+                                    </button>
+                                </div>
+                                <div class="whitelist-items" id="whitelist-items">
+                                    <!-- 白名单项目将在这里动态加载 -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <h3>邮箱保留时间</h3>
+                            <p class="setting-description">邮箱将在指定天数后自动过期</p>
+                            <div class="retention-setting">
+                                <select id="retention-days">
+                                    <option value="1">1天</option>
+                                    <option value="3">3天</option>
+                                    <option value="7" selected>7天</option>
+                                    <option value="14">14天</option>
+                                    <option value="30">30天</option>
+                                </select>
+                                <button class="btn btn-primary" onclick="updateRetention()">
+                                    <i class="fas fa-save"></i>
+                                    保存
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <h3>邮箱状态</h3>
+                            <p class="setting-description">控制邮箱的开启和关闭状态</p>
+                            <div class="mailbox-status-setting">
+                                <div class="status-display">
+                                    <span class="status-label">当前状态:</span>
+                                    <span class="status-badge" id="mailbox-status-badge">
+                                        <i class="fas fa-circle"></i>
+                                        <span id="mailbox-status-text">加载中...</span>
+                                    </span>
+                                </div>
+                                <button class="btn" id="toggle-mailbox-btn" onclick="toggleMailboxStatus()">
+                                    <i class="fas fa-toggle-on"></i>
+                                    <span id="toggle-mailbox-text">关闭邮箱</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="setting-group">
+                            <h3>安全设置</h3>
+                            <p class="setting-description">管理您的邮箱访问凭证</p>
+                            <div class="security-actions">
+                                <button class="btn btn-warning" onclick="regenerateKey()">
+                                    <i class="fas fa-key"></i>
+                                    重新生成邮箱密钥
+                                </button>
+                                <button class="btn btn-info" onclick="showAccessToken()">
+                                    <i class="fas fa-eye"></i>
+                                    查看访问令牌
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 邮箱信息视图 -->
+                <div class="view info-view" id="info-view">
+                    <div class="view-header">
+                        <h2>
+                            <i class="fas fa-info-circle"></i>
+                            邮箱信息
+                        </h2>
+                    </div>
+                    
+                    <div class="info-content">
+                         <div class="info-cards">
+                             <div class="info-card primary-card">
+                                 <div class="info-icon">
+                                     <i class="fas fa-envelope"></i>
+                                 </div>
+                                 <div class="info-details">
+                                     <h3>邮箱地址</h3>
+                                     <p id="info-address" class="info-value">-</p>
+                                     <div class="info-actions">
+                                         <button class="btn btn-sm" onclick="copyAddress()">
+                                             <i class="fas fa-copy"></i>
+                                             复制地址
+                                         </button>
+                                         <button class="btn btn-sm btn-secondary" onclick="shareMailbox()">
+                                             <i class="fas fa-share"></i>
+                                             分享
+                                         </button>
+                                     </div>
+                                 </div>
+                             </div>
+
+                             <div class="info-card">
+                                 <div class="info-icon">
+                                     <i class="fas fa-calendar-plus"></i>
+                                 </div>
+                                 <div class="info-details">
+                                     <h3>创建时间</h3>
+                                     <p id="info-created" class="info-value">-</p>
+                                     <div class="info-meta">
+                                         <span class="meta-label">已使用:</span>
+                                         <span id="info-usage-time" class="meta-value">-</span>
+                                     </div>
+                                 </div>
+                             </div>
+
+                             <div class="info-card">
+                                 <div class="info-icon">
+                                     <i class="fas fa-clock"></i>
+                                 </div>
+                                 <div class="info-details">
+                                     <h3>过期时间</h3>
+                                     <p id="info-expires" class="info-value">-</p>
+                                     <div class="info-meta">
+                                         <span class="meta-label">剩余时间:</span>
+                                         <span id="info-remaining-time" class="meta-value">-</span>
+                                     </div>
+                                 </div>
+                             </div>
+
+                             <div class="info-card">
+                                 <div class="info-icon">
+                                     <i class="fas fa-chart-pie"></i>
+                                 </div>
+                                 <div class="info-details">
+                                     <h3>邮件统计</h3>
+                                     <div class="stats-grid">
+                                         <div class="stat-item">
+                                             <div class="stat-number" id="info-total-emails">0</div>
+                                             <div class="stat-label">总邮件</div>
+                                         </div>
+                                         <div class="stat-item">
+                                             <div class="stat-number" id="info-unread-emails">0</div>
+                                             <div class="stat-label">未读</div>
+                                         </div>
+                                         <div class="stat-item">
+                                             <div class="stat-number" id="info-read-emails">0</div>
+                                             <div class="stat-label">已读</div>
+                                         </div>
+                                     </div>
+                                 </div>
+                             </div>
+
+                             <div class="info-card full-width">
+                                 <div class="info-icon">
+                                     <i class="fas fa-shield-alt"></i>
+                                 </div>
+                                 <div class="info-details">
+                                     <h3>安全状态</h3>
+                                     <div class="security-status">
+                                         <div class="security-item">
+                                             <i class="fas fa-lock"></i>
+                                             <span>访问令牌已加密存储</span>
+                                         </div>
+                                         <div class="security-item">
+                                             <i class="fas fa-user-shield"></i>
+                                             <span>IP白名单保护</span>
+                                         </div>
+                                         <div class="security-item">
+                                             <i class="fas fa-history"></i>
+                                             <span>操作日志记录</span>
+                                         </div>
+                                     </div>
+                                 </div>
+                             </div>
+                         </div>
+
+                         <div class="qr-section">
+                             <div class="qr-header">
+                                 <h3><i class="fas fa-qrcode"></i> 邮箱二维码</h3>
+                                 <p>扫描二维码或使用链接快速访问此邮箱</p>
+                             </div>
+                             <div class="qr-content">
+                                 <div class="qr-code" id="qr-code">
+                                     <!-- 二维码将在这里生成 -->
+                                 </div>
+                                 <div class="qr-info">
+                                     <div class="qr-url" id="qr-url" style="word-break: break-all; font-family: monospace; font-size: 0.875rem; color: var(--text-secondary);">
+                                         -
+                                     </div>
+                                     <button class="btn btn-sm" onclick="copyQRUrl()">
+                                         <i class="fas fa-copy"></i>
+                                         复制链接
+                                     </button>
+                                 </div>
+                             </div>
+                         </div>
+                     </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 模态框 -->
+    <div class="modal" id="compose-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>写邮件</h3>
+                <button class="modal-close" onclick="closeCompose()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="compose-form">
+                    <div class="form-group">
+                        <label for="compose-to">收件人</label>
+                        <input type="email" id="compose-to" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="compose-subject">主题</label>
+                        <input type="text" id="compose-subject" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="compose-body">内容</label>
+                        <textarea id="compose-body" rows="10" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeCompose()">取消</button>
+                <button class="btn btn-primary" onclick="sendEmail()">
+                    <i class="fas fa-paper-plane"></i>
+                    发送
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- 访问令牌模态框 -->
+    <div class="modal" id="token-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>访问令牌</h3>
+                <button class="modal-close" onclick="closeTokenModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="token-display-section">
+                    <label>访问令牌:</label>
+                    <div class="token-display-container">
+                        <span id="token-display" class="token-display-text">-</span>
+                        <button id="token-toggle-visibility" class="btn btn-sm" onclick="toggleTokenVisibility()" title="显示令牌">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="token-input-section" style="display: none;">
+                    <input type="password" id="token-input" readonly>
+                </div>
+                <div class="token-actions">
+                    <button class="btn btn-primary" onclick="copyToken()">
+                        <i class="fas fa-copy"></i>
+                        复制令牌
+                    </button>
+                    <button class="btn btn-secondary" onclick="closeTokenModal()">关闭</button>
+                </div>
+                <div class="token-info">
+                    <p><i class="fas fa-info-circle"></i> 请妥善保管访问令牌，不要与他人分享</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='scripts/mailbox_manager.js') }}?v=2"></script>
+</body>
+</html>

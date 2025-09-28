@@ -30,8 +30,39 @@
                 <input type="password" id="admin-password" placeholder="请输入管理员密码">
             </div>
             <button id="login-btn" class="btn btn-primary">登录</button>
+            <button id="show-register-btn" class="btn btn-secondary">注册新用户</button>
             <div id="login-error" class="error-message"></div>
         </section>
+
+        <!-- Register Section -->
+        <section id="register-section" class="admin-panel" style="display: none;">
+            <h2>用户注册</h2>
+            <div class="form-group">
+                <label for="register-username">用户名:</label>
+                <input type="text" id="register-username" placeholder="请输入用户名">
+            </div>
+            <div class="form-group">
+                <label for="register-email">邮箱:</label>
+                <input type="email" id="register-email" placeholder="请输入邮箱地址">
+            </div>
+            <div class="form-group">
+                <label for="register-password">密码:</label>
+                <input type="password" id="register-password" placeholder="请输入密码">
+            </div>
+            <div class="form-group">
+                <label for="register-confirm-password">确认密码:</label>
+                <input type="password" id="register-confirm-password" placeholder="请再次输入密码">
+            </div>
+            <div class="form-group">
+                <label for="register-invite-code">邀请码:</label>
+                <input type="text" id="register-invite-code" placeholder="请输入邀请码">
+            </div>
+            <button id="register-btn" class="btn btn-primary">注册</button>
+            <button id="back-to-login-btn" class="btn btn-secondary">返回登录</button>
+            <div id="register-error" class="error-message"></div>
+            <div id="register-success" class="success-message" style="display: none;"></div>
+        </section>
+
         <!-- Admin Panel -->
         <section id="admin-panel" class="admin-panel" style="display: none;">
             <div class="panel-header">

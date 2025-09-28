@@ -942,8 +942,89 @@ body {
     transition: var(--theme-transition);
 }
 
-/* 移动端主题切换按钮 */
+/* 顶部按钮容器 */
+.top-buttons {
+    position: fixed;
+    top: 2rem;
+    right: 6.5rem; /* 给主题切换按钮留出更多空间 */
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem; /* 增加按钮之间的间距 */
+}
+
+/* 登录按钮样式 */
+.login-btn-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, var(--surface-color), var(--bg-color));
+    color: var(--text-color);
+    text-decoration: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.login-btn-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s;
+}
+
+.login-btn-header:hover::before {
+    left: 100%;
+}
+
+.login-btn-header:hover {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover-color));
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(var(--primary-color-rgb), 0.3);
+    border-color: var(--primary-color);
+}
+
+.login-btn-header i {
+    font-size: 16px;
+    transition: transform 0.3s ease;
+}
+
+.login-btn-header:hover i {
+    transform: scale(1.1);
+}
+
+/* 浅色主题下的登录按钮 */
+[data-theme="light"] .login-btn-header {
+    background: linear-gradient(135deg, var(--surface-color), #f8fafc);
+    border-color: var(--border-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .login-btn-header:hover {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover-color));
+    color: white;
+    box-shadow: 0 8px 25px rgba(var(--primary-color-rgb), 0.2);
+}
+
+/* 移动端顶部按钮 */
 @media (max-width: 768px) {
+    .top-buttons {
+        top: 1rem;
+        right: 5.5rem; /* 给主题切换按钮留出更多空间 */
+        gap: 1rem; /* 增加按钮之间的间距 */
+    }
+
     .theme-toggle {
         top: 1rem;
         right: 1rem;
@@ -960,6 +1041,15 @@ body {
         box-shadow: 0 4px 16px rgba(var(--primary-color-rgb), 0.5);
     }
 
+    .login-btn-header {
+        padding: 10px 16px;
+        font-size: 13px;
+    }
+
+    .login-btn-header i {
+        font-size: 14px;
+    }
+
     /* 浅色主题移动端 */
     [data-theme="light"] .theme-toggle {
         box-shadow: 0 3px 12px rgba(var(--primary-color-rgb), 0.15);
@@ -969,3 +1059,103 @@ body {
         box-shadow: 0 4px 16px rgba(var(--primary-color-rgb), 0.25);
     }
 }
+
+/* 底部管理链接 */
+.footer-links {
+    margin-top: 2rem;
+    padding: 1.5rem 0;
+    border-top: 1px solid var(--border-color);
+    animation: fadeIn 1s ease-in-out;
+}
+
+.admin-links {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.admin-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, var(--surface-color), var(--bg-color));
+    color: var(--text-color);
+    text-decoration: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.admin-link::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s;
+}
+
+.admin-link:hover::before {
+    left: 100%;
+}
+
+.admin-link:hover {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover-color));
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(var(--primary-color-rgb), 0.3);
+    border-color: var(--primary-color);
+}
+
+.admin-link i {
+    font-size: 16px;
+    transition: transform 0.3s ease;
+}
+
+.admin-link:hover i {
+    transform: scale(1.1);
+}
+
+/* 浅色主题下的管理链接 */
+[data-theme="light"] .admin-link {
+    background: linear-gradient(135deg, var(--surface-color), #f8fafc);
+    border-color: var(--border-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .admin-link:hover {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover-color));
+    color: white;
+    box-shadow: 0 8px 25px rgba(var(--primary-color-rgb), 0.2);
+}
+
+/* 移动端管理链接 */
+@media (max-width: 768px) {
+    .footer-links {
+        margin-top: 1.5rem;
+        padding: 1rem 0;
+    }
+
+    .admin-links {
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .admin-link {
+        width: 200px;
+        justify-content: center;
+        padding: 14px 20px;
+        font-size: 15px;
+    }
+}
+

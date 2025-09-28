@@ -1,0 +1,59 @@
+{
+  "mailbox": {
+    "id": "d0451500-7e3f-4939-b6aa-6ea79c29f733",
+    "address": "uitestb87e5b4f@localhost",
+    "created_at": 1759082701,
+    "expires_at": 1759687501,
+    "retention_days": 7,
+    "sender_whitelist": [
+      "@gmail.com",
+      "@outlook.com"
+    ],
+    "whitelist_enabled": false,
+    "access_token": "1a03f2b8-efaa-4349-a386-e9c112d5155b",
+    "mailbox_key": "e0657f14-739c-45ef-b23f-c0718ad306d6",
+    "is_active": true
+  },
+  "emails": [
+    {
+      "id": "0e7f4a88-5215-427e-8318-00a9145d0801",
+      "From": "admin@localhost",
+      "To": "uitestb87e5b4f@localhost",
+      "Subject": "重要通知：邮箱即将过期",
+      "Body": "您的临时邮箱即将在7天后过期，请及时处理相关事务。\n\n如需延长使用时间，请联系管理员。",
+      "ContentType": "Text",
+      "Timestamp": 1759081801,
+      "Sent": "",
+      "is_read": false
+    },
+    {
+      "id": "9008019e-abd1-4201-8849-91bf028fba83",
+      "From": "noreply@outlook.com",
+      "To": "uitestb87e5b4f@localhost",
+      "Subject": "系统通知",
+      "Body": "<html><body><h2>HTML邮件测试</h2><p>这是一封<strong>HTML格式</strong>的邮件。</p><ul><li>支持HTML标签</li><li>支持富文本显示</li></ul></body></html>",
+      "ContentType": "Text",
+      "Timestamp": 1759080901,
+      "Sent": "",
+      "is_read": false
+    },
+    {
+      "id": "54a26cc9-34cb-4d2a-9401-d3f25fb4ae5e",
+      "From": "test1@gmail.com",
+      "To": "uitestb87e5b4f@localhost",
+      "Subject": "欢迎使用TempMail",
+      "Body": "这是一封测试邮件，用于验证邮箱管理界面功能。\n\n邮件内容包含多行文本，\n用于测试邮件显示效果。",
+      "ContentType": "Text",
+      "Timestamp": 1759079101,
+      "Sent": "",
+      "is_read": false
+    }
+  ],
+  "access_info": {
+    "邮箱地址": "uitestb87e5b4f@localhost",
+    "邮箱密钥": "e0657f14-739c-45ef-b23f-c0718ad306d6",
+    "访问令牌": "1a03f2b8-efaa-4349-a386-e9c112d5155b",
+    "管理页面": "http://localhost:5000/mailbox?address=uitestb87e5b4f@localhost&token=1a03f2b8-efaa-4349-a386-e9c112d5155b"
+  },
+  "test_time": 1759082701.5284622
+}

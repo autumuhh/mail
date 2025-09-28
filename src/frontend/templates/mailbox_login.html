@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>邮箱登录 - TempMail</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/mailbox_login.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="login-container">
+        <!-- 背景装饰 -->
+        <div class="background-decoration">
+            <div class="circle circle-1"></div>
+            <div class="circle circle-2"></div>
+            <div class="circle circle-3"></div>
+        </div>
+        
+        <!-- 登录卡片 -->
+        <div class="login-card">
+            <!-- 头部 -->
+            <div class="login-header">
+                <div class="logo">
+                    <i class="fas fa-envelope"></i>
+                    <h1>TempMail</h1>
+                </div>
+                <p class="subtitle">访问您的临时邮箱</p>
+            </div>
+            
+            <!-- 登录表单 -->
+            <form class="login-form" id="login-form">
+                <div class="form-group">
+                    <label for="mailbox-address">
+                        <i class="fas fa-at"></i>
+                        邮箱地址
+                    </label>
+                    <input 
+                        type="email" 
+                        id="mailbox-address" 
+                        name="address"
+                        placeholder="输入您的邮箱地址"
+                        required
+                        autocomplete="email"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="mailbox-key">
+                        <i class="fas fa-key"></i>
+                        邮箱密钥
+                    </label>
+                    <input 
+                        type="password" 
+                        id="mailbox-key" 
+                        name="key"
+                        placeholder="输入您的邮箱密钥"
+                        required
+                        autocomplete="current-password"
+                    >
+                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility()">
+                        <i class="fas fa-eye" id="password-toggle-icon"></i>
+                    </button>
+                </div>
+                
+                <button type="submit" class="login-btn" id="login-btn">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>访问邮箱</span>
+                    <div class="loading-spinner" style="display: none;">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                </button>
+            </form>
+            
+            <!-- 帮助信息 -->
+            <div class="help-section">
+                <div class="help-item">
+                    <i class="fas fa-question-circle"></i>
+                    <div class="help-content">
+                        <h4>如何获取邮箱密钥？</h4>
+                        <p>邮箱密钥在创建邮箱时生成，请妥善保存。</p>
+                    </div>
+                </div>
+                
+                <div class="help-item">
+                    <i class="fas fa-shield-alt"></i>
+                    <div class="help-content">
+                        <h4>安全提示</h4>
+                        <p>请不要在公共设备上保存您的邮箱密钥。</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 底部链接 -->
+            <div class="login-footer">
+                <a href="/" class="back-link">
+                    <i class="fas fa-arrow-left"></i>
+                    返回首页
+                </a>
+                
+                <a href="/mailbox/demo" class="demo-link">
+                    <i class="fas fa-play"></i>
+                    查看演示
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast 通知容器 -->
+    <div class="toast-container" id="toast-container"></div>
+    
+    <script src="{{ url_for('static', filename='scripts/mailbox_login.js') }}"></script>
+</body>
+</html>

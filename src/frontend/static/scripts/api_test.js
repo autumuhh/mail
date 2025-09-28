@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
         loginBtn.textContent = '登录中...';
 
         try {
-            const response = await fetch('/admin_login', {
+            const response = await fetch('/api/admin_login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function() {
             createMailboxBtn.disabled = true;
             createMailboxBtn.textContent = '创建中...';
 
-            const response = await fetch('/create_mailbox', {
+            const response = await fetch('/api/create_mailbox', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -208,7 +208,7 @@ document.addEventListener('DOMContentLoaded', function() {
             sendEmailBtn.textContent = '发送中...';
 
             // 这里调用后端发送邮件的API（需要实现）
-            const response = await fetch('/send_test_email', {
+            const response = await fetch('/api/send_test_email', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -248,7 +248,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         try {
-            const response = await fetch(`/mailbox_info?address=${encodeURIComponent(email)}`);
+            const response = await fetch(`/api/mailbox_info?address=${encodeURIComponent(email)}`);
             const result = await response.json();
 
             if (response.ok) {
@@ -310,7 +310,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         try {
-            const response = await fetch(`/get_inbox?address=${encodeURIComponent(email)}`);
+            const response = await fetch(`/api/get_inbox?address=${encodeURIComponent(email)}`);
             const emails = await response.json();
 
             if (response.ok) {
@@ -378,7 +378,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         try {
-            const response = await fetch(`/get_email?address=${encodeURIComponent(address)}&id=${encodeURIComponent(emailId)}`);
+            const response = await fetch(`/api/get_email?address=${encodeURIComponent(address)}&id=${encodeURIComponent(emailId)}`);
             console.log('[DEBUG] Email detail response status:', response.status);
 
             const email = await response.json();

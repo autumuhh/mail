@@ -1,13 +1,26 @@
 document.addEventListener("DOMContentLoaded", () => {
     // Elements
     const loginSection = document.getElementById('login-section');
+    const registerSection = document.getElementById('register-section');
     const adminPanel = document.getElementById('admin-panel');
     const quickAdd = document.getElementById('quick-add');
     const quickActions = document.getElementById('quick-actions');
     const loginBtn = document.getElementById('login-btn');
+    const showRegisterBtn = document.getElementById('show-register-btn');
+    const backToLoginBtn = document.getElementById('back-to-login-btn');
+    const registerBtn = document.getElementById('register-btn');
     const adminPassword = document.getElementById('admin-password');
     const loginError = document.getElementById('login-error');
+    const registerError = document.getElementById('register-error');
+    const registerSuccess = document.getElementById('register-success');
     const logoutBtn = document.getElementById('logout-btn');
+
+    // Register form elements
+    const registerUsername = document.getElementById('register-username');
+    const registerEmail = document.getElementById('register-email');
+    const registerPassword = document.getElementById('register-password');
+    const registerConfirmPassword = document.getElementById('register-confirm-password');
+    const registerInviteCode = document.getElementById('register-invite-code');
     
     const whitelistEnabled = document.getElementById('whitelist-enabled');
     const whitelistIps = document.getElementById('whitelist-ips');
@@ -37,8 +50,28 @@ document.addEventListener("DOMContentLoaded", () => {
     // Event Listeners
     loginBtn.addEventListener('click', login);
     logoutBtn.addEventListener('click', logout);
+    showRegisterBtn.addEventListener('click', showRegisterForm);
+    backToLoginBtn.addEventListener('click', showLoginForm);
+    registerBtn.addEventListener('click', register);
+
     adminPassword.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') login();
+    });
+
+    registerUsername.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') register();
+    });
+    registerEmail.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') register();
+    });
+    registerPassword.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') register();
+    });
+    registerConfirmPassword.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') register();
+    });
+    registerInviteCode.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') register();
     });
 
     testIpInput.addEventListener('keypress', (e) => {
@@ -98,7 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
         loginError.style.display = 'none';
 
         try {
-            const response = await fetch('/admin/whitelist', {
+            const response = await fetch('/api/admin/whitelist', {
                 headers: {
                     'Authorization': password
                 }
@@ -159,7 +192,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         try {
-            const response = await fetch('/admin/whitelist', {
+            const response = await fetch('/api/admin/whitelist', {
                 headers: {
                     'Authorization': currentPassword
                 }
@@ -203,7 +236,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
         try {
-            const response = await fetch('/admin/whitelist', {
+            const response = await fetch('/api/admin/whitelist', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -246,7 +279,7 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         try {
-            const response = await fetch('/admin/test_ip', {
+            const response = await fetch('/api/admin/test_ip', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -312,9 +345,108 @@ document.addEventListener("DOMContentLoaded", () => {
         testResult.textContent = message;
         testResult.className = `test-result ${type}`;
         testResult.style.display = 'block';
-        
+
         setTimeout(() => {
             testResult.style.display = 'none';
         }, 5000);
+    }
+
+    // Register functions
+    function showRegisterForm() {
+        // 跳转到注册页面
+        window.location.href = '/register';
+    }
+
+    function showLoginForm() {
+        registerSection.style.display = 'none';
+        loginSection.style.display = 'block';
+        adminPanel.style.display = 'none';
+        quickAdd.style.display = 'none';
+        quickActions.style.display = 'none';
+        hideMessages();
+    }
+
+    function hideMessages() {
+        if (registerError) registerError.style.display = 'none';
+        if (registerSuccess) registerSuccess.style.display = 'none';
+        if (loginError) loginError.style.display = 'none';
+    }
+
+    async function register() {
+        const username = registerUsername.value.trim();
+        const email = registerEmail.value.trim();
+        const password = registerPassword.value;
+        const confirmPassword = registerConfirmPassword.value;
+        const inviteCode = registerInviteCode.value.trim();
+
+        // Validation
+        if (!username) {
+            showRegisterError('请输入用户名');
+            return;
+        }
+        if (!email) {
+            showRegisterError('请输入邮箱地址');
+            return;
+        }
+        if (!password) {
+            showRegisterError('请输入密码');
+            return;
+        }
+        if (password !== confirmPassword) {
+            showRegisterError('两次输入的密码不一致');
+            return;
+        }
+        if (!inviteCode) {
+            showRegisterError('请输入邀请码');
+            return;
+        }
+
+        // Disable register button during operation
+        registerBtn.disabled = true;
+        registerBtn.textContent = '注册中...';
+        hideMessages();
+
+        try {
+            const response = await fetch('/api/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    username,
+                    email,
+                    password,
+                    invite_code: inviteCode
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showRegisterSuccess('注册成功！请返回登录页面使用新账号登录。');
+            } else {
+                showRegisterError(data.error || '注册失败');
+            }
+        } catch (error) {
+            showRegisterError('连接错误，请稍后重试');
+        } finally {
+            // Re-enable register button
+            registerBtn.disabled = false;
+            registerBtn.textContent = '注册';
+        }
+    }
+
+    function showRegisterError(message) {
+        if (registerError) {
+            registerError.textContent = message;
+            registerError.style.display = 'block';
+        }
+    }
+
+    function showRegisterSuccess(message) {
+        if (registerSuccess) {
+            registerSuccess.textContent = message;
+            registerSuccess.style.display = 'block';
+        }
     }
 });

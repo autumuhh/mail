@@ -7,7 +7,7 @@ async function getInbox(address, password = null) {
     }
 
     console.log(`[DEBUG] Fetching inbox for: ${address}`);
-    const response = await fetch(`/get_inbox?address=${address}`, { headers });
+    const response = await fetch(`/api/get_inbox?address=${address}`, { headers });
     console.log(`[DEBUG] Response status: ${response.status}`);
 
     if (response.status === 401) {
@@ -20,21 +20,44 @@ async function getInbox(address, password = null) {
         return { error: "Mailbox expired" };
     }
 
-    const result = await response.json();
-    console.log(`[DEBUG] Inbox result:`, result);
-    return result;
+    try {
+        const result = await response.json();
+        console.log(`[DEBUG] Inbox result:`, result);
+        return result;
+    } catch (error) {
+        console.error(`[DEBUG] JSON parse error:`, error);
+        return { error: "Invalid response format" };
+    }
 }
 
 // get a random email from the server
 async function getRandomAddress() {
-    const response = await fetch('/get_random_address');
-    
-    return await response.json();
+    try {
+        const response = await fetch('/api/get_random_address');
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('获取随机地址失败:', error);
+        throw error;
+    }
 }
 
 // get a domain from the server
 async function getDomain() {
-    const response = await fetch('/get_domain');
-    
-    return await response.json();
+    try {
+        const response = await fetch('/api/get_domain');
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('获取域名失败:', error);
+        throw error;
+    }
 }

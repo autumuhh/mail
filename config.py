@@ -12,6 +12,10 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", 2525))  # 使用非特权端口
 INBOX_FILE_NAME = os.getenv("INBOX_FILE_NAME", "inbox.json")
 MAX_INBOX_SIZE = int(os.getenv("MAX_INBOX_SIZE", 100000000))
 
+# Database settings
+DATABASE_PATH = os.getenv("DATABASE_PATH", "data/mailbox.db")
+USE_DATABASE = os.getenv("USE_DATABASE", "true").lower() == "true"
+
 PROTECTED_ADDRESSES = os.getenv("PROTECTED_ADDRESSES", "^admin.*")
 
 PASSWORD = os.getenv("PASSWORD", "password")

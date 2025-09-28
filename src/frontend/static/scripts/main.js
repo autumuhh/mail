@@ -83,47 +83,62 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // generate random email and assign it as the current email
     async function generateRandomEmail() {
-        const newAddress = await getRandomAddress();
+        try {
+            const newAddress = await getRandomAddress();
+            console.log('获取随机地址:', newAddress);
 
-        // 先更新域名选择器
-        if (newAddress.available_domains) {
-            updateDomainSelector(newAddress.available_domains);
+            // 先更新域名选择器
+            if (newAddress.available_domains) {
+                updateDomainSelector(newAddress.available_domains);
+            }
+
+            // 创建邮箱（确保邮箱在后端存在）
+            if (newAddress.address) {
+                await createMailboxIfNotExists(newAddress.address);
+            }
+
+            // 再更新邮箱地址
+            updateEmail(newAddress.address);
+        } catch (error) {
+            console.error('生成随机邮箱失败:', error);
+            showToast('Failed to generate random email');
         }
-
-        // 创建邮箱（确保邮箱在后端存在）
-        if (newAddress.address) {
-            await createMailboxIfNotExists(newAddress.address);
-        }
-
-        // 再更新邮箱地址
-        updateEmail(newAddress.address);
     }
 
     // 创建邮箱（如果不存在）
     async function createMailboxIfNotExists(address) {
         try {
+            console.log('检查邮箱是否存在:', address);
+
             // 先检查邮箱是否存在
-            const checkResponse = await fetch(`/mailbox_info?address=${encodeURIComponent(address)}`);
+            const checkResponse = await fetch(`/api/mailbox_info_v2?address=${encodeURIComponent(address)}`);
 
             if (checkResponse.status === 404) {
                 // 邮箱不存在，创建它
-                const createResponse = await fetch('/create_mailbox', {
+                console.log('邮箱不存在，准备创建:', address);
+                const createResponse = await fetch('/api/create_mailbox_v2', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        address: address.split('@')[0], // 只传用户名部分
+                        address: address,
                         sender_whitelist: [], // 空白名单，接收所有邮件
-                        retention_days: 30
+                        retention_days: 7
                     })
                 });
 
                 if (createResponse.ok) {
-                    console.log(`邮箱 ${address} 创建成功`);
+                    const createData = await createResponse.json();
+                    console.log('邮箱创建成功:', createData);
                 } else {
-                    console.warn(`邮箱 ${address} 创建失败`);
+                    const errorText = await createResponse.text();
+                    console.warn(`邮箱 ${address} 创建失败:`, createResponse.status, errorText);
                 }
+            } else if (checkResponse.ok) {
+                console.log('邮箱已存在');
+            } else {
+                console.warn('检查邮箱失败:', checkResponse.status);
             }
         } catch (error) {
             console.warn('检查/创建邮箱失败:', error);
@@ -282,9 +297,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         try {
-            const response = await fetch(`/mailbox_info?address=${currentEmail}`);
+            console.log('获取邮箱管理信息:', currentEmail);
+            const response = await fetch(`/api/mailbox_info_v2?address=${currentEmail}`);
             if (response.ok) {
                 const data = await response.json();
+                console.log('邮箱管理信息:', data);
 
                 // Update mailbox info
                 createdTime.textContent = data.created_at ? formatTime(data.created_at) : 'Unknown';
@@ -345,7 +362,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         try {
-            const response = await fetch(`/mailbox_whitelist?address=${currentEmail}`, {
+            const response = await fetch(`/api/mailbox_whitelist?address=${currentEmail}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -375,7 +392,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         try {
-            const response = await fetch(`/mailbox_whitelist?address=${currentEmail}`, {
+            const response = await fetch(`/api/mailbox_whitelist?address=${currentEmail}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -404,7 +421,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         try {
-            const response = await fetch(`/extend_mailbox?address=${currentEmail}`, {
+            const response = await fetch(`/api/extend_mailbox?address=${currentEmail}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -490,3 +507,5 @@ document.addEventListener("DOMContentLoaded", () => {
     // automatic inbox refreshing
     setInterval(fetchInbox, 5000);
 });
+
+

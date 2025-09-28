@@ -1,1 +1,75 @@
-{}
+{
+    "gl6n1isx4l9mjvx5@aegis.sch.quest": {
+        "created_at": 1758963176,
+        "expires_at": 1761555176,
+        "sender_whitelist": [],
+        "emails": []
+    },
+    "65hf3530gkgsoac3@aegis.sch.quest": {
+        "created_at": 1758966274,
+        "expires_at": 1761558274,
+        "sender_whitelist": [],
+        "emails": []
+    },
+    "zasopsam8c55q8d5@aegis.sch.quest": {
+        "created_at": 1758966284,
+        "expires_at": 1761558284,
+        "sender_whitelist": [],
+        "emails": []
+    },
+    "kuz6i78v1kafbr7p@aegis.sch.quest": {
+        "created_at": 1758966295,
+        "expires_at": 1761558295,
+        "sender_whitelist": [],
+        "emails": []
+    },
+    "wmbx417tbdg7owdj@aegis.sch.quest": {
+        "created_at": 1758967047,
+        "expires_at": 1761559047,
+        "sender_whitelist": [],
+        "emails": []
+    },
+    "2fsiefqjeoj5ig08@aegis.sch.quest": {
+        "created_at": 1758967235,
+        "expires_at": 1761559235,
+        "sender_whitelist": [],
+        "emails": []
+    },
+    "uitest20d8739a@localhost": {
+        "created_at": 1759064934,
+        "expires_at": 1761656934,
+        "sender_whitelist": [],
+        "emails": [
+            {
+                "id": "14c8f0bf-a9ef-4d7a-9075-c5ea94992660",
+                "From": "test@example.com",
+                "To": "uitest20d8739a@localhost",
+                "Subject": "=?utf-8?b?QVBJ5rWL6K+V6YKu5Lu2?=",
+                "Timestamp": 1759064963,
+                "Sent": "Sep 28 at 13:09:23",
+                "Body": "\u8fd9\u662f\u901a\u8fc7API\u6d4b\u8bd5\u53d1\u9001\u7684\u90ae\u4ef6",
+                "ContentType": "Text"
+            },
+            {
+                "id": "3736864a-c27f-410f-b6f0-071d33f02e4a",
+                "From": "test@example.com",
+                "To": "uitest20d8739a@localhost",
+                "Subject": "=?utf-8?b?QVBJ5rWL6K+V6YKu5Lu2?=",
+                "Timestamp": 1759064946,
+                "Sent": "Sep 28 at 13:09:06",
+                "Body": "\u8fd9\u662f\u901a\u8fc7API\u6d4b\u8bd5\u53d1\u9001\u7684\u90ae\u4ef6",
+                "ContentType": "Text"
+            },
+            {
+                "id": "42058aa0-67bd-4bfc-a5d3-9527aae54114",
+                "From": "test@example.com",
+                "To": "uitest20d8739a@localhost",
+                "Subject": "=?utf-8?b?QVBJ5rWL6K+V6YKu5Lu2?=",
+                "Timestamp": 1759064934,
+                "Sent": "Sep 28 at 13:08:54",
+                "Body": "\u8fd9\u662f\u901a\u8fc7API\u6d4b\u8bd5\u53d1\u9001\u7684\u90ae\u4ef6",
+                "ContentType": "Text"
+            }
+        ]
+    }
+}

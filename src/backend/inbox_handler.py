@@ -175,18 +175,29 @@ def is_ip_whitelisted(client_ip: str) -> bool:
 
 # Adds a new email to the inbox
 def recv_email(email_json: dict):
+    recipient = email_json.get('To')
+    sender = email_json.get('From')
+
+    if not recipient:
+        return "No recipient specified"
+
+    # Import database handler if database is enabled
+    if config.USE_DATABASE:
+        try:
+            from . import db_inbox_handler
+            return db_inbox_handler.recv_email(email_json)
+        except ImportError:
+            print("Warning: Database enabled but db_inbox_handler not available, falling back to JSON")
+        except Exception as e:
+            print(f"Error using database handler: {e}, falling back to JSON")
+
+    # Fallback to JSON storage
     check_inbox_size()
     inbox = read_inbox()
 
     # Clean expired emails and mailboxes first
     inbox = clean_expired_emails(inbox)
     inbox = clean_expired_mailboxes(inbox)
-
-    recipient = email_json.get('To')
-    sender = email_json.get('From')
-
-    if not recipient:
-        return "No recipient specified"
 
     # Create or get mailbox
     mailbox_data = create_or_get_mailbox(recipient)

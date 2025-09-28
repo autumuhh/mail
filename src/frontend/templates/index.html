@@ -5,14 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TempMail</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='resources/favicon.ico') }}">
 </head>
 <body>
-    <!-- 主题切换按钮 -->
-    <button class="theme-toggle" id="theme-toggle" title="切换主题">
-        <span class="icon sun-icon">☀️</span>
-        <span class="icon moon-icon">🌙</span>
-    </button>
+    <!-- 主题切换和登录按钮 -->
+    <div class="top-buttons">
+        <button class="theme-toggle" id="theme-toggle" title="切换主题">
+            <span class="icon sun-icon">☀️</span>
+            <span class="icon moon-icon">🌙</span>
+        </button>
+        <a href="/login" class="login-btn-header" title="用户登录">
+            <i class="fas fa-sign-in-alt"></i>
+            <span>登录</span>
+        </a>
+    </div>
 
     <div class="container">
         <header class="header">
@@ -103,6 +110,13 @@
                 <p>Your emails will appear here. Refresh to check for new mail.</p>
             </div>
         </main>
+
+        <!-- 管理链接 -->
+        <footer class="footer-links">
+            <div class="admin-links">
+                <!-- 登录链接已移动到顶部 -->
+            </div>
+        </footer>
     </div>
     <script src="{{ url_for('static', filename='scripts/theme.js') }}"></script>
     <script src="{{ url_for('static', filename='scripts/main.js') }}"></script>
