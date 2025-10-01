@@ -9,12 +9,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <!-- 主题切换按钮 -->
-    <button class="theme-toggle" id="theme-toggle" title="切换主题" onclick="toggleTheme()">
-        <span class="icon sun-icon">☀️</span>
-        <span class="icon moon-icon">🌙</span>
-    </button>
-
     <div class="admin-container">
         <!-- 侧边栏 -->
         <aside class="sidebar">
@@ -51,6 +45,11 @@
             </nav>
             
             <div class="sidebar-footer">
+                <button class="btn btn-theme-toggle" onclick="toggleTheme()" title="切换主题">
+                    <span class="icon sun-icon">☀️</span>
+                    <span class="icon moon-icon">🌙</span>
+                    <span class="theme-text">切换主题</span>
+                </button>
                 <button class="btn btn-logout" onclick="logout()">
                     <i class="fas fa-sign-out-alt"></i>
                     <span>退出登录</span>
