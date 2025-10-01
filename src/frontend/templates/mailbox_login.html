@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>邮箱登录 - TempMail</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>📧</text></svg>">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/mailbox_login.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -27,39 +28,88 @@
                 <p class="subtitle">访问您的临时邮箱</p>
             </div>
             
+            <!-- 登录方式选择 -->
+            <div class="login-mode-selector">
+                <div class="mode-buttons">
+                    <button type="button" class="mode-btn active" data-mode="mailbox">
+                        <i class="fas fa-envelope"></i>
+                        邮箱密钥登录
+                    </button>
+                    <button type="button" class="mode-btn" data-mode="user">
+                        <i class="fas fa-user"></i>
+                        
+                    </button>
+                </div>
+            </div>
+
             <!-- 登录表单 -->
             <form class="login-form" id="login-form">
-                <div class="form-group">
-                    <label for="mailbox-address">
-                        <i class="fas fa-at"></i>
-                        邮箱地址
-                    </label>
-                    <input 
-                        type="email" 
-                        id="mailbox-address" 
-                        name="address"
-                        placeholder="输入您的邮箱地址"
-                        required
-                        autocomplete="email"
-                    >
+                <!-- 邮箱密钥登录模式 -->
+                <div class="login-mode mailbox-mode active">
+                    <div class="form-group">
+                        <label for="mailbox-address">
+                            <i class="fas fa-at"></i>
+                            邮箱地址
+                        </label>
+                        <input
+                            type="email"
+                            id="mailbox-address"
+                            name="address"
+                            placeholder="输入您的邮箱地址"
+                            autocomplete="email"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mailbox-key">
+                            <i class="fas fa-key"></i>
+                            邮箱密钥
+                        </label>
+                        <input
+                            type="password"
+                            id="mailbox-key"
+                            name="key"
+                            placeholder="输入您的邮箱密钥"
+                            autocomplete="current-password"
+                        >
+                        <button type="button" class="toggle-password" onclick="togglePasswordVisibility('mailbox-key')">
+                            <i class="fas fa-eye" id="mailbox-password-toggle-icon"></i>
+                        </button>
+                    </div>
                 </div>
-                
-                <div class="form-group">
-                    <label for="mailbox-key">
-                        <i class="fas fa-key"></i>
-                        邮箱密钥
-                    </label>
-                    <input 
-                        type="password" 
-                        id="mailbox-key" 
-                        name="key"
-                        placeholder="输入您的邮箱密钥"
-                        required
-                        autocomplete="current-password"
-                    >
-                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility()">
-                        <i class="fas fa-eye" id="password-toggle-icon"></i>
-                    </button>
+
+                <!-- 用户密码登录模式 -->
+                <div class="login-mode user-mode">
+                    <div class="form-group">
+                        <label for="username">
+                            <i class="fas fa-user"></i>
+                            用户名
+                        </label>
+                        <input
+                            type="text"
+                            id="username"
+                            name="username"
+                            placeholder="输入您的用户名"
+                            autocomplete="username"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="user-password">
+                            <i class="fas fa-lock"></i>
+                            密码
+                        </label>
+                        <input
+                            type="password"
+                            id="user-password"
+                            name="password"
+                            placeholder="输入您的密码"
+                            autocomplete="current-password"
+                        >
+                        <button type="button" class="toggle-password" onclick="togglePasswordVisibility('user-password')">
+                            <i class="fas fa-eye" id="user-password-toggle-icon"></i>
+                        </button>
+                    </div>
                 </div>
                 
                 <button type="submit" class="login-btn" id="login-btn">
@@ -97,7 +147,7 @@
                     返回首页
                 </a>
                 
-                <a href="/mailbox/demo" class="demo-link">
+                <a href="/api/mailbox/demo" class="demo-link">
                     <i class="fas fa-play"></i>
                     查看演示
                 </a>

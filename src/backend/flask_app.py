@@ -1,10 +1,11 @@
 from flask import Flask
-from .routes import pages, api
+from .routes import pages, api, admin_api
 
 app = Flask(__name__, template_folder='../frontend/templates', static_folder='../frontend/static')
 
 app.register_blueprint(pages.bp) # load the blueprint for the all of the main web page routes
 app.register_blueprint(api.bp, url_prefix='/api') # load the blueprint for the all of the api routes
+app.register_blueprint(admin_api.bp, url_prefix='/api/admin') # load the blueprint for admin API routes
 
 # Runs the main flask app
 def run_flask_server(host, port):

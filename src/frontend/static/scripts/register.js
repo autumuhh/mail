@@ -54,28 +54,14 @@ class RegisterManager {
         });
 
         // 实时验证
-        const usernameInput = document.getElementById('username');
-        const emailInput = document.getElementById('email');
-        const passwordInput = document.getElementById('password');
-        const confirmPasswordInput = document.getElementById('confirm-password');
+         const emailInput = document.getElementById('email-input');
 
-        if (usernameInput) {
-            usernameInput.addEventListener('input', () => this.validateUsername());
-        }
-        if (emailInput) {
-            emailInput.addEventListener('input', () => this.validateEmail());
-        }
-        if (passwordInput) {
-            passwordInput.addEventListener('input', () => this.validatePassword());
-        }
-        if (confirmPasswordInput) {
-            confirmPasswordInput.addEventListener('input', () => this.validateConfirmPassword());
-        }
+         if (emailInput) {
+             emailInput.addEventListener('input', () => this.validateEmail());
+         }
 
-        // 密码强度检查
-        if (passwordInput) {
-            passwordInput.addEventListener('input', () => this.checkPasswordStrength());
-        }
+         // 加载可用域名
+         this.loadAvailableDomains();
     }
 
     // 显示进度条
@@ -123,89 +109,69 @@ class RegisterManager {
         return toast;
     }
 
-    // 切换密码显示/隐藏
-    togglePasswordVisibility(inputId) {
-        const input = document.getElementById(inputId);
-        const toggleIcon = document.getElementById(`${inputId}-toggle-icon`);
-
-        if (input.type === 'password') {
-            input.type = 'text';
-            toggleIcon.classList.remove('fa-eye');
-            toggleIcon.classList.add('fa-eye-slash');
-        } else {
-            input.type = 'password';
-            toggleIcon.classList.remove('fa-eye-slash');
-            toggleIcon.classList.add('fa-eye');
-        }
-    }
-
-    // 验证用户名
-    validateUsername() {
-        const username = document.getElementById('username').value;
-        const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
-
-        if (username && !usernameRegex.test(username)) {
-            this.showToast('用户名只能包含字母、数字和下划线，长度3-20位', 'warning', 3000);
-            return false;
-        }
-        return true;
-    }
 
     // 验证邮箱
-    validateEmail() {
-        const email = document.getElementById('email').value;
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+     validateEmail() {
+         const emailInput = document.getElementById('email-input').value;
 
-        if (email && !emailRegex.test(email)) {
-            this.showToast('请输入有效的邮箱地址', 'warning', 3000);
-            return false;
-        }
-        return true;
-    }
+         if (!emailInput) {
+             this.showToast('请输入邮箱地址或前缀', 'warning', 3000);
+             return false;
+         }
 
-    // 验证密码
-    validatePassword() {
-        const password = document.getElementById('password').value;
+         // Check if it's a full email or just prefix
+         if (emailInput.includes('@')) {
+             // Full email validation
+             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+             if (!emailRegex.test(emailInput)) {
+                 this.showToast('请输入有效的邮箱地址格式', 'warning', 3000);
+                 return false;
+             }
+         } else {
+             // Prefix validation
+             const prefixRegex = /^[a-zA-Z0-9_]{3,20}$/;
+             if (!prefixRegex.test(emailInput)) {
+                 this.showToast('邮箱前缀必须3-20字符，只能包含字母数字下划线', 'warning', 3000);
+                 return false;
+             }
+         }
 
-        if (password.length < 8) {
-            return false;
-        }
-        return true;
-    }
+         return true;
+     }
 
-    // 验证确认密码
-    validateConfirmPassword() {
-        const password = document.getElementById('password').value;
-        const confirmPassword = document.getElementById('confirm-password').value;
+     // 加载可用域名
+     async loadAvailableDomains() {
+         try {
+             const response = await fetch('/api/get_random_address');
+             const result = await response.json();
 
-        if (password !== confirmPassword) {
-            this.showToast('两次输入的密码不一致', 'warning', 3000);
-            return false;
-        }
-        return true;
-    }
+             if (response.ok && result.available_domains) {
+                 this.displayDomains(result.available_domains);
+             } else {
+                 this.displayDomains(['localhost', 'test.local']);
+             }
+         } catch (error) {
+             console.error('加载域名失败:', error);
+             this.displayDomains(['localhost', 'test.local']);
+         }
+     }
 
-    // 检查密码强度
-    checkPasswordStrength() {
-        const password = document.getElementById('password').value;
-        let strength = 0;
-        let feedback = [];
+     // 显示可用域名
+     displayDomains(domains) {
+         const container = document.getElementById('domains-display');
+         if (!container) return;
 
-        if (password.length >= 8) strength += 25;
-        else feedback.push('至少8个字符');
+         const domainsHtml = domains.map(domain =>
+             `<span class="domain-tag" data-domain="${domain}" onclick="selectDomain('${domain}')">${domain}</span>`
+         ).join('');
 
-        if (/[a-z]/.test(password)) strength += 25;
-        else feedback.push('包含小写字母');
+         container.innerHTML = `
+             <div class="domains-list">
+                 ${domainsHtml}
+             </div>
+         `;
+     }
 
-        if (/[A-Z]/.test(password)) strength += 25;
-        else feedback.push('包含大写字母');
-
-        if (/[0-9]/.test(password)) strength += 25;
-        else feedback.push('包含数字');
-
-        // 显示密码强度指示器（如果需要的话）
-        return { strength, feedback };
-    }
 
 
     // 处理管理员登录
@@ -285,24 +251,18 @@ class RegisterManager {
 
     // 处理注册
     async handleRegister() {
-        // 检查管理员是否已验证
-        if (!this.isAdminAuthenticated) {
-            this.showToast('请先验证管理员身份', 'warning');
-            return;
-        }
 
         const formData = new FormData(this.form);
+        const emailInput = formData.get('email').trim();
         const data = {
-            username: formData.get('username').trim(),
-            email: formData.get('email').trim(),
-            password: formData.get('password'),
-            create_mailbox: formData.get('create-mailbox') === 'on',
+            email: emailInput,
+            retention_days: parseInt(formData.get('retention_days')) || 7,
             agree_terms: formData.get('agree-terms') === 'on'
         };
 
         // 基础验证
-        if (!data.username || !data.password) {
-            this.showToast('请填写所有必需字段', 'error');
+        if (!data.email) {
+            this.showToast('请输入邮箱地址或前缀', 'error');
             return;
         }
 
@@ -312,12 +272,13 @@ class RegisterManager {
         }
 
         // 字段验证
-        if (!this.validateUsername() || !this.validateEmail() || !this.validateConfirmPassword()) {
+        if (!this.validateEmail()) {
             return;
         }
 
-        if (data.password.length < 8) {
-            this.showToast('密码长度至少8位', 'warning');
+        // 验证保留天数
+        if (data.retention_days < 1 || data.retention_days > 30) {
+            this.showToast('保留天数必须在1-30天之间', 'warning');
             return;
         }
 
@@ -331,13 +292,14 @@ class RegisterManager {
         loadingSpinner.style.display = 'block';
 
         try {
-            this.showProgress('正在创建账户...', 25);
+            this.showProgress('正在创建邮箱...', 25);
 
             // 发送注册请求
             const response = await fetch('/api/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': this.adminPasswordValue  // 添加管理员密码到请求头
                 },
                 body: JSON.stringify(data)
             });
@@ -345,31 +307,74 @@ class RegisterManager {
             const result = await response.json();
 
             if (response.ok && result.success) {
-                this.showProgress('账户创建成功！', 75);
+                this.showProgress('邮箱创建成功！', 75);
 
-                // 如果同时创建邮箱
-                if (data.create_mailbox && result.mailbox_created) {
-                    this.showProgress('正在创建临时邮箱...', 90);
+                // 注册成功，直接跳转到邮箱管理页面
+                this.showProgress('邮箱创建完成！', 100);
 
-                    // 等待一下让用户看到进度
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                // 等待一下让用户看到成功状态
+                await new Promise(resolve => setTimeout(resolve, 1500));
 
-                    this.showToast('账户和邮箱创建成功！正在跳转...', 'success', 2000);
+                if (result.mailbox_created && result.access_token) {
+                    // 有邮箱创建成功，显示访问URL
+                    const accessUrl = `${window.location.origin}/mailbox?address=${encodeURIComponent(result.mailbox_address)}&token=${encodeURIComponent(result.access_token)}`;
 
-                    // 显示邮箱信息
-                    this.showToast(`您的邮箱地址：${result.mailbox_address}<br>请保存好您的邮箱密钥：<br><strong>${result.mailbox_key}</strong>`, 'info', 8000);
+                    this.showToast('临时邮箱创建成功！', 'success', 3000);
 
-                    // 跳转到邮箱管理页面
+                    // 显示邮箱信息和访问链接
+                    const emailParts = result.mailbox_address.split('@');
+                    const domainInfo = emailParts.length === 2 ? '使用域名：' + emailParts[1] + '<br>' : '';
+
+                    this.showToast(`
+                        <div style="text-align: left;">
+                            <strong>您的临时邮箱：</strong><br>
+                            地址：${result.mailbox_address}<br>
+                            ${domainInfo}
+                            保留时间：${result.retention_days}天<br><br>
+                            <strong>访问链接：</strong><br>
+                            <a href="${accessUrl}" target="_blank" style="color: #007bff; word-break: break-all;">${accessUrl}</a><br><br>
+                            <small>点击链接即可开始使用您的临时邮箱</small>
+                        </div>
+                    `, 'info', 10000);
+
+                    // 同时显示一个"立即访问"按钮
                     setTimeout(() => {
-                        window.location.href = `/mailbox?address=${encodeURIComponent(result.mailbox_address)}&token=${encodeURIComponent(result.access_token)}`;
-                    }, 3000);
-                } else {
-                    this.showToast('账户创建成功！正在跳转到登录页面...', 'success', 2000);
+                        const accessButton = document.createElement('button');
+                        accessButton.className = 'btn btn-primary';
+                        accessButton.innerHTML = '<i class="fas fa-external-link-alt"></i> 立即访问邮箱';
+                        accessButton.style.cssText = `
+                            position: fixed;
+                            top: 20px;
+                            right: 20px;
+                            z-index: 1000;
+                            padding: 10px 20px;
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            border: none;
+                            border-radius: 25px;
+                            color: white;
+                            cursor: pointer;
+                            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                            transition: all 0.3s ease;
+                        `;
+                        accessButton.onmouseover = () => accessButton.style.transform = 'translateY(-2px)';
+                        accessButton.onmouseout = () => accessButton.style.transform = 'translateY(0)';
+                        accessButton.onclick = () => window.open(accessUrl, '_blank');
 
-                    // 跳转到登录页面
-                    setTimeout(() => {
-                        window.location.href = '/login';
+                        document.body.appendChild(accessButton);
+
+                        // 10秒后自动隐藏按钮
+                        setTimeout(() => {
+                            if (accessButton.parentNode) {
+                                accessButton.style.opacity = '0';
+                                accessButton.style.transform = 'translateY(-20px)';
+                                setTimeout(() => accessButton.remove(), 300);
+                            }
+                        }, 10000);
                     }, 2000);
+
+                } else {
+                    // 没有邮箱创建成功，显示错误信息
+                    this.showToast('邮箱创建失败，请稍后重试', 'warning', 3000);
                 }
             } else {
                 throw new Error(result.error || '注册失败');
@@ -382,26 +387,86 @@ class RegisterManager {
         } finally {
             // 恢复按钮状态
             submitBtn.disabled = false;
-            btnText.textContent = '创建账户';
+            btnText.textContent = '创建邮箱';
             loadingSpinner.style.display = 'none';
         }
     }
 }
 
-// 全局函数供HTML调用
-function togglePasswordVisibility(inputId) {
-    const input = document.getElementById(inputId);
-    const toggleIcon = document.getElementById(`${inputId}-toggle-icon`);
 
-    if (input.type === 'password') {
-        input.type = 'text';
-        toggleIcon.classList.remove('fa-eye');
-        toggleIcon.classList.add('fa-eye-slash');
+// 选择域名并拼接到输入框
+function selectDomain(domain) {
+    const emailInput = document.getElementById('email-input');
+    if (!emailInput) return;
+
+    const currentValue = emailInput.value.trim();
+
+    // 如果当前输入框有内容且不包含@，则添加@域名
+    if (currentValue && !currentValue.includes('@')) {
+        emailInput.value = `${currentValue}@${domain}`;
+    } else if (!currentValue) {
+        // 如果输入框为空，显示提示
+        emailInput.value = `yourname@${domain}`;
+        emailInput.focus();
+        // 选中文本，让用户可以直接替换
+        emailInput.setSelectionRange(0, 8);
     } else {
-        input.type = 'password';
-        toggleIcon.classList.remove('fa-eye-slash');
-        toggleIcon.classList.add('fa-eye');
+        // 如果已经是完整邮箱，替换域名部分
+        const parts = currentValue.split('@');
+        if (parts.length === 2) {
+            emailInput.value = `${parts[0]}@${domain}`;
+        }
     }
+
+    // 添加视觉反馈
+    showDomainSelectedFeedback(domain);
+}
+
+// 显示域名选择反馈
+function showDomainSelectedFeedback(domain) {
+    const feedback = document.createElement('div');
+    feedback.className = 'domain-feedback';
+    feedback.innerHTML = `
+        <i class="fas fa-check-circle"></i>
+        已选择域名: ${domain}
+    `;
+    feedback.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(135deg, #48bb78, #38a169);
+        color: white;
+        padding: 1rem 2rem;
+        border-radius: 25px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        z-index: 2000;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+        animation: domainFeedback 0.3s ease-out;
+    `;
+
+    document.body.appendChild(feedback);
+
+    // 动画效果
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes domainFeedback {
+            0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+    `;
+    document.head.appendChild(style);
+
+    // 2秒后移除反馈
+    setTimeout(() => {
+        feedback.style.opacity = '0';
+        feedback.style.transform = 'translate(-50%, -50%) scale(0.8)';
+        setTimeout(() => feedback.remove(), 300);
+    }, 2000);
 }
 
 // 页面加载完成后初始化

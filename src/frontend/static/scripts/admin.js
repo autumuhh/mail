@@ -20,7 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const registerEmail = document.getElementById('register-email');
     const registerPassword = document.getElementById('register-password');
     const registerConfirmPassword = document.getElementById('register-confirm-password');
-    const registerInviteCode = document.getElementById('register-invite-code');
     
     const whitelistEnabled = document.getElementById('whitelist-enabled');
     const whitelistIps = document.getElementById('whitelist-ips');
@@ -68,9 +67,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (e.key === 'Enter') register();
     });
     registerConfirmPassword.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') register();
-    });
-    registerInviteCode.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') register();
     });
 
@@ -377,7 +373,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const email = registerEmail.value.trim();
         const password = registerPassword.value;
         const confirmPassword = registerConfirmPassword.value;
-        const inviteCode = registerInviteCode.value.trim();
 
         // Validation
         if (!username) {
@@ -396,10 +391,6 @@ document.addEventListener("DOMContentLoaded", () => {
             showRegisterError('两次输入的密码不一致');
             return;
         }
-        if (!inviteCode) {
-            showRegisterError('请输入邀请码');
-            return;
-        }
 
         // Disable register button during operation
         registerBtn.disabled = true;
@@ -415,8 +406,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 body: JSON.stringify({
                     username,
                     email,
-                    password,
-                    invite_code: inviteCode
+                    password
                 })
             });
 

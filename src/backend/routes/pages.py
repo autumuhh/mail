@@ -4,15 +4,22 @@ import config
 bp = Blueprint('pages', __name__)
 
 # The main route that serves the website
-@bp.route('/')
-def index():
-    return render_template('index.html')
+# 首页路由已注释
+# @bp.route('/')
+# def index():
+#     return render_template('index.html')
 
 # IP whitelist management page
 @bp.route('/admin')
 def admin():
     return render_template('admin.html')
 
+# Mailbox management page
+@bp.route('/admin/mailboxes')
+def admin_mailboxes():
+    return render_template('admin_mailbox.html')
+
+# 注册路由
 @bp.route('/register')
 def register():
     # 注册页面现在会在前端显示管理员验证界面

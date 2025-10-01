@@ -30,7 +30,7 @@ class MailboxManager {
     
     loadAuthFromStorage() {
         // 检查是否是演示模式
-        this.isDemoMode = window.location.pathname === '/mailbox/demo';
+        this.isDemoMode = window.location.pathname === '/api/mailbox/demo';
 
         if (this.isDemoMode) {
             // 演示模式
@@ -64,6 +64,153 @@ class MailboxManager {
     
     redirectToLogin() {
         window.location.href = '/';
+    }
+
+    handleAuthError(message) {
+        // 清除本地存储的认证信息
+        localStorage.removeItem('tempmail_access_token');
+        localStorage.removeItem('tempmail_address');
+        localStorage.removeItem('tempmail_mailbox_key');
+
+        // 显示重新输入模态框
+        const modal = document.createElement('div');
+        modal.className = 'modal active';
+        modal.style.zIndex = '10000';
+        modal.id = 'reauth-modal';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h3 style="color: var(--danger-color);">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        访问失败
+                    </h3>
+                </div>
+                <div class="modal-body">
+                    <p style="font-size: 16px; margin-bottom: 1.5rem; color: var(--danger-color);">${message}</p>
+                    <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">请重新输入邮箱地址和密钥以继续访问。</p>
+
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">
+                            <i class="fas fa-at"></i>
+                            邮箱地址
+                        </label>
+                        <input type="email" id="reauth-address" class="form-control" placeholder="输入邮箱地址" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-tertiary); color: var(--text-primary);">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">
+                            <i class="fas fa-key"></i>
+                            邮箱密钥
+                        </label>
+                        <input type="password" id="reauth-key" class="form-control" placeholder="输入邮箱密钥" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-tertiary); color: var(--text-primary);">
+                    </div>
+
+                    <div id="reauth-error" style="display: none; color: var(--danger-color); margin-top: 1rem; padding: 0.75rem; background: rgba(239, 68, 68, 0.1); border-radius: 6px; border-left: 3px solid var(--danger-color);">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span id="reauth-error-text"></span>
+                    </div>
+                </div>
+                <div class="modal-footer" style="justify-content: center;">
+                    <button class="btn btn-primary" id="reauth-submit-btn">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>重新访问</span>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // 绑定提交事件
+        const submitBtn = document.getElementById('reauth-submit-btn');
+        const addressInput = document.getElementById('reauth-address');
+        const keyInput = document.getElementById('reauth-key');
+
+        const handleReauth = async () => {
+            const address = addressInput.value.trim();
+            const key = keyInput.value.trim();
+
+            if (!address || !key) {
+                this.showReauthError('请填写完整的邮箱地址和密钥');
+                return;
+            }
+
+            // 显示加载状态
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 验证中...';
+
+            try {
+                // 获取访问令牌
+                const response = await fetch('/api/get_mailbox_token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        address: address,
+                        mailbox_key: key
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // 保存新的认证信息
+                    this.accessToken = data.access_token;
+                    this.mailboxAddress = address;
+                    this.mailboxKey = key;
+
+                    localStorage.setItem('tempmail_access_token', data.access_token);
+                    localStorage.setItem('tempmail_address', address);
+                    localStorage.setItem('tempmail_mailbox_key', key);
+
+                    // 关闭模态框
+                    modal.remove();
+
+                    // 重新初始化
+                    this.showToast('success', '验证成功', '正在重新加载邮箱...');
+                    await this.initializeUI();
+                } else {
+                    this.showReauthError(data.message || '验证失败，请检查邮箱地址和密钥');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> <span>重新访问</span>';
+                }
+            } catch (error) {
+                console.error('重新验证失败:', error);
+                this.showReauthError('网络错误，请稍后重试');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> <span>重新访问</span>';
+            }
+        };
+
+        submitBtn.addEventListener('click', handleReauth);
+
+        // 回车键提交
+        addressInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleReauth();
+        });
+        keyInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleReauth();
+        });
+
+        // 阻止点击模态框外部关闭
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                e.stopPropagation();
+            }
+        });
+
+        // 自动聚焦到地址输入框
+        setTimeout(() => addressInput.focus(), 100);
+    }
+
+    showReauthError(message) {
+        const errorDiv = document.getElementById('reauth-error');
+        const errorText = document.getElementById('reauth-error-text');
+        if (errorDiv && errorText) {
+            errorText.textContent = message;
+            errorDiv.style.display = 'block';
+        }
     }
     
     bindEvents() {
@@ -149,11 +296,7 @@ class MailboxManager {
                         <div class="empty-state">
                             <i class="fas fa-inbox"></i>
                             <h3>收件箱为空</h3>
-                            <p>您还没有收到任何邮件</p>
-                            <button class="btn btn-sm btn-outline" onclick="retryInit()" style="margin-top: 1rem;">
-                                <i class="fas fa-redo"></i>
-                                刷新
-                            </button>
+                            <p>您还没有收到任何邮件<br>等待新邮件到达或使用顶部刷新按钮</p>
                         </div>
                     `;
                 }
@@ -233,7 +376,7 @@ class MailboxManager {
             if (this.isDemoMode) {
                 // 演示模式：使用演示API
                 console.log('使用演示模式API');
-                response = await fetch('/demo/mailbox_info');
+                response = await fetch('/api/demo/mailbox_info');
                 data = await response.json();
             } else {
                 // 正常模式
@@ -247,6 +390,18 @@ class MailboxManager {
 
             console.log('API响应状态:', response.status);
             console.log('API响应数据:', data);
+
+            // 检查认证错误
+            if (response.status === 401 || response.status === 403) {
+                this.handleAuthError('访问令牌无效或已过期');
+                return;
+            }
+
+            // 检查邮箱不存在
+            if (response.status === 404 || (data.error && data.error.includes('not found'))) {
+                this.handleAuthError('邮箱不存在或已被删除');
+                return;
+            }
 
             if (data.success) {
                 const mailbox = data.mailbox;
@@ -296,13 +451,13 @@ class MailboxManager {
             if (this.isDemoMode) {
                 // 演示模式：使用演示API
                 console.log('使用演示模式API加载邮件');
-                response = await fetch('/demo/emails');
+                response = await fetch('/api/demo/emails');
                 emails = await response.json();
             } else {
                 // 正常模式
                 console.log('使用正常模式API加载邮件，地址:', this.mailboxAddress);
                 const startTime = Date.now();
-                response = await fetch(`/api/get_inbox?address=${this.mailboxAddress}`);
+                response = await fetch(`/api/get_inbox?address=${this.mailboxAddress}&token=${this.accessToken}`);
                 emails = await response.json();
                 const endTime = Date.now();
                 console.log(`邮件列表API调用耗时: ${endTime - startTime}ms`);
@@ -311,6 +466,18 @@ class MailboxManager {
             console.log('邮件API响应状态:', response.status);
             console.log('邮件数据类型:', typeof emails);
             console.log('邮件数据是否为数组:', Array.isArray(emails));
+
+            // 检查认证错误
+            if (response.status === 401 || response.status === 403) {
+                this.handleAuthError('访问令牌无效或已过期');
+                return;
+            }
+
+            // 检查邮箱不存在
+            if (response.status === 404) {
+                this.handleAuthError('邮箱不存在或已被删除');
+                return;
+            }
 
             this.emails = Array.isArray(emails) ? emails : [];
             console.log('处理后的邮件数量:', this.emails.length);
@@ -337,6 +504,9 @@ class MailboxManager {
                 return;
             }
 
+            // 更新邮件数量显示
+            this.updateEmailCount();
+
             // 首先移除加载状态
             this.removeLoadingState();
 
@@ -345,11 +515,7 @@ class MailboxManager {
                     <div class="empty-state">
                         <i class="fas fa-inbox"></i>
                         <h3>收件箱为空</h3>
-                        <p>您还没有收到任何邮件</p>
-                        <button class="btn btn-sm btn-outline" onclick="retryInit()" style="margin-top: 1rem;">
-                            <i class="fas fa-redo"></i>
-                            刷新
-                        </button>
+                        <p>您还没有收到任何邮件<br>等待新邮件到达或使用顶部刷新按钮</p>
                     </div>
                 `;
                 return;
@@ -358,6 +524,9 @@ class MailboxManager {
             // 统计未读邮件数量
             const unreadCount = this.emails.filter(email => !email.is_read).length;
             console.log(`渲染邮件列表: 总计 ${this.emails.length} 封邮件，其中 ${unreadCount} 封未读`);
+
+            // 更新邮件数量显示
+            this.updateEmailCount();
 
             // 批量生成HTML，减少DOM操作
             const emailHtmlArray = this.emails.map((email, index) => {
@@ -574,12 +743,10 @@ class MailboxManager {
                         const content = document.getElementById('email-detail-content');
                         if (content) {
                             content.innerHTML = `
-                                <div style="display: flex; align-items: center; justify-content: center; height: 300px; color: var(--text-muted); text-align: center;">
-                                    <div>
-                                        <i class="fas fa-envelope-open" style="font-size: 4rem; margin-bottom: 1rem; color: var(--primary-color); opacity: 0.5;"></i>
-                                        <h3 style="margin-bottom: 0.5rem; color: var(--text-secondary);">选择邮件查看详情</h3>
-                                        <p>在左侧收件箱中点击邮件来查看其内容</p>
-                                    </div>
+                                <div class="empty-state">
+                                    <i class="fas fa-envelope-open"></i>
+                                    <h3>选择邮件查看详情</h3>
+                                    <p>在左侧收件箱中点击邮件来查看其内容</p>
                                 </div>
                             `;
                         }
@@ -908,6 +1075,22 @@ class MailboxManager {
         }
     }
 
+    // 更新邮件数量显示
+    updateEmailCount() {
+        const emailCountElement = document.getElementById('email-count');
+        if (emailCountElement) {
+            const totalEmails = this.emails.length;
+            const unreadEmails = this.emails.filter(email => !email.is_read).length;
+
+            let countText = `${totalEmails} 封邮件`;
+            if (unreadEmails > 0) {
+                countText += `，${unreadEmails} 封未读`;
+            }
+
+            emailCountElement.textContent = countText;
+        }
+    }
+
     // 移除加载状态并显示内容
     removeLoadingState() {
         const emailList = document.getElementById('email-list');
@@ -1183,7 +1366,7 @@ class MailboxManager {
             }
 
             // 正常模式：调用API标记邮件已读状态
-            const response = await fetch('/api/mark_email_read', {
+            const response = await fetch(`/api/mark_email_read?token=${this.accessToken}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -1284,7 +1467,7 @@ async function markAllRead() {
 
     try {
         // 调用API标记全部已读
-        const response = await fetch('/api/mark_all_read', {
+        const response = await fetch(`/api/mark_all_read?token=${mailboxManager.accessToken}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1323,7 +1506,7 @@ async function deleteSelected() {
 
     try {
         // 批量删除邮件
-        const response = await fetch('/api/delete_emails_batch', {
+        const response = await fetch(`/api/delete_emails_batch?token=${mailboxManager.accessToken}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1412,7 +1595,7 @@ async function deleteEmail(emailId) {
         }
 
         // 正常模式：调用API删除邮件
-        const response = await fetch('/api/delete_email', {
+        const response = await fetch(`/api/delete_email?token=${mailboxManager.accessToken}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1512,7 +1695,7 @@ async function toggleMailboxStatus() {
         }
 
         // 正常模式：调用API切换状态
-        const response = await fetch('/api/toggle_mailbox_status', {
+        const response = await fetch(`/api/toggle_mailbox_status?token=${mailboxManager.accessToken}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1605,7 +1788,7 @@ async function toggleWhitelist() {
         }
 
         // 正常模式：调用API切换白名单状态
-        const response = await fetch('/api/toggle_whitelist', {
+        const response = await fetch(`/api/toggle_whitelist?token=${mailboxManager.accessToken}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1661,8 +1844,14 @@ async function toggleWhitelist() {
         console.error('切换白名单状态失败:', error);
         mailboxManager.showToast('error', '错误', '切换白名单状态失败');
 
-        // 恢复复选框状态
+        // 恢复复选框状态 - 需要恢复到操作前的状态
+        // 如果原本想开启(isEnabled=true)，失败后应该恢复为关闭(false)
+        // 如果原本想关闭(isEnabled=false)，失败后应该恢复为开启(true)
         whitelistEnabled.checked = !isEnabled;
+
+        // 同时恢复相关的UI状态
+        whitelistStatus.textContent = !isEnabled ? '已开启' : '已关闭';
+        whitelistInputSection.style.display = !isEnabled ? 'flex' : 'none';
     }
 }
 
@@ -1678,7 +1867,7 @@ async function addSender() {
 
     try {
         // 调用API添加发件人白名单
-        const response = await fetch('/api/add_sender_whitelist', {
+        const response = await fetch(`/api/add_sender_whitelist?token=${mailboxManager.accessToken}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1706,7 +1895,7 @@ async function removeSender(sender) {
 
     try {
         // 调用API移除发件人白名单
-        const response = await fetch('/api/remove_sender_whitelist', {
+        const response = await fetch(`/api/remove_sender_whitelist?token=${mailboxManager.accessToken}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1738,7 +1927,7 @@ async function updateRetention() {
 
     try {
         // 调用API更新保留天数
-        const response = await fetch('/api/update_retention', {
+        const response = await fetch(`/api/update_retention?token=${mailboxManager.accessToken}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1765,7 +1954,7 @@ async function regenerateKey() {
 
     try {
         // 调用API重新生成密钥
-        const response = await fetch('/api/regenerate_mailbox_key', {
+        const response = await fetch(`/api/regenerate_mailbox_key?token=${mailboxManager.accessToken}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

@@ -28,6 +28,7 @@
     color: var(--primary-color);
 }
 
+/* 浅色主题（默认） */
 :root {
     --primary-color: #667eea;
     --primary-dark: #5a6fd8;
@@ -36,23 +37,47 @@
     --warning-color: #ed8936;
     --danger-color: #f56565;
     --info-color: #4299e1;
-    
+
     --bg-primary: #f7fafc;
     --bg-secondary: #ffffff;
     --bg-tertiary: #edf2f7;
-    
+
     --text-primary: #2d3748;
     --text-secondary: #4a5568;
     --text-muted: #718096;
-    
+
     --border-color: #e2e8f0;
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
     --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-    
+
     --border-radius: 8px;
     --border-radius-lg: 12px;
     --transition: all 0.3s ease;
+}
+
+/* 深色主题 */
+[data-theme="dark"] {
+    --primary-color: #7c3aed;
+    --primary-dark: #6d28d9;
+    --secondary-color: #8b5cf6;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+    --info-color: #3b82f6;
+
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-tertiary: #334155;
+
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+
+    --border-color: #334155;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.3);
 }
 
 body {
@@ -60,6 +85,7 @@ body {
     background: var(--bg-primary);
     color: var(--text-primary);
     line-height: 1.6;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* 应用容器 */
@@ -157,6 +183,9 @@ body {
 .sidebar-footer {
     padding: 1rem 1.5rem;
     border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
 }
 
 /* 主内容区 */
@@ -321,6 +350,35 @@ body {
     gap: 0.75rem;
 }
 
+/* 邮件列表容器 */
+.email-list-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* 邮件列表工具栏 */
+.email-list-header {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.email-list-info {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.email-list-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
 /* 邮件列表 */
 .email-list {
     flex: 1;
@@ -441,6 +499,22 @@ body {
     font-size: 2rem;
     margin-bottom: 1rem;
     color: var(--primary-color);
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.loading-placeholder p {
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.loading-placeholder .loading-detail {
+    opacity: 0.7;
+    font-size: 0.875rem;
 }
 
 /* 邮件详情 */
@@ -1032,27 +1106,80 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 300px;
+    height: 400px;
     color: var(--text-muted);
     text-align: center;
+    padding: 2rem;
 }
 
 .empty-state i {
-    font-size: 4rem;
-    margin-bottom: 1rem;
+    font-size: 3.5rem;
+    margin-bottom: 1.5rem;
     color: var(--primary-color);
-    opacity: 0.5;
+    opacity: 0.6;
 }
 
 .empty-state h3 {
-    font-size: 1.25rem;
-    margin-bottom: 0.5rem;
+    font-size: 1.125rem;
+    margin-bottom: 0.75rem;
     color: var(--text-secondary);
 }
 
 .empty-state p {
     font-size: 0.875rem;
-    max-width: 300px;
+    max-width: 350px;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+.empty-state .btn {
+    margin-top: 0.5rem;
+    min-width: 120px;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.empty-state .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.empty-state .btn:active {
+    transform: translateY(0);
+}
+
+/* 空状态动画效果 */
+.empty-state i {
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+.empty-state h3 {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.empty-state p {
+    animation: fadeInUp 0.6s ease-out 0.2s both;
+}
+
+.empty-state .btn {
+    animation: fadeInUp 0.6s ease-out 0.4s both;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* 邮件选择 */
@@ -1067,6 +1194,40 @@ body {
 .email-item.selected {
     background: rgba(102, 126, 234, 0.1);
     border-color: var(--primary-color);
+}
+
+/* 邮件列表工具栏响应式 */
+@media (max-width: 768px) {
+    .email-list-header {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: stretch;
+    }
+
+    .email-list-actions {
+        justify-content: center;
+    }
+}
+
+/* 空状态响应式优化 */
+@media (max-width: 768px) {
+    .empty-state {
+        height: 350px;
+        padding: 1.5rem;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state h3 {
+        font-size: 1rem;
+    }
+
+    .empty-state p {
+        font-size: 0.8rem;
+    }
 }
 
 /* 响应式设计 */
@@ -1417,4 +1578,35 @@ body {
     .info-actions {
         justify-content: center;
     }
+}
+
+/* 主题切换按钮样式 */
+.btn-theme-toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-theme-toggle i {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 1rem;
+}
+
+/* 默认浅色主题显示太阳图标（表示可以切换到深色） */
+.theme-icon-light {
+    display: none;
+}
+
+.theme-icon-dark {
+    display: inline-block;
+}
+
+/* 深色主题显示月亮图标（表示可以切换到浅色） */
+[data-theme="dark"] .theme-icon-light {
+    display: inline-block;
+}
+
+[data-theme="dark"] .theme-icon-dark {
+    display: none;
 }

@@ -33,12 +33,16 @@ class SMTPServer:
 # This function sets up and runs the SMTP server
 def run_smtp_server(host: str = "0.0.0.0", port: int = 25):
     handler = SMTPServer()
-    controller = Controller(handler, hostname=host, port=port)
+    controller = Controller(handler, hostname=host, port=port, ready_timeout=30)
 
     print(f"Starting SMTP server on {host}:{port}")
     try:
         controller.start()
         print(f"SMTP server started successfully on {host}:{port}")
+
+        # 等待服务器完全就绪
+        print("Waiting for SMTP server to be ready...")
+        time.sleep(2)
 
         # 保持服务器运行
         try:

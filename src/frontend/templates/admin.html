@@ -6,7 +6,7 @@
     <title>TempMail - Admin Panel</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/admin.css') }}">
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='resources/favicon.ico') }}">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>📧</text></svg>">
 </head>
 <body>
     <!-- 主题切换按钮 -->
@@ -52,10 +52,6 @@
             <div class="form-group">
                 <label for="register-confirm-password">确认密码:</label>
                 <input type="password" id="register-confirm-password" placeholder="请再次输入密码">
-            </div>
-            <div class="form-group">
-                <label for="register-invite-code">邀请码:</label>
-                <input type="text" id="register-invite-code" placeholder="请输入邀请码">
             </div>
             <button id="register-btn" class="btn btn-primary">注册</button>
             <button id="back-to-login-btn" class="btn btn-secondary">返回登录</button>

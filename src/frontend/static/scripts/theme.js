@@ -5,15 +5,15 @@
     // 主题管理类
     class ThemeManager {
         constructor() {
-            this.currentTheme = this.getStoredTheme() || 'dark';
+            this.currentTheme = this.getStoredTheme() || 'light';
             this.themeToggle = null;
             this.init();
         }
-        
+
         init() {
             // 设置初始主题
             this.applyTheme(this.currentTheme);
-            
+
             // 等待DOM加载完成后绑定事件
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', () => this.bindEvents());
@@ -21,34 +21,16 @@
                 this.bindEvents();
             }
         }
-        
+
         bindEvents() {
-            // 获取所有主题切换按钮（防止重复）
-            const themeToggles = document.querySelectorAll('.theme-toggle');
-
-            // 移除重复的按钮，只保留第一个
-            if (themeToggles.length > 1) {
-                for (let i = 1; i < themeToggles.length; i++) {
-                    themeToggles[i].remove();
+            // 不在这里绑定点击事件，因为HTML中使用了onclick
+            // 只添加键盘快捷键支持
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'T') {
+                    e.preventDefault();
+                    this.toggleTheme();
                 }
-            }
-
-            this.themeToggle = document.getElementById('theme-toggle');
-            if (this.themeToggle) {
-                // 移除可能存在的旧事件监听器
-                this.themeToggle.replaceWith(this.themeToggle.cloneNode(true));
-                this.themeToggle = document.getElementById('theme-toggle');
-
-                this.themeToggle.addEventListener('click', () => this.toggleTheme());
-
-                // 添加键盘快捷键支持 (Ctrl/Cmd + Shift + T)
-                document.addEventListener('keydown', (e) => {
-                    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'T') {
-                        e.preventDefault();
-                        this.toggleTheme();
-                    }
-                });
-            }
+            });
         }
         
         getStoredTheme() {
@@ -70,33 +52,40 @@
         
         applyTheme(theme) {
             const html = document.documentElement;
-            
-            if (theme === 'light') {
-                html.setAttribute('data-theme', 'light');
+
+            console.log('应用主题:', theme);
+
+            if (theme === 'dark') {
+                html.setAttribute('data-theme', 'dark');
             } else {
                 html.removeAttribute('data-theme');
             }
-            
+
             this.currentTheme = theme;
             this.storeTheme(theme);
-            
+
+            console.log('当前HTML data-theme属性:', html.getAttribute('data-theme'));
+
             // 触发主题变更事件
             this.dispatchThemeChangeEvent(theme);
         }
-        
+
         toggleTheme() {
+            console.log('切换主题，当前主题:', this.currentTheme);
             const newTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
+            console.log('新主题:', newTheme);
             this.applyTheme(newTheme);
-            
+
             // 添加切换动画效果
             this.addToggleAnimation();
         }
         
         addToggleAnimation() {
-            if (this.themeToggle) {
-                this.themeToggle.style.transform = 'scale(0.9)';
+            const themeToggle = document.getElementById('theme-toggle');
+            if (themeToggle) {
+                themeToggle.style.transform = 'scale(0.95)';
                 setTimeout(() => {
-                    this.themeToggle.style.transform = 'scale(1)';
+                    themeToggle.style.transform = 'scale(1)';
                 }, 150);
             }
         }
@@ -142,8 +131,12 @@
 
 // 主题切换工具函数
 window.toggleTheme = function() {
+    console.log('toggleTheme被调用');
     if (window.themeManager) {
+        console.log('themeManager存在，调用toggleTheme');
         window.themeManager.toggleTheme();
+    } else {
+        console.error('themeManager不存在！');
     }
 };
 

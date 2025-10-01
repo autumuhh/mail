@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>用户注册 - TempMail</title>
+    <title>创建临时邮箱 - TempMail</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>📧</text></svg>">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/register.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -51,90 +52,54 @@
             <!-- 头部 -->
             <div class="register-header">
                 <div class="logo">
-                    <i class="fas fa-user-plus"></i>
-                    <h1>创建账户</h1>
+                    <i class="fas fa-envelope"></i>
+                    <h1>创建临时邮箱</h1>
                 </div>
-                <p class="subtitle">加入 TempMail 开始使用临时邮箱服务</p>
+                <p class="subtitle">输入完整邮箱地址或前缀，灵活选择域名</p>
             </div>
 
             <!-- 注册表单 -->
             <form class="register-form" id="register-form">
                 <div class="form-group">
-                    <label for="username">
-                        <i class="fas fa-user"></i>
-                        用户名
+                    <label for="email-input">
+                        <i class="fas fa-envelope"></i>
+                        邮箱地址 / 前缀
                     </label>
                     <input
                         type="text"
-                        id="username"
-                        name="username"
-                        placeholder="输入用户名"
-                        required
-                        autocomplete="username"
-                        minlength="3"
-                        maxlength="20"
-                    >
-                </div>
-
-                <div class="form-group">
-                    <label for="email">
-                        <i class="fas fa-at"></i>
-                        邮箱地址 (可选)
-                    </label>
-                    <input
-                        type="email"
-                        id="email"
+                        id="email-input"
                         name="email"
-                        placeholder="输入您的邮箱地址"
+                        placeholder="输入邮箱地址（如：myemail@example.com 或 myemail）"
                         autocomplete="email"
+                        required
                     >
-                    <small class="form-hint">用于找回账户和接收通知</small>
+                    <small class="form-hint">输入完整的邮箱地址（如：myemail@example.com）或仅前缀（如：myemail），可点击上方域名快速选择</small>
                 </div>
 
                 <div class="form-group">
-                    <label for="password">
-                        <i class="fas fa-lock"></i>
-                        密码
+                    <label>
+                        <i class="fas fa-globe"></i>
+                        可用域名
                     </label>
-                    <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        placeholder="输入密码"
-                        required
-                        autocomplete="new-password"
-                        minlength="8"
-                    >
-                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility('password')">
-                        <i class="fas fa-eye" id="password-toggle-icon"></i>
-                    </button>
+                    <div class="domains-display" id="domains-display">
+                        <small>加载中...</small>
+                    </div>
+                    <small class="form-hint">点击域名标签快速选择，系统会自动拼接到邮箱输入框中</small>
                 </div>
 
                 <div class="form-group">
-                    <label for="confirm-password">
-                        <i class="fas fa-lock"></i>
-                        确认密码
+                    <label for="retention-days">
+                        <i class="fas fa-calendar-alt"></i>
+                        保留天数
                     </label>
-                    <input
-                        type="password"
-                        id="confirm-password"
-                        name="confirm-password"
-                        placeholder="再次输入密码"
-                        required
-                        autocomplete="new-password"
-                    >
-                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility('confirm-password')">
-                        <i class="fas fa-eye" id="confirm-password-toggle-icon"></i>
-                    </button>
-                </div>
-
-                <!-- 邮箱创建选项 -->
-                <div class="form-group checkbox-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="create-mailbox" name="create-mailbox" checked>
-                        <span class="checkmark"></span>
-                        同时创建一个临时邮箱
-                    </label>
+                    <select id="retention-days" name="retention_days" class="form-select">
+                        <option value="1">1天</option>
+                        <option value="3">3天</option>
+                        <option value="7" selected>7天（推荐）</option>
+                        <option value="14">14天</option>
+                        <option value="30">30天</option>
+                    </select>
+                    <small class="form-hint">选择邮箱地址保留多长时间</small>
                 </div>
 
                 <div class="form-group checkbox-group">
@@ -146,8 +111,8 @@
                 </div>
 
                 <button type="submit" class="register-btn" id="register-btn">
-                    <i class="fas fa-user-plus"></i>
-                    <span>创建账户</span>
+                    <i class="fas fa-envelope"></i>
+                    <span>创建邮箱</span>
                     <div class="loading-spinner" style="display: none;">
                         <i class="fas fa-spinner fa-spin"></i>
                     </div>
@@ -159,7 +124,7 @@
                 <div class="progress-bar">
                     <div class="progress-fill" id="progress-fill"></div>
                 </div>
-                <p class="progress-text" id="progress-text">正在创建账户...</p>
+                <p class="progress-text" id="progress-text">正在创建邮箱...</p>
             </div>
 
             <!-- 帮助信息 -->
@@ -167,8 +132,24 @@
                 <div class="help-item">
                     <i class="fas fa-info-circle"></i>
                     <div class="help-content">
-                        <h4>账户说明</h4>
-                        <p>注册账户后，您可以管理多个临时邮箱，设置更长的保留时间。</p>
+                        <h4>灵活输入</h4>
+                        <p>输入完整邮箱地址（如：myemail@example.com）或仅前缀（如：myemail）。如果只输入前缀，系统会自动分配域名。</p>
+                    </div>
+                </div>
+
+                <div class="help-item">
+                    <i class="fas fa-mouse-pointer"></i>
+                    <div class="help-content">
+                        <h4>域名选择</h4>
+                        <p>点击上方的域名标签，可以快速选择并自动拼接到邮箱输入框中，方便快捷。</p>
+                    </div>
+                </div>
+
+                <div class="help-item">
+                    <i class="fas fa-calendar-alt"></i>
+                    <div class="help-content">
+                        <h4>灵活保留</h4>
+                        <p>可选择1-30天的保留时间，过期后邮箱将自动清理。建议根据使用需求选择合适的保留时间。</p>
                     </div>
                 </div>
 
@@ -176,7 +157,7 @@
                     <i class="fas fa-shield-alt"></i>
                     <div class="help-content">
                         <h4>隐私保护</h4>
-                        <p>我们承诺保护您的隐私，账户信息仅用于提供服务。</p>
+                        <p>您的邮箱地址经过加密保护，仅用于提供临时邮箱服务，支持接收全球邮件。</p>
                     </div>
                 </div>
             </div>

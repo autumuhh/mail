@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TempMail - 邮箱管理</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>📧</text></svg>">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/mailbox_manager.css') }}?v=2">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="preconnect" href="https://cdnjs.cloudflare.com">
@@ -31,10 +32,11 @@
                         <i class="fas fa-paper-plane"></i>
                         <span>已发送</span>
                     </li>
-                    <li class="nav-item" data-view="settings">
+                    <!-- 设置菜单已隐藏 -->
+                    <!-- <li class="nav-item" data-view="settings">
                         <i class="fas fa-cog"></i>
                         <span>设置</span>
-                    </li>
+                    </li> -->
                     <li class="nav-item" data-view="info">
                         <i class="fas fa-info-circle"></i>
                         <span>邮箱信息</span>
@@ -43,9 +45,10 @@
             </nav>
             
             <div class="sidebar-footer">
-                <button class="btn btn-logout" onclick="logout()">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>退出登录</span>
+                <button class="btn btn-theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="切换主题">
+                    <i class="fas fa-sun theme-icon-dark"></i>
+                    <i class="fas fa-moon theme-icon-light"></i>
+                    <span>切换主题</span>
                 </button>
             </div>
         </aside>
@@ -92,12 +95,22 @@
                         </div>
                     </div>
                     
-                    <div class="email-list" id="email-list">
-                        <div class="loading-placeholder">
-                            <i class="fas fa-spinner fa-spin"></i>
-                            <p>正在快速加载...</p>
-                            <div style="margin-top: 1rem; font-size: 0.875rem; color: var(--text-secondary);">
-                                <p>并行加载邮箱信息和邮件列表...</p>
+                    <div class="email-list-container">
+                        <!-- 邮件列表工具栏 -->
+                        <div class="email-list-header">
+                            <div class="email-list-info">
+                                <span id="email-count">0 封邮件</span>
+                            </div>
+                        </div>
+
+                        <!-- 邮件列表内容 -->
+                        <div class="email-list" id="email-list">
+                            <div class="loading-placeholder">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <p>正在快速加载...</p>
+                                <div style="margin-top: 1rem; font-size: 0.875rem; color: var(--text-secondary);">
+                                    <p>并行加载邮箱信息和邮件列表...</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -431,6 +444,7 @@
         </div>
     </div>
 
+    <script src="{{ url_for('static', filename='scripts/theme.js') }}?v=3"></script>
     <script src="{{ url_for('static', filename='scripts/mailbox_manager.js') }}?v=2"></script>
 </body>
 </html>

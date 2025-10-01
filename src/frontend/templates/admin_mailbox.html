@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>邮箱管理 - TempMail Admin</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>📧</text></svg>">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/admin_mailbox.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- 主题切换按钮 -->
+    <button class="theme-toggle" id="theme-toggle" title="切换主题">
+        <span class="icon sun-icon">☀️</span>
+        <span class="icon moon-icon">🌙</span>
+    </button>
+
+    <div class="admin-container">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>TempMail Admin</span>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item active" data-view="dashboard">
+                        <i class="fas fa-chart-line"></i>
+                        <span>仪表板</span>
+                    </li>
+                    <li class="nav-item" data-view="mailboxes">
+                        <i class="fas fa-inbox"></i>
+                        <span>邮箱管理</span>
+                    </li>
+                    <li class="nav-item" data-view="audit">
+                        <i class="fas fa-history"></i>
+                        <span>审计日志</span>
+                    </li>
+                    <li class="nav-item" data-view="register">
+                        <i class="fas fa-user-plus"></i>
+                        <span>用户注册</span>
+                    </li>
+                    <li class="nav-item" data-view="settings">
+                        <i class="fas fa-cog"></i>
+                        <span>系统设置</span>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <button class="btn btn-logout" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>退出登录</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 登录视图 -->
+            <div class="view login-view active" id="login-view">
+                <div class="login-container">
+                    <div class="login-card">
+                        <div class="login-header">
+                            <i class="fas fa-shield-alt"></i>
+                            <h2>管理员登录</h2>
+                        </div>
+                        <form id="login-form">
+                            <div class="form-group">
+                                <label for="admin-password">管理员密码</label>
+                                <input type="password" id="admin-password" placeholder="请输入管理员密码" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <i class="fas fa-sign-in-alt"></i>
+                                登录
+                            </button>
+                        </form>
+                        <div id="login-error" class="error-message"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 仪表板视图 -->
+            <div class="view dashboard-view" id="dashboard-view" style="display: none;">
+                <div class="view-header">
+                    <h2><i class="fas fa-chart-line"></i> 系统仪表板</h2>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <i class="fas fa-inbox"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="stat-total-mailboxes">0</div>
+                            <div class="stat-label">总邮箱数</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="stat-active-mailboxes">0</div>
+                            <div class="stat-label">活跃邮箱</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="stat-expired-mailboxes">0</div>
+                            <div class="stat-label">过期邮箱</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);">
+                            <i class="fas fa-ban"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="stat-disabled-mailboxes">0</div>
+                            <div class="stat-label">禁用邮箱</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="stat-total-emails">0</div>
+                            <div class="stat-label">总邮件数</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%);">
+                            <i class="fas fa-envelope-open"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="stat-unread-emails">0</div>
+                            <div class="stat-label">未读邮件</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 邮箱管理视图 -->
+            <div class="view mailboxes-view" id="mailboxes-view" style="display: none;">
+                <div class="view-header">
+                    <h2><i class="fas fa-inbox"></i> 邮箱管理</h2>
+                    <div class="view-actions">
+                        <button class="btn btn-primary" onclick="showCreateMailboxModal()">
+                            <i class="fas fa-plus"></i>
+                            创建邮箱
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 搜索和筛选 -->
+                <div class="filter-bar">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="search-input" placeholder="搜索邮箱地址或ID...">
+                    </div>
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-status="all">全部</button>
+                        <button class="filter-btn" data-status="active">活跃</button>
+                        <button class="filter-btn" data-status="expired">过期</button>
+                        <button class="filter-btn" data-status="disabled">禁用</button>
+                    </div>
+                    <button class="btn btn-secondary" onclick="refreshMailboxList()">
+                        <i class="fas fa-sync-alt"></i>
+                        刷新
+                    </button>
+                </div>
+                
+                <!-- 邮箱列表 -->
+                <div class="mailbox-list-container">
+                    <table class="mailbox-table">
+                        <thead>
+                            <tr>
+                                <th>邮箱地址</th>
+                                <th>状态</th>
+                                <th>创建时间</th>
+                                <th>过期时间</th>
+                                <th>邮件数</th>
+                                <th>未读</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mailbox-list">
+                            <tr>
+                                <td colspan="7" class="loading-row">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    加载中...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- 分页 -->
+                <div class="pagination" id="pagination">
+                    <!-- 分页按钮将动态生成 -->
+                </div>
+            </div>
+
+            <!-- 审计日志视图 -->
+            <div class="view audit-view" id="audit-view" style="display: none;">
+                <div class="view-header">
+                    <h2><i class="fas fa-history"></i> 审计日志</h2>
+                    <button class="btn btn-secondary" onclick="refreshAuditLogs()">
+                        <i class="fas fa-sync-alt"></i>
+                        刷新
+                    </button>
+                </div>
+                
+                <div class="audit-log-container">
+                    <table class="audit-table">
+                        <thead>
+                            <tr>
+                                <th>时间</th>
+                                <th>操作</th>
+                                <th>邮箱ID</th>
+                                <th>管理员</th>
+                                <th>IP地址</th>
+                                <th>详情</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-log-list">
+                            <tr>
+                                <td colspan="6" class="loading-row">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    加载中...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 用户注册视图 -->
+            <div class="view register-view" id="register-view" style="display: none;">
+                <div class="view-header">
+                    <h2><i class="fas fa-user-plus"></i> 用户注册</h2>
+                </div>
+
+                <div class="register-content">
+                    <div class="register-card">
+                        <form id="admin-register-form">
+                            <div class="form-group">
+                                <label>邮箱地址 *</label>
+                                <div class="email-input-group">
+                                    <input type="text" id="reg-email-prefix" required placeholder="username" class="email-prefix-input">
+                                    <span class="at-symbol">@</span>
+                                    <select id="reg-email-domain" required class="email-domain-select">
+                                        <option value="">选择域名...</option>
+                                    </select>
+                                    <button type="button" class="btn btn-icon btn-random" id="reg-random-btn" title="随机生成">
+                                        <i class="fas fa-random"></i>
+                                    </button>
+                                </div>
+                                <small>点击随机按钮生成随机邮箱名，从下拉框选择域名</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="reg-retention-days">保留天数 *</label>
+                                <select id="reg-retention-days">
+                                    <option value="7">7天</option>
+                                    <option value="14">14天</option>
+                                    <option value="30" selected>30天</option>
+                                    <option value="60">60天</option>
+                                    <option value="90">90天</option>
+                                </select>
+                                <small>邮箱将在指定天数后自动过期</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="reg-sender-whitelist">发件人白名单（可选）</label>
+                                <textarea id="reg-sender-whitelist" rows="3" placeholder="每行一个邮箱地址或域名&#10;例如：&#10;user@example.com&#10;@domain.com"></textarea>
+                                <small>留空表示接受所有发件人</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="reg-allowed-domains">允许的域名（可选）</label>
+                                <textarea id="reg-allowed-domains" rows="3" placeholder="每行一个域名&#10;例如：&#10;example.com&#10;test.org"></textarea>
+                                <small>限制只能接收来自这些域名的邮件</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="reg-whitelist-enabled">
+                                    启用白名单过滤
+                                </label>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <i class="fas fa-plus"></i>
+                                创建邮箱
+                            </button>
+                        </form>
+
+                        <div id="register-result" class="register-result" style="display: none;">
+                            <!-- 创建成功后显示结果 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 系统设置视图 -->
+            <div class="view settings-view" id="settings-view" style="display: none;">
+                <div class="view-header">
+                    <h2><i class="fas fa-cog"></i> 系统设置</h2>
+                </div>
+
+                <div class="settings-content">
+                    <div class="setting-group">
+                        <h3>IP白名单设置</h3>
+                        <p class="setting-description">管理允许访问系统的IP地址</p>
+                        <a href="/admin" class="btn btn-primary">
+                            <i class="fas fa-network-wired"></i>
+                            配置IP白名单
+                        </a>
+                    </div>
+
+                    <div class="setting-group">
+                        <h3>API测试</h3>
+                        <p class="setting-description">测试系统API功能</p>
+                        <a href="/api-test" class="btn btn-primary">
+                            <i class="fas fa-vial"></i>
+                            API测试页面
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 创建邮箱模态框 -->
+    <div class="modal" id="create-mailbox-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>创建新邮箱</h3>
+                <button class="modal-close" onclick="closeCreateMailboxModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="create-mailbox-form">
+                    <div class="form-group">
+                        <label for="mailbox-address">邮箱地址 *</label>
+                        <input type="email" id="mailbox-address" required placeholder="example@domain.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="retention-days">保留天数 *</label>
+                        <input type="number" id="retention-days" value="30" min="1" max="90" required>
+                        <small>邮箱将在指定天数后自动过期（1-90天）</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="sender-whitelist">发件人白名单（可选）</label>
+                        <textarea id="sender-whitelist" rows="4" placeholder="每行一个邮箱地址或域名&#10;例如：&#10;user@example.com&#10;@domain.com"></textarea>
+                        <small>留空表示接受所有发件人</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeCreateMailboxModal()">取消</button>
+                <button class="btn btn-primary" onclick="createMailbox()">
+                    <i class="fas fa-plus"></i>
+                    创建
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="{{ url_for('static', filename='scripts/theme.js') }}?v=3"></script>
+    <script src="{{ url_for('static', filename='scripts/admin_mailbox.js') }}"></script>
+</body>
+</html>
+

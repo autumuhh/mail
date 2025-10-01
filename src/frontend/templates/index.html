@@ -1,64 +1,102 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TempMail</title>
+    <title>TempMail - 临时邮箱服务</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>📧</text></svg>">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='resources/favicon.ico') }}">
 </head>
 <body>
-    <!-- 主题切换和登录按钮 -->
-    <div class="top-buttons">
-        <button class="theme-toggle" id="theme-toggle" title="切换主题">
-            <span class="icon sun-icon">☀️</span>
-            <span class="icon moon-icon">🌙</span>
-        </button>
-        <a href="/login" class="login-btn-header" title="用户登录">
-            <i class="fas fa-sign-in-alt"></i>
-            <span>登录</span>
-        </a>
+    <!-- 背景装饰 -->
+    <div class="background-decoration">
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+        <div class="circle circle-3"></div>
     </div>
 
-    <div class="container">
-        <header class="header">
-            <h1>
-                <img src="{{ url_for('static', filename='resources/mail-icon.svg') }}" alt="Mail Icon">
-                TempMail
-            </h1>
-            <p>Your free and open source disposable email inbox.</p>
-        </header>
-        <section class="email-panel">
-            <div class="email-display">
-                <div class="email-input-container">
-                    <input type="text" id="email-prefix" placeholder="username" class="email-prefix" readonly>
-                    <span class="at-symbol">@</span>
-                    <select id="domain-selector" class="domain-selector">
-                        <option value="">Select Domain</option>
-                    </select>
-                </div>
-                <input type="hidden" id="email-input" value="">
+    <!-- 顶部导航栏 -->
+    <nav class="top-nav">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <i class="fas fa-envelope"></i>
+                <span>TempMail</span>
             </div>
-            <div class="action-buttons">
-                <button id="random-btn" class="btn btn-primary main-action-btn">
-                    <img src="{{ url_for('static', filename='resources/random-icon.svg') }}" alt="Random Icon">
-                    <span class="button-text">Generate Random</span>
+            <div class="nav-actions">
+                <button class="theme-toggle" id="theme-toggle" title="切换主题">
+                    <span class="icon sun-icon">☀️</span>
+                    <span class="icon moon-icon">🌙</span>
                 </button>
-                <button id="copy-btn" class="btn btn-secondary main-action-btn">
-                    <img src="{{ url_for('static', filename='resources/copy-icon.svg') }}" alt="Copy Icon">
-                    <span class="button-text">Copy Email</span>
-                </button>
-                <!--
-                <button id="custom-btn" class="btn btn-secondary">
-                    <img src="{{ url_for('static', filename='resources/edit-icon.svg') }}" alt="Edit Icon">
-                    <span class="button-text">Use Custom</span>
-                </button>
-                <button id="manage-btn" class="btn btn-secondary">
-                    <img src="{{ url_for('static', filename='resources/edit-icon.svg') }}" alt="Manage Icon">
-                    <span class="button-text">Manage</span>
-                </button>
-                -->
+                <a href="/login" class="nav-link">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>登录</span>
+                </a>
+                <a href="/register" class="nav-link nav-link-primary">
+                    <i class="fas fa-user-plus"></i>
+                    <span>注册</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <header class="hero-section">
+            <div class="hero-content">
+                <div class="hero-icon">
+                    <i class="fas fa-envelope-open-text"></i>
+                </div>
+                <h1 class="hero-title">临时邮箱服务</h1>
+                <p class="hero-subtitle">免费、开源、即用即弃的临时邮箱</p>
+                <div class="hero-features">
+                    <div class="feature-tag">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>隐私保护</span>
+                    </div>
+                    <div class="feature-tag">
+                        <i class="fas fa-bolt"></i>
+                        <span>即时生成</span>
+                    </div>
+                    <div class="feature-tag">
+                        <i class="fas fa-trash-alt"></i>
+                        <span>自动销毁</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <!-- 邮箱生成面板 -->
+        <section class="email-panel">
+            <div class="panel-card">
+                <div class="panel-header">
+                    <h2>
+                        <i class="fas fa-magic"></i>
+                        生成临时邮箱
+                    </h2>
+                    <p>点击按钮即可生成一个临时邮箱地址</p>
+                </div>
+
+                <div class="email-display">
+                    <div class="email-input-container">
+                        <input type="text" id="email-prefix" placeholder="username" class="email-prefix" readonly>
+                        <span class="at-symbol">@</span>
+                        <select id="domain-selector" class="domain-selector">
+                            <option value="">选择域名</option>
+                        </select>
+                    </div>
+                    <input type="hidden" id="email-input" value="">
+                </div>
+
+                <div class="action-buttons">
+                    <button id="random-btn" class="btn btn-primary btn-large">
+                        <i class="fas fa-random"></i>
+                        <span class="button-text">随机生成</span>
+                    </button>
+                    <button id="copy-btn" class="btn btn-secondary btn-large">
+                        <i class="fas fa-copy"></i>
+                        <span class="button-text">复制邮箱</span>
+                    </button>
+                </div>
             </div>
         </section>
 
@@ -98,23 +136,84 @@
             </div>
         </section>
 
+        <!-- 收件箱 -->
         <main class="inbox-section">
-            <div class="inbox-header">
-                <h2>Your Inbox</h2>
-                <button id="refresh-btn" class="btn btn-secondary" title="Refresh Inbox">
-                    <img src="{{ url_for('static', filename='resources/refresh-icon.svg') }}" alt="Refresh Icon">
-                </button>
-            </div>
-            <ul id="inbox-list"></ul>
-            <div id="inbox-placeholder">
-                <p>Your emails will appear here. Refresh to check for new mail.</p>
+            <div class="panel-card">
+                <div class="inbox-header">
+                    <h2>
+                        <i class="fas fa-inbox"></i>
+                        收件箱
+                    </h2>
+                    <button id="refresh-btn" class="btn btn-icon-only" title="刷新">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                <ul id="inbox-list"></ul>
+                <div id="inbox-placeholder" class="inbox-placeholder">
+                    <div class="placeholder-icon">
+                        <i class="fas fa-envelope-open"></i>
+                    </div>
+                    <p>您的邮件将显示在这里</p>
+                    <small>点击刷新按钮检查新邮件</small>
+                </div>
             </div>
         </main>
 
-        <!-- 管理链接 -->
-        <footer class="footer-links">
-            <div class="admin-links">
-                <!-- 登录链接已移动到顶部 -->
+        <!-- 功能特性 -->
+        <section class="features-section">
+            <h2 class="section-title">为什么选择 TempMail？</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-user-secret"></i>
+                    </div>
+                    <h3>保护隐私</h3>
+                    <p>无需注册，无需提供个人信息，完全匿名使用</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <h3>自动过期</h3>
+                    <p>邮箱自动过期销毁，无需手动清理</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3>安全可靠</h3>
+                    <p>开源代码，透明安全，值得信赖</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h3>响应式设计</h3>
+                    <p>完美支持手机、平板、电脑等各种设备</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 页脚 -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <i class="fas fa-envelope"></i>
+                    <span>TempMail</span>
+                </div>
+                <div class="footer-links">
+                    <a href="/admin" class="footer-link">
+                        <i class="fas fa-shield-alt"></i>
+                        管理后台
+                    </a>
+                    <a href="https://github.com" class="footer-link" target="_blank">
+                        <i class="fab fa-github"></i>
+                        GitHub
+                    </a>
+                </div>
+                <div class="footer-copyright">
+                    <p>&copy; 2024 TempMail. 开源免费使用.</p>
+                </div>
             </div>
         </footer>
     </div>

@@ -7,7 +7,7 @@ FLASK_HOST = os.getenv("FLASK_HOST", "0.0.0.0")
 FLASK_PORT = int(os.getenv("FLASK_PORT", 5000))
 
 SMTP_HOST = os.getenv("SMTP_HOST", "0.0.0.0")
-SMTP_PORT = int(os.getenv("SMTP_PORT", 2525))  # 使用非特权端口
+SMTP_PORT = int(os.getenv("SMTP_PORT", 25))  # 使用非特权端口
 
 INBOX_FILE_NAME = os.getenv("INBOX_FILE_NAME", "inbox.json")
 MAX_INBOX_SIZE = int(os.getenv("MAX_INBOX_SIZE", 100000000))

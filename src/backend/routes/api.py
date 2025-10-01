@@ -373,7 +373,7 @@ def get_mailbox_token():
                 return jsonify({"error": "Mailbox has expired"}), 410
 
             # 验证邮箱密钥
-            if mailbox_info.get('mailbox_key') != mailbox_key:
+            if mailbox_info['mailbox_key'] != mailbox_key:
                 return jsonify({"error": "Invalid mailbox key"}), 401
 
             return jsonify({
@@ -392,11 +392,11 @@ def get_mailbox_token():
     except Exception as e:
         return jsonify({"error": f"Failed to get access token: {str(e)}"}), 500
 
-# 新增：用户注册接口
-@bp.route('/register', methods=['POST'])
-def register():
+# 新增：用户密码登录接口
+@bp.route('/user_login', methods=['POST'])
+def user_login():
     """
-    用户注册接口 - 创建用户账户，可选择同时创建临时邮箱
+    用户密码登录接口 - 用户通过用户名和密码登录，获取邮箱列表
     """
     # Check IP whitelist
     client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
@@ -407,66 +407,173 @@ def register():
     if not data:
         return jsonify({"error": "No data provided"}), 400
 
-    # Get parameters
     username = data.get('username', '').strip()
-    email = data.get('email', '').strip()
     password = data.get('password', '')
-    invite_code = data.get('invite_code', '').strip()
 
-    # Validate required fields
     if not username or not password:
         return jsonify({"error": "Username and password are required"}), 400
-
-    # Validate invite code
-    if not invite_code:
-        return jsonify({"error": "Invite code is required"}), 400
-
-    # Validate username format
-    if len(username) < 3 or len(username) > 20:
-        return jsonify({"error": "Username must be between 3 and 20 characters"}), 400
-
-    if not re.match(r'^[a-zA-Z0-9_]+$', username):
-        return jsonify({"error": "Username can only contain letters, numbers, and underscores"}), 400
-
-    # Validate password strength
-    if len(password) < 8:
-        return jsonify({"error": "Password must be at least 8 characters long"}), 400
-
-    # Validate email if provided
-    if email and not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email):
-        return jsonify({"error": "Invalid email address format"}), 400
 
     try:
         if config.USE_DATABASE:
             # 导入数据库管理器
             from database import db_manager
 
-            # 验证邀请码
-            if not db_manager.validate_invite_code(invite_code):
-                return jsonify({"error": "Invalid or expired invite code"}), 400
+            # 获取用户信息
+            user = db_manager.get_user_by_username(username)
+            if not user:
+                return jsonify({"error": "Invalid username or password"}), 401
 
-            # 检查用户名是否已存在
-            existing_user = db_manager.get_user_by_username(username)
-            if existing_user:
-                return jsonify({"error": "Username already exists"}), 409
+            # 验证密码（实际项目中应该使用密码哈希验证）
+            if user['password_hash'] != password:
+                return jsonify({"error": "Invalid username or password"}), 401
 
-            # 创建用户账户
-            user = db_manager.create_user(
-                username=username,
-                email=email if email else None,
-                password_hash=password,  # 实际项目中应该使用密码哈希
+            # 更新最后登录时间
+            current_time = int(time.time())
+            with db_manager.get_connection() as conn:
+                conn.execute('''
+                    UPDATE users SET last_login = ? WHERE id = ?
+                ''', (current_time, user['id']))
+                conn.commit()
+
+            # 获取用户的所有邮箱
+            mailboxes = db_manager.get_user_mailboxes(user['id'])
+
+            # 过滤掉过期和非活跃的邮箱
+            active_mailboxes = []
+            for mailbox in mailboxes:
+                if not db_manager.is_mailbox_expired(mailbox) and mailbox.get('is_active', True):
+                    # 获取邮箱统计信息
+                    stats = db_manager.get_mailbox_stats(mailbox['id'])
+                    mailbox_info = {
+                        'id': mailbox['id'],
+                        'address': mailbox['address'],
+                        'access_token': mailbox['access_token'],
+                        'created_at': mailbox['created_at'],
+                        'expires_at': mailbox['expires_at'],
+                        'retention_days': mailbox['retention_days'],
+                        'sender_whitelist': mailbox['sender_whitelist'],
+                        'whitelist_enabled': mailbox.get('whitelist_enabled', False),
+                        'is_active': mailbox.get('is_active', True),
+                        'email_count': stats['total_emails'],
+                        'unread_count': stats['unread_emails'],
+                        'last_email_time': stats['last_email_time']
+                    }
+                    active_mailboxes.append(mailbox_info)
+
+            return jsonify({
+                "success": True,
+                "user": {
+                    "id": user['id'],
+                    "username": user['username'],
+                    "email": user['email'],
+                    "created_at": user['created_at'],
+                    "last_login": current_time
+                },
+                "mailboxes": active_mailboxes,
+                "message": f"Login successful. You have {len(active_mailboxes)} active mailboxes."
+            }), 200
+        else:
+            return jsonify({
+                "error": "Database storage not enabled. User login requires database storage."
+            }), 400
+
+    except Exception as e:
+        return jsonify({"error": f"Login failed: {str(e)}"}), 500
+
+# 新增：用户注册接口
+@bp.route('/register', methods=['POST'])
+def register():
+    """
+    用户注册接口 - 创建用户账户，可选择同时创建临时邮箱
+    需要Authorization请求头验证管理员密码
+    """
+    # Check Authorization header (admin password required for registration)
+    admin_password = request.headers.get("Authorization", None)
+    if not admin_password:
+        return jsonify({
+            "error": "Authentication required",
+            "message": "Registration requires admin password in Authorization header"
+        }), 401
+
+    if admin_password != config.PASSWORD:
+        return jsonify({"error": "Invalid admin password"}), 401
+
+    # Check IP whitelist
+    client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
+    if not inbox_handler.is_ip_whitelisted(client_ip):
+        return jsonify({"error": "Access denied - IP not whitelisted"}), 403
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    # Get parameters
+    email_input = data.get('email', '').strip()
+    retention_days = data.get('retention_days', config.MAILBOX_RETENTION_DAYS)
+
+    # Validate required fields
+    if not email_input:
+        return jsonify({"error": "Email address or prefix is required"}), 400
+
+    # Check if user provided full email or just prefix
+    if '@' in email_input:
+        # User provided full email address
+        email = email_input
+
+        # Validate email format
+        if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email):
+            return jsonify({"error": "Invalid email address format"}), 400
+    else:
+        # User provided only prefix, add random domain
+        email_prefix = email_input
+
+        # Validate email prefix format (only if it's not a full email)
+        if not re.match(r'^[a-zA-Z0-9_]{3,20}$', email_prefix):
+            return jsonify({"error": "Email prefix must be 3-20 characters, letters, numbers, and underscores only"}), 400
+
+        # Generate full email address with random domain
+        random_domain = random.choice(config.DOMAINS)
+        email = f"{email_prefix}@{random_domain}"
+
+    # Validate retention days
+    if not isinstance(retention_days, int) or retention_days < 1 or retention_days > 30:
+        return jsonify({"error": "Retention days must be between 1 and 30"}), 400
+
+    try:
+        if config.USE_DATABASE:
+            # 导入数据库管理器
+            from database import db_manager
+
+            # 检查邮箱是否已存在
+            existing_mailbox = inbox_handler.get_mailbox_info(email)
+            if existing_mailbox and not existing_mailbox['is_expired']:
+                return jsonify({
+                    "error": "Mailbox already exists",
+                    "existing_mailbox": {
+                        "address": existing_mailbox['address'],
+                        "mailbox_id": existing_mailbox['id'],
+                        "created_at": existing_mailbox['created_at'],
+                        "expires_at": existing_mailbox['expires_at']
+                    }
+                }), 409
+
+            # 创建邮箱
+            mailbox = inbox_handler.create_or_get_mailbox(
+                address=email,
+                retention_days=retention_days,
+                sender_whitelist=[],
                 created_by_ip=client_ip
             )
 
-            # 消耗邀请码（设为已使用）
-            db_manager.mark_invite_code_used(invite_code)
-
             result_data = {
                 "success": True,
-                "user_id": user['id'],
-                "username": user['username'],
-                "created_at": user['created_at'],
-                "message": "User account created successfully"
+                "mailbox_created": True,
+                "mailbox_address": email,
+                "access_token": mailbox['access_token'],
+                "created_at": mailbox['created_at'],
+                "expires_at": mailbox['expires_at'],
+                "retention_days": retention_days,
+                "message": "Temporary mailbox created successfully"
             }
 
             return jsonify(result_data), 201
@@ -636,32 +743,101 @@ def get_domain():
 
     return jsonify({"domain": config.DOMAIN}), 200
 
-# The main route that serves the website
+# The main route that serves the website - 支持双重认证机制
 @bp.route('/get_inbox')
 def get_inbox():
+    """
+    获取邮箱邮件列表 - 支持双重认证机制
+    认证方式：
+    1. Token认证：通过access_token参数验证（用户登录后使用）
+    2. 管理员密码认证：通过Authorization头验证（API访问使用）
+    """
     # Check IP whitelist
     client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
     if not inbox_handler.is_ip_whitelisted(client_ip):
         return jsonify({"error": "Access denied - IP not whitelisted"}), 403
 
     addr = request.args.get("address", "")
-    password = request.headers.get("Authorization", None)
+    access_token = request.args.get("token", "")  # 新增：支持token认证
+    admin_password = request.headers.get("Authorization", None)
 
-    if re.match(config.PROTECTED_ADDRESSES, addr) and password != config.PASSWORD:
-        return jsonify({"error": "Unauthorized"}), 401
+    # 认证逻辑：优先使用token认证，如果没有token则要求管理员密码
+    if not access_token:
+        # API访问模式：要求管理员密码
+        if not admin_password:
+            return jsonify({
+                "error": "Authentication required",
+                "message": "API access requires admin password. Use Authorization header or provide access_token parameter for user login."
+            }), 401
+
+        if admin_password != config.PASSWORD:
+            return jsonify({"error": "Invalid admin password"}), 401
+    else:
+        # Token认证模式：验证访问令牌
+        if config.USE_DATABASE:
+            try:
+                from database import db_manager
+                mailbox = db_manager.get_mailbox_by_token(access_token)
+                if not mailbox:
+                    return jsonify({
+                        "error": "Invalid access token",
+                        "message": "The provided access token is invalid or expired"
+                    }), 401
+
+                # 验证token对应的邮箱地址是否匹配
+                if mailbox['address'] != addr:
+                    return jsonify({
+                        "error": "Token mismatch",
+                        "message": "Access token does not match the requested email address"
+                    }), 401
+
+                # 检查邮箱是否过期
+                if db_manager.is_mailbox_expired(mailbox):
+                    return jsonify({"error": "Mailbox expired"}), 410
+
+            except Exception as e:
+                return jsonify({
+                    "error": "Token validation failed",
+                    "message": f"Failed to validate access token: {str(e)}"
+                }), 500
+        else:
+            return jsonify({
+                "error": "Token authentication requires database storage",
+                "message": "Access token authentication is only available in database mode"
+            }), 400
 
     try:
         if config.USE_DATABASE:
-            # 数据库模式
-            mailbox_info = inbox_handler.get_mailbox_info(addr)
-            if not mailbox_info:
-                return jsonify([]), 200  # Return empty array if mailbox not found
+            # 数据库模式 - 支持双重认证
+            if access_token:
+                # Token认证模式：直接使用token获取的邮箱信息
+                from database import db_manager
+                mailbox = db_manager.get_mailbox_by_token(access_token)
+                if not mailbox:
+                    return jsonify({"error": "Invalid access token"}), 401
+            else:
+                # 管理员密码认证模式：通过地址获取邮箱信息
+                mailbox_info = inbox_handler.get_mailbox_info(addr)
+                if not mailbox_info:
+                    return jsonify([]), 200  # Return empty array if mailbox not found
 
-            if mailbox_info['is_expired']:
-                return jsonify({"error": "Mailbox expired"}), 410
+                if mailbox_info['is_expired']:
+                    return jsonify({"error": "Mailbox expired"}), 410
+
+                mailbox = {
+                    'id': mailbox_info['id'],
+                    'address': mailbox_info['address'],
+                    'created_at': mailbox_info['created_at'],
+                    'expires_at': mailbox_info['expires_at'],
+                    'retention_days': mailbox_info['retention_days'],
+                    'sender_whitelist': mailbox_info['sender_whitelist'],
+                    'whitelist_enabled': mailbox_info.get('whitelist_enabled', False),
+                    'access_token': mailbox_info['access_token'],
+                    'is_active': mailbox_info.get('is_active', True)
+                }
 
             # 获取邮件列表
-            emails = inbox_handler.get_emails_by_mailbox(mailbox_info['id'])
+            emails = inbox_handler.get_emails_by_mailbox(mailbox['id'])
             return jsonify(emails), 200
         else:
             # JSON文件模式（原有逻辑）

@@ -89,6 +89,26 @@ class DatabaseManager:
                 # 字段已存在，忽略错误
                 pass
 
+            # 添加管理员更新字段
+            try:
+                conn.execute('ALTER TABLE mailboxes ADD COLUMN updated_by_admin TEXT')
+                print("Added updated_by_admin column to mailboxes table")
+            except sqlite3.OperationalError:
+                pass
+
+            try:
+                conn.execute('ALTER TABLE mailboxes ADD COLUMN updated_at INTEGER')
+                print("Added updated_at column to mailboxes table")
+            except sqlite3.OperationalError:
+                pass
+
+            # 添加允许域名字段
+            try:
+                conn.execute('ALTER TABLE mailboxes ADD COLUMN allowed_domains TEXT DEFAULT "[]"')
+                print("Added allowed_domains column to mailboxes table")
+            except sqlite3.OperationalError:
+                pass
+
 
 
             # 邮件表
@@ -126,6 +146,20 @@ class DatabaseManager:
                 )
             ''')
 
+            # 审计日志表
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS audit_logs (
+                    id TEXT PRIMARY KEY,
+                    timestamp INTEGER NOT NULL,
+                    action TEXT NOT NULL,
+                    mailbox_id TEXT,
+                    admin_user TEXT,
+                    changes TEXT,
+                    ip_address TEXT,
+                    FOREIGN KEY (mailbox_id) REFERENCES mailboxes (id) ON DELETE SET NULL
+                )
+            ''')
+
             # 创建索引
             conn.execute('CREATE INDEX IF NOT EXISTS idx_mailboxes_address ON mailboxes (address)')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_mailboxes_expires ON mailboxes (expires_at)')
@@ -133,6 +167,8 @@ class DatabaseManager:
             conn.execute('CREATE INDEX IF NOT EXISTS idx_emails_timestamp ON emails (timestamp)')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_invite_codes_code ON invite_codes (code)')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_invite_codes_used ON invite_codes (is_used)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_audit_logs_mailbox ON audit_logs (mailbox_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs (timestamp)')
 
             conn.commit()
     

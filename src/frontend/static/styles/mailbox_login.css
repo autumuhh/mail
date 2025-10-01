@@ -127,6 +127,61 @@ body {
     background: linear-gradient(90deg, transparent, var(--primary-color), transparent);
 }
 
+/* 登录方式选择器 */
+.login-mode-selector {
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.mode-buttons {
+    display: flex;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius);
+    padding: 0.25rem;
+    gap: 0.25rem;
+}
+
+.mode-btn {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    background: transparent;
+    border: none;
+    border-radius: calc(var(--border-radius) - 0.25rem);
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.mode-btn:hover {
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.mode-btn.active {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.mode-btn i {
+    font-size: 0.75rem;
+}
+
+/* 登录模式 */
+.login-mode {
+    display: none;
+}
+
+.login-mode.active {
+    display: block;
+}
+
 /* 头部 */
 .login-header {
     text-align: center;
@@ -490,7 +545,17 @@ body {
     .toast {
         min-width: auto;
     }
-    
+
+    .mode-buttons {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .mode-btn {
+        padding: 1rem;
+        font-size: 1rem;
+    }
+
     .circle-1,
     .circle-2,
     .circle-3 {
