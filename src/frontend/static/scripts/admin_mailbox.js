@@ -585,59 +585,6 @@ function refreshAuditLogs() {
     }
 }
 
-function showCreateMailboxModal() {
-    document.getElementById('create-mailbox-modal').classList.add('show');
-}
-
-function closeCreateMailboxModal() {
-    document.getElementById('create-mailbox-modal').classList.remove('show');
-    document.getElementById('create-mailbox-form').reset();
-}
-
-async function createMailbox() {
-    const address = document.getElementById('mailbox-address').value;
-    const retentionDays = parseInt(document.getElementById('retention-days').value);
-    const whitelistText = document.getElementById('sender-whitelist').value;
-
-    if (!address) {
-        adminManager.showToast('error', '请输入邮箱地址');
-        return;
-    }
-
-    // 解析白名单
-    const senderWhitelist = whitelistText
-        .split('\n')
-        .map(line => line.trim())
-        .filter(line => line.length > 0);
-
-    try {
-        const response = await adminManager.apiRequest('/api/admin/mailboxes', {
-            method: 'POST',
-            body: JSON.stringify({
-                address,
-                retention_days: retentionDays,
-                sender_whitelist: senderWhitelist
-            })
-        });
-
-        adminManager.showToast('success', '邮箱创建成功');
-        closeCreateMailboxModal();
-
-        // 显示访问令牌（只显示一次）
-        if (response.data && response.data.access_token) {
-            showTokenModal(response.data);
-        }
-
-        // 刷新列表
-        if (adminManager.currentView === 'mailboxes') {
-            adminManager.loadMailboxes();
-        }
-        adminManager.loadStats();
-    } catch (error) {
-        adminManager.showToast('error', error.message || '创建失败');
-    }
-}
-
 function showTokenModal(mailbox) {
     const modal = document.createElement('div');
     modal.className = 'modal show';
