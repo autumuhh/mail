@@ -4,10 +4,11 @@ import config
 bp = Blueprint('pages', __name__)
 
 # The main route that serves the website
-# 首页路由已注释
-# @bp.route('/')
-# def index():
-#     return render_template('index.html')
+# 首页重定向到管理员邮箱管理界面
+@bp.route('/')
+def index():
+    from flask import redirect
+    return redirect('/admin/mailboxes')
 
 # IP whitelist management page
 @bp.route('/admin')
