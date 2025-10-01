@@ -36,16 +36,17 @@ def is_ip_whitelisted(client_ip: str) -> bool:
     except ValueError:
         return False
 
-def create_or_get_mailbox(address: str, retention_days: int = None, 
+def create_or_get_mailbox(address: str, retention_days: int = None,
                          sender_whitelist: List[str] = None,
-                         created_by_ip: str = None) -> Dict:
+                         created_by_ip: str = None,
+                         created_source: str = "unknown") -> Dict:
     """创建或获取邮箱"""
     if retention_days is None:
         retention_days = config.MAILBOX_RETENTION_DAYS
-    
+
     # 尝试获取现有邮箱
     mailbox = db_manager.get_mailbox_by_address(address)
-    
+
     if mailbox:
         # 检查是否过期
         if db_manager.is_mailbox_expired(mailbox):
@@ -54,7 +55,8 @@ def create_or_get_mailbox(address: str, retention_days: int = None,
                 address=address,
                 retention_days=retention_days,
                 sender_whitelist=sender_whitelist or [],
-                created_by_ip=created_by_ip
+                created_by_ip=created_by_ip,
+                created_source=created_source
             )
         else:
             # 更新访问时间
@@ -66,7 +68,8 @@ def create_or_get_mailbox(address: str, retention_days: int = None,
             address=address,
             retention_days=retention_days,
             sender_whitelist=sender_whitelist or [],
-            created_by_ip=created_by_ip
+            created_by_ip=created_by_ip,
+            created_source=created_source
         )
 
 def recv_email(email_json: Dict) -> str:

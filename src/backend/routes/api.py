@@ -231,7 +231,8 @@ def create_mailbox_v2():
                 address=address,
                 retention_days=retention_days,
                 sender_whitelist=sender_whitelist,
-                created_by_ip=client_ip
+                created_by_ip=client_ip,
+                created_source="api_v2"
             )
 
             # 如果指定了自定义创建时间，更新它
@@ -498,7 +499,8 @@ def register():
                 address=email,
                 retention_days=retention_days,
                 sender_whitelist=[],
-                created_by_ip=client_ip
+                created_by_ip=client_ip,
+                created_source="register"
             )
 
             result_data = {

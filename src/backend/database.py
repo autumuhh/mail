@@ -89,6 +89,14 @@ class DatabaseManager:
                 # 字段已存在，忽略错误
                 pass
 
+            # 检查并添加创建来源字段（如果不存在）
+            try:
+                conn.execute('ALTER TABLE mailboxes ADD COLUMN created_source TEXT DEFAULT "unknown"')
+                print("Added created_source column to mailboxes table")
+            except sqlite3.OperationalError:
+                # 字段已存在，忽略错误
+                pass
+
             # 添加管理员更新字段
             try:
                 conn.execute('ALTER TABLE mailboxes ADD COLUMN updated_by_admin TEXT')
@@ -172,9 +180,10 @@ class DatabaseManager:
 
             conn.commit()
     
-    def create_mailbox(self, address: str, retention_days: int = 7, 
-                      sender_whitelist: List[str] = None, 
-                      created_by_ip: str = None) -> Dict:
+    def create_mailbox(self, address: str, retention_days: int = 7,
+                      sender_whitelist: List[str] = None,
+                      created_by_ip: str = None,
+                      created_source: str = "unknown") -> Dict:
         """创建新邮箱"""
         mailbox_id = str(uuid.uuid4())
         access_token = str(uuid.uuid4())
@@ -189,11 +198,11 @@ class DatabaseManager:
             conn.execute('''
                 INSERT INTO mailboxes
                 (id, address, created_at, expires_at, retention_days,
-                 sender_whitelist, whitelist_enabled, created_by_ip, access_token, mailbox_key, last_accessed)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 sender_whitelist, whitelist_enabled, created_by_ip, access_token, mailbox_key, last_accessed, created_source)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 mailbox_id, address, current_time, expires_at, retention_days,
-                json.dumps(sender_whitelist), False, created_by_ip, access_token, mailbox_key, current_time
+                json.dumps(sender_whitelist), False, created_by_ip, access_token, mailbox_key, current_time, created_source
             ))
             conn.commit()
 
@@ -207,7 +216,8 @@ class DatabaseManager:
             'whitelist_enabled': False,
             'access_token': access_token,
             'mailbox_key': mailbox_key,  # 返回邮箱密钥
-            'is_active': True
+            'is_active': True,
+            'created_source': created_source
         }
     
     def get_mailbox_by_address(self, address: str) -> Optional[Dict]:

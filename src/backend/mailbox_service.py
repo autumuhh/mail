@@ -244,9 +244,10 @@ class MailboxService:
                 address=address,
                 retention_days=retention_days,
                 sender_whitelist=sender_whitelist or [],
-                created_by_ip=ip_address
+                created_by_ip=ip_address,
+                created_source="admin"
             )
-            
+
             # 记录审计日志
             self._log_audit(
                 action='CREATE',
@@ -255,7 +256,7 @@ class MailboxService:
                 changes={'address': address, 'retention_days': retention_days},
                 ip_address=ip_address
             )
-            
+
             return True, "邮箱创建成功", mailbox
 
         except Exception as e:
