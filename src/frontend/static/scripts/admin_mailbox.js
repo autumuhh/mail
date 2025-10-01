@@ -16,12 +16,34 @@ class AdminMailboxManager {
         if (this.authToken) {
             this.showMainContent();
             this.loadStats();
+            this.startClock();
         } else {
             this.showLoginView();
         }
-        
+
         // 绑定事件
         this.bindEvents();
+    }
+
+    startClock() {
+        const updateTime = () => {
+            const now = new Date();
+            const timeString = now.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            const timeElement = document.getElementById('current-time');
+            if (timeElement) {
+                timeElement.textContent = timeString;
+            }
+        };
+        updateTime();
+        setInterval(updateTime, 1000);
     }
     
     bindEvents() {

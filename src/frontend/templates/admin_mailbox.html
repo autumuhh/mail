@@ -92,10 +92,22 @@
 
             <!-- 仪表板视图 -->
             <div class="view dashboard-view" id="dashboard-view" style="display: none;">
-                <div class="view-header">
-                    <h2><i class="fas fa-chart-line"></i> 系统仪表板</h2>
+                <!-- 欢迎横幅 -->
+                <div class="welcome-banner">
+                    <div class="welcome-content">
+                        <h1><i class="fas fa-hand-sparkles"></i> 欢迎回来，管理员！</h1>
+                        <p>这是您的 TempMail 管理控制台，您可以在这里管理所有临时邮箱</p>
+                    </div>
+                    <div class="welcome-time">
+                        <i class="fas fa-clock"></i>
+                        <span id="current-time"></span>
+                    </div>
                 </div>
-                
+
+                <div class="view-header">
+                    <h2><i class="fas fa-chart-line"></i> 系统概览</h2>
+                </div>
+
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
@@ -154,6 +166,100 @@
                         <div class="stat-content">
                             <div class="stat-value" id="stat-unread-emails">0</div>
                             <div class="stat-label">未读邮件</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 快速操作 -->
+                <div class="quick-actions-section">
+                    <h3><i class="fas fa-bolt"></i> 快速操作</h3>
+                    <div class="quick-actions-grid">
+                        <button class="quick-action-card" onclick="document.querySelector('[data-view=register]').click()">
+                            <div class="quick-action-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                <i class="fas fa-plus-circle"></i>
+                            </div>
+                            <div class="quick-action-content">
+                                <h4>创建邮箱</h4>
+                                <p>快速创建新的临时邮箱</p>
+                            </div>
+                        </button>
+
+                        <button class="quick-action-card" onclick="document.querySelector('[data-view=mailboxes]').click()">
+                            <div class="quick-action-icon" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);">
+                                <i class="fas fa-list"></i>
+                            </div>
+                            <div class="quick-action-content">
+                                <h4>邮箱列表</h4>
+                                <p>查看和管理所有邮箱</p>
+                            </div>
+                        </button>
+
+                        <button class="quick-action-card" onclick="document.querySelector('[data-view=audit]').click()">
+                            <div class="quick-action-icon" style="background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);">
+                                <i class="fas fa-history"></i>
+                            </div>
+                            <div class="quick-action-content">
+                                <h4>审计日志</h4>
+                                <p>查看系统操作记录</p>
+                            </div>
+                        </button>
+
+                        <button class="quick-action-card" onclick="document.querySelector('[data-view=settings]').click()">
+                            <div class="quick-action-icon" style="background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);">
+                                <i class="fas fa-cog"></i>
+                            </div>
+                            <div class="quick-action-content">
+                                <h4>系统设置</h4>
+                                <p>配置系统参数</p>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 系统信息 -->
+                <div class="system-info-section">
+                    <h3><i class="fas fa-info-circle"></i> 系统信息</h3>
+                    <div class="info-cards-grid">
+                        <div class="info-card">
+                            <div class="info-icon">
+                                <i class="fas fa-server"></i>
+                            </div>
+                            <div class="info-content">
+                                <div class="info-label">系统状态</div>
+                                <div class="info-value">
+                                    <span class="status-badge active">运行中</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="info-card">
+                            <div class="info-icon">
+                                <i class="fas fa-database"></i>
+                            </div>
+                            <div class="info-content">
+                                <div class="info-label">数据库</div>
+                                <div class="info-value">SQLite</div>
+                            </div>
+                        </div>
+
+                        <div class="info-card">
+                            <div class="info-icon">
+                                <i class="fas fa-code-branch"></i>
+                            </div>
+                            <div class="info-content">
+                                <div class="info-label">版本</div>
+                                <div class="info-value">v1.0.0</div>
+                            </div>
+                        </div>
+
+                        <div class="info-card">
+                            <div class="info-icon">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div class="info-content">
+                                <div class="info-label">运行时间</div>
+                                <div class="info-value" id="uptime">计算中...</div>
+                            </div>
                         </div>
                     </div>
                 </div>
