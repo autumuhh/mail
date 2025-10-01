@@ -579,6 +579,14 @@ function refreshMailboxList() {
     }
 }
 
+function changePageSize(size) {
+    if (adminManager) {
+        adminManager.pageSize = parseInt(size);
+        adminManager.currentPage = 1; // 重置到第一页
+        adminManager.loadMailboxes();
+    }
+}
+
 function refreshAuditLogs() {
     if (adminManager) {
         adminManager.loadAuditLogs();
