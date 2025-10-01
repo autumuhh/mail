@@ -67,18 +67,25 @@
                         <div class="login-header">
                             <i class="fas fa-shield-alt"></i>
                             <h2>管理员登录</h2>
+                            <p>TempMail 临时邮箱管理系统</p>
                         </div>
                         <form id="login-form">
                             <div class="form-group">
-                                <label for="admin-password">管理员密码</label>
-                                <input type="password" id="admin-password" placeholder="请输入管理员密码" required>
+                                <label for="admin-password">
+                                    <i class="fas fa-lock"></i>
+                                    管理员密码
+                                </label>
+                                <input type="password" id="admin-password" placeholder="请输入管理员密码" required autocomplete="current-password">
                             </div>
                             <button type="submit" class="btn btn-primary btn-block">
                                 <i class="fas fa-sign-in-alt"></i>
-                                登录
+                                <span>登录</span>
                             </button>
                         </form>
                         <div id="login-error" class="error-message"></div>
+                        <div class="login-footer">
+                            <p><i class="fas fa-info-circle"></i> 请使用管理员密码登录系统</p>
+                        </div>
                     </div>
                 </div>
             </div>
