@@ -117,7 +117,18 @@ class DatabaseManager:
             except sqlite3.OperationalError:
                 pass
 
+            # 添加容量限制字段
+            try:
+                conn.execute('ALTER TABLE mailboxes ADD COLUMN storage_used INTEGER DEFAULT 0')
+                print("Added storage_used column to mailboxes table")
+            except sqlite3.OperationalError:
+                pass
 
+            try:
+                conn.execute('ALTER TABLE mailboxes ADD COLUMN storage_limit INTEGER DEFAULT 52428800')  # 默认50MB
+                print("Added storage_limit column to mailboxes table")
+            except sqlite3.OperationalError:
+                pass
 
             # 邮件表
             conn.execute('''
@@ -135,6 +146,13 @@ class DatabaseManager:
                     FOREIGN KEY (mailbox_id) REFERENCES mailboxes (id) ON DELETE CASCADE
                 )
             ''')
+
+            # 添加邮件大小字段
+            try:
+                conn.execute('ALTER TABLE emails ADD COLUMN size_bytes INTEGER DEFAULT 0')
+                print("Added size_bytes column to emails table")
+            except sqlite3.OperationalError:
+                pass
             
             # 邀请码表
             conn.execute('''
@@ -226,7 +244,7 @@ class DatabaseManager:
             cursor = conn.execute('''
                 SELECT id, address, created_at, expires_at, retention_days, is_active,
                        sender_whitelist, whitelist_enabled, created_by_ip, access_token,
-                       mailbox_key, last_accessed
+                       mailbox_key, last_accessed, storage_used, storage_limit
                 FROM mailboxes WHERE address = ? AND is_active = 1
             ''', (address,))
             row = cursor.fetchone()
@@ -253,7 +271,7 @@ class DatabaseManager:
             cursor = conn.execute('''
                 SELECT id, address, created_at, expires_at, retention_days, is_active,
                        sender_whitelist, whitelist_enabled, created_by_ip, access_token,
-                       mailbox_key, last_accessed
+                       mailbox_key, last_accessed, storage_used, storage_limit
                 FROM mailboxes WHERE access_token = ? AND is_active = 1
             ''', (access_token,))
             row = cursor.fetchone()
@@ -282,7 +300,36 @@ class DatabaseManager:
                 UPDATE mailboxes SET last_accessed = ? WHERE id = ?
             ''', (current_time, mailbox_id))
             conn.commit()
-    
+
+    def get_mailbox_by_id(self, mailbox_id: str) -> Optional[Dict]:
+        """根据ID获取邮箱信息"""
+        with self.get_connection() as conn:
+            cursor = conn.execute('''
+                SELECT id, address, created_at, expires_at, retention_days, is_active,
+                       sender_whitelist, whitelist_enabled, created_by_ip, access_token,
+                       mailbox_key, last_accessed, storage_used, storage_limit
+                FROM mailboxes WHERE id = ?
+            ''', (mailbox_id,))
+            row = cursor.fetchone()
+
+            if row:
+                return {
+                    'id': row['id'],
+                    'address': row['address'],
+                    'created_at': row['created_at'],
+                    'expires_at': row['expires_at'],
+                    'retention_days': row['retention_days'],
+                    'sender_whitelist': json.loads(row['sender_whitelist'] or '[]'),
+                    'whitelist_enabled': bool(row['whitelist_enabled']),
+                    'access_token': row['access_token'],
+                    'is_active': bool(row['is_active']),
+                    'created_by_ip': row['created_by_ip'],
+                    'last_accessed': row['last_accessed'],
+                    'storage_used': row['storage_used'] or 0,
+                    'storage_limit': row['storage_limit'] or config.MAX_MAILBOX_SIZE_BYTES
+                }
+            return None
+
     def is_mailbox_expired(self, mailbox: Dict) -> bool:
         """检查邮箱是否过期"""
         current_time = int(time.time())
@@ -314,21 +361,59 @@ class DatabaseManager:
         """添加邮件到邮箱"""
         email_id = email_data.get('id', str(uuid.uuid4()))
 
+        # 计算邮件大小（字节）
+        email_size = self._calculate_email_size(email_data)
+
+        # 检查单封邮件大小限制
+        if email_size > config.MAX_EMAIL_SIZE_BYTES:
+            raise ValueError(f"邮件大小 ({email_size / 1024 / 1024:.2f}MB) 超过限制 ({config.MAX_EMAIL_SIZE_MB}MB)")
+
+        # 检查邮箱容量
+        mailbox = self.get_mailbox_by_id(mailbox_id)
+        if mailbox:
+            storage_used = mailbox.get('storage_used', 0)
+            storage_limit = mailbox.get('storage_limit', config.MAX_MAILBOX_SIZE_BYTES)
+
+            if storage_used + email_size > storage_limit:
+                raise ValueError(f"邮箱容量不足，当前已用 {storage_used / 1024 / 1024:.2f}MB，限制 {storage_limit / 1024 / 1024:.2f}MB")
+
         with self.get_connection() as conn:
+            # 插入邮件
             conn.execute('''
                 INSERT INTO emails
                 (id, mailbox_id, from_address, to_address, subject, body,
-                 content_type, timestamp, sent_formatted)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 content_type, timestamp, sent_formatted, size_bytes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 email_id, mailbox_id, email_data['From'], email_data['To'],
                 email_data.get('Subject', ''), email_data.get('Body', ''),
                 email_data.get('ContentType', 'Text'), email_data['Timestamp'],
-                email_data.get('Sent', '')
+                email_data.get('Sent', ''), email_size
             ))
+
+            # 更新邮箱已用容量
+            conn.execute('''
+                UPDATE mailboxes
+                SET storage_used = storage_used + ?
+                WHERE id = ?
+            ''', (email_size, mailbox_id))
+
             conn.commit()
 
         return email_id
+
+    def _calculate_email_size(self, email_data: Dict) -> int:
+        """计算邮件大小（字节）"""
+        size = 0
+
+        # 计算各字段大小
+        size += len(email_data.get('From', '').encode('utf-8'))
+        size += len(email_data.get('To', '').encode('utf-8'))
+        size += len(email_data.get('Subject', '').encode('utf-8'))
+        size += len(email_data.get('Body', '').encode('utf-8'))
+        size += len(email_data.get('Sent', '').encode('utf-8'))
+
+        return size
 
     def get_emails_by_mailbox(self, mailbox_id: str, limit: int = None) -> List[Dict]:
         """获取邮箱的所有邮件"""
@@ -427,21 +512,35 @@ class DatabaseManager:
     def get_mailbox_stats(self, mailbox_id: str) -> Dict:
         """获取邮箱统计信息"""
         with self.get_connection() as conn:
+            # 获取邮件统计
             cursor = conn.execute('''
                 SELECT
                     COUNT(*) as total_emails,
                     COUNT(CASE WHEN is_read = 0 THEN 1 END) as unread_emails,
-                    MAX(timestamp) as last_email_time
+                    MAX(timestamp) as last_email_time,
+                    COALESCE(SUM(size_bytes), 0) as total_size
                 FROM emails
                 WHERE mailbox_id = ?
             ''', (mailbox_id,))
+            email_stats = cursor.fetchone()
 
-            row = cursor.fetchone()
+            # 获取邮箱容量信息
+            cursor = conn.execute('''
+                SELECT storage_used, storage_limit
+                FROM mailboxes
+                WHERE id = ?
+            ''', (mailbox_id,))
+            storage_stats = cursor.fetchone()
 
             return {
-                'total_emails': row['total_emails'],
-                'unread_emails': row['unread_emails'],
-                'last_email_time': row['last_email_time']
+                'total_emails': email_stats['total_emails'],
+                'unread_emails': email_stats['unread_emails'],
+                'last_email_time': email_stats['last_email_time'],
+                'storage_used': storage_stats['storage_used'] if storage_stats else 0,
+                'storage_limit': storage_stats['storage_limit'] if storage_stats else config.MAX_MAILBOX_SIZE_BYTES,
+                'storage_used_mb': (storage_stats['storage_used'] if storage_stats else 0) / 1024 / 1024,
+                'storage_limit_mb': (storage_stats['storage_limit'] if storage_stats else config.MAX_MAILBOX_SIZE_BYTES) / 1024 / 1024,
+                'storage_percent': (storage_stats['storage_used'] / storage_stats['storage_limit'] * 100) if (storage_stats and storage_stats['storage_limit'] > 0) else 0
             }
 
     def migrate_from_json(self, json_file_path: str) -> Dict:
@@ -575,11 +674,32 @@ class DatabaseManager:
     def delete_email(self, email_id: str) -> int:
         """删除邮件，返回删除的数量"""
         with sqlite3.connect(self.db_path) as conn:
+            # 先获取邮件大小和邮箱ID
             cursor = conn.execute('''
-                DELETE FROM emails WHERE id = ?
+                SELECT mailbox_id, size_bytes FROM emails WHERE id = ?
             ''', (email_id,))
-            conn.commit()
-            return cursor.rowcount
+            row = cursor.fetchone()
+
+            if row:
+                mailbox_id = row['mailbox_id']
+                size_bytes = row['size_bytes'] or 0
+
+                # 删除邮件
+                cursor = conn.execute('''
+                    DELETE FROM emails WHERE id = ?
+                ''', (email_id,))
+
+                # 更新邮箱已用容量
+                conn.execute('''
+                    UPDATE mailboxes
+                    SET storage_used = MAX(0, storage_used - ?)
+                    WHERE id = ?
+                ''', (size_bytes, mailbox_id))
+
+                conn.commit()
+                return cursor.rowcount
+
+            return 0
 
     def mark_all_emails_read(self, mailbox_id: str) -> int:
         """标记邮箱所有邮件为已读，返回更新的数量"""

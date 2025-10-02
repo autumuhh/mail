@@ -46,6 +46,12 @@ IP_WHITELIST = os.getenv("IP_WHITELIST", "127.0.0.1,::1,192.168.0.0/16,10.0.0.0/
 MAILBOX_RETENTION_DAYS = int(os.getenv("MAILBOX_RETENTION_DAYS", 30))  # 邮箱保留天数
 ENABLE_SENDER_WHITELIST = os.getenv("ENABLE_SENDER_WHITELIST", "false").lower() == "true"
 
+# Mailbox storage limits
+MAX_MAILBOX_SIZE_MB = int(os.getenv("MAX_MAILBOX_SIZE_MB", 50))  # 单个邮箱最大容量（MB）
+MAX_MAILBOX_SIZE_BYTES = MAX_MAILBOX_SIZE_MB * 1024 * 1024  # 转换为字节
+MAX_EMAIL_SIZE_MB = int(os.getenv("MAX_EMAIL_SIZE_MB", 10))  # 单封邮件最大大小（MB）
+MAX_EMAIL_SIZE_BYTES = MAX_EMAIL_SIZE_MB * 1024 * 1024  # 转换为字节
+
 # 测试用：快速过期时间（单位：天，可以设置小数）
 # EMAIL_RETENTION_DAYS = 0.001  # 约1.4分钟，用于测试
 
