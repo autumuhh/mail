@@ -353,38 +353,9 @@ def reset_mailbox_token(mailbox_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@bp.route('/mailboxes/<mailbox_id>/disable', methods=['POST'])
-def disable_mailbox(mailbox_id):
-    """禁用邮箱"""
-    if not check_admin_auth():
-        return jsonify({'success': False, 'error': '未授权'}), 401
-
-    try:
-        with db_manager.get_connection() as conn:
-            conn.execute('''
-                UPDATE mailboxes SET is_active = 0 WHERE id = ?
-            ''', (mailbox_id,))
-            conn.commit()
-
-        # 记录审计日志
-        mailbox_service._log_audit(
-            action='DISABLE',
-            mailbox_id=mailbox_id,
-            admin_user='admin',
-            changes={'is_active': False},
-            ip_address=get_client_ip()
-        )
-
-        return jsonify({
-            'success': True,
-            'message': '邮箱已禁用'
-        })
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
 @bp.route('/mailboxes/<mailbox_id>/enable', methods=['POST'])
 def enable_mailbox(mailbox_id):
-    """启用邮箱"""
+    """恢复（启用）邮箱 - 用于恢复被软删除的邮箱"""
     if not check_admin_auth():
         return jsonify({'success': False, 'error': '未授权'}), 401
 
@@ -397,7 +368,7 @@ def enable_mailbox(mailbox_id):
 
         # 记录审计日志
         mailbox_service._log_audit(
-            action='ENABLE',
+            action='RESTORE',
             mailbox_id=mailbox_id,
             admin_user='admin',
             changes={'is_active': True},
@@ -406,7 +377,7 @@ def enable_mailbox(mailbox_id):
 
         return jsonify({
             'success': True,
-            'message': '邮箱已启用'
+            'message': '邮箱已恢复'
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500

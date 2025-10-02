@@ -754,20 +754,16 @@ AdminMailboxManager.prototype.viewMailbox = async function(mailboxId) {
                         <i class="fas fa-key"></i>
                         重置令牌
                     </button>
-                    ${mailbox.is_active ?
-                        `<button class="btn btn-warning" onclick="disableMailbox('${mailboxId}'); this.closest('.modal').remove();">
-                            <i class="fas fa-ban"></i>
-                            禁用邮箱
-                        </button>` :
-                        `<button class="btn btn-success" onclick="enableMailbox('${mailboxId}'); this.closest('.modal').remove();">
-                            <i class="fas fa-check"></i>
-                            启用邮箱
-                        </button>`
-                    }
                     <button class="btn btn-primary" onclick="adminManager.editMailbox('${mailboxId}'); this.closest('.modal').remove();">
                         <i class="fas fa-edit"></i>
                         编辑
                     </button>
+                    ${!mailbox.is_active ?
+                        `<button class="btn btn-success" onclick="enableMailbox('${mailboxId}'); this.closest('.modal').remove();">
+                            <i class="fas fa-undo"></i>
+                            恢复邮箱
+                        </button>` : ''
+                    }
                 </div>
             </div>
         `;
@@ -900,10 +896,18 @@ AdminMailboxManager.prototype.deleteMailbox = async function(mailboxId) {
             </div>
             <div class="modal-body">
                 <p>确定要删除此邮箱吗？</p>
-                <p class="warning-text">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    此操作将禁用邮箱（软删除），邮箱将无法继续使用。
-                </p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-info-circle"></i>
+                    <div>
+                        <strong>软删除说明：</strong>
+                        <ul style="margin: 8px 0 0 20px; padding: 0;">
+                            <li>邮箱将被标记为"已禁用"</li>
+                            <li>用户无法继续访问</li>
+                            <li>数据保留在数据库中</li>
+                            <li>可以通过"恢复"功能重新启用</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">取消</button>
@@ -1126,35 +1130,21 @@ async function resetMailboxToken(mailboxId) {
     }
 }
 
-// 禁用邮箱
-async function disableMailbox(mailboxId) {
-    if (!confirm('确定要禁用此邮箱吗？禁用后用户将无法访问。')) {
+// 恢复（启用）邮箱
+async function enableMailbox(mailboxId) {
+    if (!confirm('确定要恢复此邮箱吗？恢复后用户可以正常访问。')) {
         return;
     }
 
-    try {
-        await adminManager.apiRequest(`/api/admin/mailboxes/${mailboxId}/disable`, {
-            method: 'POST'
-        });
-
-        adminManager.showToast('success', '邮箱已禁用');
-        adminManager.loadMailboxes();
-    } catch (error) {
-        adminManager.showToast('error', '禁用失败: ' + error.message);
-    }
-}
-
-// 启用邮箱
-async function enableMailbox(mailboxId) {
     try {
         await adminManager.apiRequest(`/api/admin/mailboxes/${mailboxId}/enable`, {
             method: 'POST'
         });
 
-        adminManager.showToast('success', '邮箱已启用');
+        adminManager.showToast('success', '邮箱已恢复');
         adminManager.loadMailboxes();
     } catch (error) {
-        adminManager.showToast('error', '启用失败: ' + error.message);
+        adminManager.showToast('error', '恢复失败: ' + error.message);
     }
 }
 
