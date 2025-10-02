@@ -7,6 +7,8 @@ class MailboxManager {
         this.mailboxKey = null;
         this.currentView = 'inbox';
         this.emails = [];
+        this.filteredEmails = [];
+        this.emailSearchQuery = '';
         this.currentEmail = null;
         this.refreshInterval = null;
         this.currentMailboxStatus = true; // 默认状态为开启
@@ -221,14 +223,36 @@ class MailboxManager {
                 this.switchView(view);
             });
         });
-        
+
+        // 邮件搜索事件
+        const emailSearchInput = document.getElementById('email-search-input');
+        if (emailSearchInput) {
+            let searchTimeout;
+            emailSearchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                const query = e.target.value.trim();
+
+                // 显示/隐藏清除按钮
+                const clearBtn = document.getElementById('clear-search-btn');
+                if (clearBtn) {
+                    clearBtn.style.display = query ? 'flex' : 'none';
+                }
+
+                // 延迟搜索
+                searchTimeout = setTimeout(() => {
+                    this.emailSearchQuery = query;
+                    this.filterEmails();
+                }, 300);
+            });
+        }
+
         // 模态框事件
         document.addEventListener('click', (e) => {
             if (e.target.classList.contains('modal')) {
                 this.closeModal(e.target);
             }
         });
-        
+
         // 键盘事件
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
@@ -485,7 +509,8 @@ class MailboxManager {
             // 确保移除加载状态
             this.removeLoadingState();
 
-            this.renderEmailList();
+            // 应用搜索过滤
+            this.filterEmails();
             console.log('邮件列表渲染完成');
 
         } catch (error) {
@@ -495,7 +520,33 @@ class MailboxManager {
             // 邮件加载失败不应该导致页面崩溃
         }
     }
-    
+
+    filterEmails() {
+        // 如果没有搜索查询，显示所有邮件
+        if (!this.emailSearchQuery) {
+            this.filteredEmails = this.emails;
+        } else {
+            const query = this.emailSearchQuery.toLowerCase();
+            this.filteredEmails = this.emails.filter(email => {
+                // 搜索主题
+                const subject = (email.subject || '').toLowerCase();
+                // 搜索发件人
+                const from = (email.from || '').toLowerCase();
+                // 搜索内容（纯文本）
+                const text = (email.text || '').toLowerCase();
+                // 搜索HTML内容（去除标签）
+                const html = email.html ? email.html.replace(/<[^>]*>/g, '').toLowerCase() : '';
+
+                return subject.includes(query) ||
+                       from.includes(query) ||
+                       text.includes(query) ||
+                       html.includes(query);
+            });
+        }
+
+        this.renderEmailList();
+    }
+
     renderEmailList() {
         try {
             const emailList = document.getElementById('email-list');
@@ -521,15 +572,26 @@ class MailboxManager {
                 return;
             }
 
+            if (this.filteredEmails.length === 0) {
+                emailList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-search"></i>
+                        <h3>没有找到匹配的邮件</h3>
+                        <p>尝试使用不同的关键词搜索<br>当前搜索: "${this.emailSearchQuery}"</p>
+                    </div>
+                `;
+                return;
+            }
+
             // 统计未读邮件数量
-            const unreadCount = this.emails.filter(email => !email.is_read).length;
-            console.log(`渲染邮件列表: 总计 ${this.emails.length} 封邮件，其中 ${unreadCount} 封未读`);
+            const unreadCount = this.filteredEmails.filter(email => !email.is_read).length;
+            console.log(`渲染邮件列表: 总计 ${this.filteredEmails.length} 封邮件，其中 ${unreadCount} 封未读`);
 
             // 更新邮件数量显示
             this.updateEmailCount();
 
             // 批量生成HTML，减少DOM操作
-            const emailHtmlArray = this.emails.map((email, index) => {
+            const emailHtmlArray = this.filteredEmails.map((email, index) => {
                 try {
                     const emailId = email.id || `email-${index}`;
                     const isUnread = !email.is_read;
@@ -1409,6 +1471,23 @@ function refreshEmails() {
     }
     mailboxManager.loadEmails();
     mailboxManager.showToast('info', '刷新', '正在刷新邮件列表...');
+}
+
+function clearEmailSearch() {
+    const searchInput = document.getElementById('email-search-input');
+    const clearBtn = document.getElementById('clear-search-btn');
+
+    if (searchInput) {
+        searchInput.value = '';
+    }
+    if (clearBtn) {
+        clearBtn.style.display = 'none';
+    }
+
+    if (mailboxManager) {
+        mailboxManager.emailSearchQuery = '';
+        mailboxManager.filterEmails();
+    }
 }
 
 // 重试初始化（全局函数）

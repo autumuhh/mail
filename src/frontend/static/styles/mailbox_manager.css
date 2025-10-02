@@ -366,12 +366,66 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 1rem;
     flex-shrink: 0;
 }
 
 .email-list-info {
     font-size: 0.875rem;
     color: var(--text-muted);
+}
+
+.email-search-box {
+    position: relative;
+    flex: 1;
+    max-width: 400px;
+    display: flex;
+    align-items: center;
+}
+
+.email-search-box i.fa-search {
+    position: absolute;
+    left: 12px;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.email-search-box input {
+    width: 100%;
+    padding: 8px 36px 8px 36px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.email-search-box input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.email-search-box .btn-clear {
+    position: absolute;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.email-search-box .btn-clear:hover {
+    background: var(--danger-color);
+    color: white;
 }
 
 .email-list-actions {
