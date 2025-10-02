@@ -447,3 +447,27 @@ def unblock_ip(ip):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@bp.route('/source-stats', methods=['GET'])
+def get_source_stats():
+    """获取邮箱创建来源统计"""
+    auth_ok, error_msg = check_admin_auth()
+    if not auth_ok:
+        return jsonify({'success': False, 'error': error_msg or '未授权'}), 401
+
+    try:
+        with db_manager.get_connection() as conn:
+            # 按创建来源统计
+            cursor = conn.execute('''
+                SELECT created_source, COUNT(*) as count
+                FROM mailboxes
+                GROUP BY created_source
+            ''')
+            source_stats = {row['created_source'] or 'unknown': row['count'] for row in cursor.fetchall()}
+
+        return jsonify({
+            'success': True,
+            'data': source_stats
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+

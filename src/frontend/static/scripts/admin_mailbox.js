@@ -442,13 +442,24 @@ class AdminMailboxManager {
         const tbody = document.getElementById('mailbox-list');
 
         if (mailboxes.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" class="empty-row">暂无数据</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="empty-row">暂无数据</td></tr>';
             return;
         }
+
+        // 创建来源标签配置
+        const sourceLabels = {
+            'admin': { text: '管理员', class: 'source-admin', icon: 'fa-user-shield' },
+            'register': { text: '注册', class: 'source-register', icon: 'fa-user-plus' },
+            'api_v2': { text: 'API', class: 'source-api', icon: 'fa-code' },
+            'unknown': { text: '未知', class: 'source-unknown', icon: 'fa-question' }
+        };
 
         tbody.innerHTML = mailboxes.map(mailbox => {
             const statusClass = mailbox.is_expired ? 'expired' : (mailbox.is_active ? 'active' : 'disabled');
             const statusText = mailbox.is_expired ? '已过期' : (mailbox.is_active ? '活跃' : '已禁用');
+
+            const source = mailbox.created_source || 'unknown';
+            const sourceConfig = sourceLabels[source] || sourceLabels['unknown'];
 
             return `
                 <tr>
@@ -462,6 +473,12 @@ class AdminMailboxManager {
                         </div>
                     </td>
                     <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                    <td>
+                        <span class="source-badge ${sourceConfig.class}">
+                            <i class="fas ${sourceConfig.icon}"></i>
+                            ${sourceConfig.text}
+                        </span>
+                    </td>
                     <td>${this.formatDate(mailbox.created_at)}</td>
                     <td>${this.formatDate(mailbox.expires_at)}</td>
                     <td>${mailbox.email_count}</td>
@@ -1229,63 +1246,67 @@ async function loadSourceStats() {
     grid.innerHTML = '<div class="stat-card"><div class="stat-icon"><i class="fas fa-spinner fa-spin"></i></div><div class="stat-info"><div class="stat-label">加载中...</div><div class="stat-value">-</div></div></div>';
 
     try {
-        const response = await adminManager.apiRequest('/api/admin/stats');
-        const stats = response.data;
+        const response = await adminManager.apiRequest('/api/admin/source-stats');
+        const sourceStats = response.data;
 
-        // 创建来源统计
-        const sourceIcons = {
-            'admin': 'fa-user-shield',
-            'register': 'fa-user-plus',
-            'api_v2': 'fa-code',
-            'unknown': 'fa-question'
+        // 创建来源配置
+        const sourceConfig = {
+            'admin': {
+                label: '管理员创建',
+                icon: 'fa-user-shield',
+                gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+            },
+            'register': {
+                label: '用户注册',
+                icon: 'fa-user-plus',
+                gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+            },
+            'api_v2': {
+                label: 'API创建',
+                icon: 'fa-code',
+                gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+            },
+            'unknown': {
+                label: '未知来源',
+                icon: 'fa-question',
+                gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
+            }
         };
 
-        const sourceLabels = {
-            'admin': '管理员创建',
-            'register': '用户注册',
-            'api_v2': 'API创建',
-            'unknown': '未知来源'
-        };
+        // 生成统计卡片
+        let html = '';
+        let total = 0;
 
-        // 按来源统计邮箱数量（这里需要后端支持，暂时显示总数）
-        grid.innerHTML = `
+        for (const [source, count] of Object.entries(sourceStats)) {
+            const config = sourceConfig[source] || sourceConfig['unknown'];
+            total += count;
+            html += `
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: ${config.gradient};">
+                        <i class="fas ${config.icon}"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-label">${config.label}</div>
+                        <div class="stat-value">${count}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 添加总计卡片
+        html += `
             <div class="stat-card">
-                <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                    <i class="fas fa-user-shield"></i>
-                </div>
-                <div class="stat-info">
-                    <div class="stat-label">管理员创建</div>
-                    <div class="stat-value">-</div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-                    <i class="fas fa-user-plus"></i>
-                </div>
-                <div class="stat-info">
-                    <div class="stat-label">用户注册</div>
-                    <div class="stat-value">-</div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
-                    <i class="fas fa-code"></i>
-                </div>
-                <div class="stat-info">
-                    <div class="stat-label">API创建</div>
-                    <div class="stat-value">-</div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
                     <i class="fas fa-inbox"></i>
                 </div>
                 <div class="stat-info">
                     <div class="stat-label">总邮箱数</div>
-                    <div class="stat-value">${stats.total_mailboxes}</div>
+                    <div class="stat-value">${total}</div>
                 </div>
             </div>
         `;
+
+        grid.innerHTML = html;
     } catch (error) {
         grid.innerHTML = '<div class="stat-card"><div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div><div class="stat-info"><div class="stat-label">加载失败</div><div class="stat-value">-</div></div></div>';
         adminManager.showToast('error', '加载统计信息失败');
