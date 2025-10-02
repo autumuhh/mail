@@ -146,12 +146,19 @@ class MailboxService:
             
             cursor = conn.execute(query, params)
             rows = cursor.fetchall()
-            
+
+            # 安全获取字段值的辅助函数
+            def safe_get(row, key, default=None):
+                try:
+                    return row[key]
+                except (KeyError, IndexError):
+                    return default
+
             mailboxes = []
             for row in rows:
                 # 获取邮件统计
                 stats = self.db.get_mailbox_stats(row['id'])
-                
+
                 mailboxes.append({
                     'id': row['id'],
                     'address': row['address'],
@@ -161,12 +168,12 @@ class MailboxService:
                     'is_active': bool(row['is_active']),
                     'is_expired': row['expires_at'] <= current_time,
                     'sender_whitelist': json.loads(row['sender_whitelist'] or '[]'),
-                    'whitelist_enabled': bool(row['whitelist_enabled']),
-                    'created_by_ip': row['created_by_ip'],
-                    'last_accessed': row['last_accessed'],
-                    'updated_by_admin': row['updated_by_admin'],
-                    'updated_at': row['updated_at'],
-                    'created_source': row['created_source'],
+                    'whitelist_enabled': bool(safe_get(row, 'whitelist_enabled', 0)),
+                    'created_by_ip': safe_get(row, 'created_by_ip'),
+                    'last_accessed': safe_get(row, 'last_accessed'),
+                    'updated_by_admin': safe_get(row, 'updated_by_admin'),
+                    'updated_at': safe_get(row, 'updated_at'),
+                    'created_source': safe_get(row, 'created_source', 'unknown'),
                     'email_count': stats['total_emails'],
                     'unread_count': stats['unread_emails']
                 })
@@ -186,13 +193,20 @@ class MailboxService:
                 SELECT * FROM mailboxes WHERE id = ?
             ''', (mailbox_id,))
             row = cursor.fetchone()
-            
+
             if not row:
                 return None
-            
+
             stats = self.db.get_mailbox_stats(mailbox_id)
             current_time = int(time.time())
-            
+
+            # 安全获取字段值，兼容旧数据库
+            def safe_get(key, default=None):
+                try:
+                    return row[key]
+                except (KeyError, IndexError):
+                    return default
+
             return {
                 'id': row['id'],
                 'address': row['address'],
@@ -202,13 +216,13 @@ class MailboxService:
                 'is_active': bool(row['is_active']),
                 'is_expired': row['expires_at'] <= current_time,
                 'sender_whitelist': json.loads(row['sender_whitelist'] or '[]'),
-                'whitelist_enabled': bool(row['whitelist_enabled']),
-                'created_by_ip': row['created_by_ip'],
-                'access_token': row['access_token'],
-                'mailbox_key': row['mailbox_key'],
-                'last_accessed': row['last_accessed'],
-                'updated_by_admin': row['updated_by_admin'],
-                'updated_at': row['updated_at'],
+                'whitelist_enabled': bool(safe_get('whitelist_enabled', 0)),
+                'created_by_ip': safe_get('created_by_ip'),
+                'access_token': safe_get('access_token'),
+                'mailbox_key': safe_get('mailbox_key'),
+                'last_accessed': safe_get('last_accessed'),
+                'updated_by_admin': safe_get('updated_by_admin'),
+                'updated_at': safe_get('updated_at'),
                 'email_count': stats['total_emails'],
                 'unread_count': stats['unread_emails'],
                 'last_email_time': stats['last_email_time'],
@@ -217,7 +231,7 @@ class MailboxService:
                 'storage_used_mb': stats.get('storage_used_mb', 0),
                 'storage_limit_mb': stats.get('storage_limit_mb', 50),
                 'storage_percent': stats.get('storage_percent', 0),
-                'allowed_domains': json.loads(row['allowed_domains'] or '[]') if row.get('allowed_domains') else []
+                'allowed_domains': json.loads(safe_get('allowed_domains') or '[]') if safe_get('allowed_domains') else []
             }
     
     def create_mailbox(self, address: str, retention_days: int = None,
