@@ -472,17 +472,6 @@ class AdminMailboxManager {
                             <button class="btn-icon" onclick="adminManager.editMailbox('${mailbox.id}')" title="编辑">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn-icon" onclick="resetMailboxToken('${mailbox.id}')" title="重置令牌">
-                                <i class="fas fa-key"></i>
-                            </button>
-                            ${mailbox.is_active ?
-                                `<button class="btn-icon btn-warning" onclick="disableMailbox('${mailbox.id}')" title="禁用">
-                                    <i class="fas fa-ban"></i>
-                                </button>` :
-                                `<button class="btn-icon btn-success" onclick="enableMailbox('${mailbox.id}')" title="启用">
-                                    <i class="fas fa-check"></i>
-                                </button>`
-                            }
                             <button class="btn-icon btn-danger" onclick="adminManager.deleteMailbox('${mailbox.id}')" title="删除">
                                 <i class="fas fa-trash"></i>
                             </button>
@@ -761,6 +750,20 @@ AdminMailboxManager.prototype.viewMailbox = async function(mailboxId) {
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">关闭</button>
+                    <button class="btn btn-warning" onclick="resetMailboxToken('${mailboxId}'); this.closest('.modal').remove();">
+                        <i class="fas fa-key"></i>
+                        重置令牌
+                    </button>
+                    ${mailbox.is_active ?
+                        `<button class="btn btn-warning" onclick="disableMailbox('${mailboxId}'); this.closest('.modal').remove();">
+                            <i class="fas fa-ban"></i>
+                            禁用邮箱
+                        </button>` :
+                        `<button class="btn btn-success" onclick="enableMailbox('${mailboxId}'); this.closest('.modal').remove();">
+                            <i class="fas fa-check"></i>
+                            启用邮箱
+                        </button>`
+                    }
                     <button class="btn btn-primary" onclick="adminManager.editMailbox('${mailboxId}'); this.closest('.modal').remove();">
                         <i class="fas fa-edit"></i>
                         编辑
