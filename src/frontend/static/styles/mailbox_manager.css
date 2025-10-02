@@ -643,34 +643,33 @@ body {
 
 /* 邮件内容容器 */
 .email-body > div {
-    max-width: 100%;
-    overflow-x: auto;
-}
-
-/* 邮件内容中的所有元素 */
-.email-body * {
-    max-width: 100% !important;
-    box-sizing: border-box;
+    min-width: 0;
+    word-wrap: break-word;
 }
 
 /* 邮件内容中的表格 */
 .email-body table {
-    width: 100% !important;
-    max-width: 100% !important;
+    max-width: 100%;
     table-layout: auto;
     border-collapse: collapse;
+    word-wrap: break-word;
 }
 
 /* 邮件内容中的图片 */
 .email-body img {
-    max-width: 100% !important;
-    height: auto !important;
-    display: block;
+    max-width: 100%;
+    height: auto;
 }
 
 /* 邮件内容中的iframe */
 .email-body iframe {
-    max-width: 100% !important;
+    max-width: 100%;
+}
+
+/* 邮件内容中的div */
+.email-body div {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 /* 设置页面 */
