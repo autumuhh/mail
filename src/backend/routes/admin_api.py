@@ -525,10 +525,12 @@ def update_security_config():
 
         # 记录审计日志
         client_ip = get_client_ip()
-        db_manager.add_audit_log(
+        mailbox_service._log_audit(
             action='UPDATE_CONFIG',
-            admin_ip=client_ip,
-            details=f'更新安全配置: {data}'
+            mailbox_id=None,
+            admin_user='admin',
+            changes=data,
+            ip_address=client_ip
         )
 
         return jsonify({
