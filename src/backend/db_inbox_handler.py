@@ -88,8 +88,12 @@ def recv_email(email_json: Dict) -> str:
     # 清理过期数据
     clean_expired_data()
 
-    # 创建或获取邮箱
-    mailbox = create_or_get_mailbox(recipient)
+    # 只获取邮箱，不自动创建
+    mailbox = db_manager.get_mailbox_by_address(recipient)
+
+    # 如果邮箱不存在，拒绝接收
+    if not mailbox:
+        return f"Mailbox {recipient} does not exist"
 
     # 检查邮箱是否过期
     if db_manager.is_mailbox_expired(mailbox):
@@ -102,6 +106,9 @@ def recv_email(email_json: Dict) -> str:
     # 检查发件人白名单
     if not db_manager.is_sender_allowed(mailbox, sender):
         return f"Sender {sender} not allowed for mailbox {recipient}"
+
+    # 更新访问时间
+    db_manager.update_mailbox_access(mailbox['id'])
 
     # 添加邮件
     try:
