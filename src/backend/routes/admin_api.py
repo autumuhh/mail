@@ -15,19 +15,35 @@ if backend_dir not in sys.path:
 
 from database import db_manager
 from mailbox_service import MailboxService
+from ip_blocker import ip_blocker
 
 bp = Blueprint('admin_api', __name__)
 mailbox_service = MailboxService(db_manager)
 
 def check_admin_auth():
-    """检查管理员权限"""
+    """检查管理员权限，并记录失败尝试"""
+    client_ip = get_client_ip()
+
+    # 检查IP是否被封禁
+    if ip_blocker.is_blocked(client_ip):
+        remaining = ip_blocker.get_remaining_block_time(client_ip)
+        return False, f'IP已被临时封禁，剩余 {remaining} 秒'
+
     auth_header = request.headers.get('Authorization')
     if not auth_header:
-        return False
-    
+        ip_blocker.record_failed_attempt(client_ip)
+        return False, '缺少Authorization请求头'
+
     # 简单的密码验证（实际应用中应使用更安全的方式）
     password = auth_header.replace('Bearer ', '')
-    return password == config.PASSWORD
+    if password != config.PASSWORD:
+        # 记录失败尝试
+        is_blocked = ip_blocker.record_failed_attempt(client_ip)
+        if is_blocked:
+            return False, f'认证失败次数过多，IP已被封禁 {ip_blocker.block_duration} 秒'
+        return False, '认证失败'
+
+    return True, None
 
 def get_client_ip():
     """获取客户端IP"""
@@ -38,8 +54,9 @@ def get_client_ip():
 @bp.route('/mailboxes', methods=['GET'])
 def list_mailboxes():
     """获取邮箱列表"""
-    if not check_admin_auth():
-        return jsonify({'success': False, 'error': '未授权'}), 401
+    auth_ok, error_msg = check_admin_auth()
+    if not auth_ok:
+        return jsonify({'success': False, 'error': error_msg or '未授权'}), 401
     
     try:
         page = int(request.args.get('page', 1))
@@ -64,8 +81,9 @@ def list_mailboxes():
 @bp.route('/mailboxes/<mailbox_id>', methods=['GET'])
 def get_mailbox(mailbox_id):
     """获取邮箱详情"""
-    if not check_admin_auth():
-        return jsonify({'success': False, 'error': '未授权'}), 401
+    auth_ok, error_msg = check_admin_auth()
+    if not auth_ok:
+        return jsonify({'success': False, 'error': error_msg or '未授权'}), 401
     
     try:
         mailbox = mailbox_service.get_mailbox_detail(mailbox_id)
@@ -82,8 +100,9 @@ def get_mailbox(mailbox_id):
 @bp.route('/mailboxes', methods=['POST'])
 def create_mailbox():
     """创建邮箱"""
-    if not check_admin_auth():
-        return jsonify({'success': False, 'error': '未授权'}), 401
+    auth_ok, error_msg = check_admin_auth()
+    if not auth_ok:
+        return jsonify({'success': False, 'error': error_msg or '未授权'}), 401
 
     try:
         data = request.get_json()
@@ -127,8 +146,9 @@ def create_mailbox():
 @bp.route('/mailboxes/<mailbox_id>', methods=['PUT'])
 def update_mailbox(mailbox_id):
     """更新邮箱"""
-    if not check_admin_auth():
-        return jsonify({'success': False, 'error': '未授权'}), 401
+    auth_ok, error_msg = check_admin_auth()
+    if not auth_ok:
+        return jsonify({'success': False, 'error': error_msg or '未授权'}), 401
     
     try:
         data = request.get_json()
@@ -166,8 +186,9 @@ def update_mailbox(mailbox_id):
 @bp.route('/mailboxes/<mailbox_id>', methods=['DELETE'])
 def delete_mailbox(mailbox_id):
     """删除邮箱"""
-    if not check_admin_auth():
-        return jsonify({'success': False, 'error': '未授权'}), 401
+    auth_ok, error_msg = check_admin_auth()
+    if not auth_ok:
+        return jsonify({'success': False, 'error': error_msg or '未授权'}), 401
     
     try:
         soft_delete = request.args.get('soft', 'true').lower() == 'true'
@@ -192,9 +213,10 @@ def delete_mailbox(mailbox_id):
 
 @bp.route('/mailboxes/<mailbox_id>/audit-logs', methods=['GET'])
 def get_mailbox_audit_logs(mailbox_id):
-    """获取邮箱审计日志"""
-    if not check_admin_auth():
-        return jsonify({'success': False, 'error': '未授权'}), 401
+    """获取邮箱审证日志"""
+    auth_ok, error_msg = check_admin_auth()
+    if not auth_ok:
+        return jsonify({'success': False, 'error': error_msg or '未授权'}), 401
     
     try:
         limit = int(request.args.get('limit', 50))
@@ -210,8 +232,9 @@ def get_mailbox_audit_logs(mailbox_id):
 @bp.route('/audit-logs', methods=['GET'])
 def get_all_audit_logs():
     """获取所有审计日志"""
-    if not check_admin_auth():
-        return jsonify({'success': False, 'error': '未授权'}), 401
+    auth_ok, error_msg = check_admin_auth()
+    if not auth_ok:
+        return jsonify({'success': False, 'error': error_msg or '未授权'}), 401
     
     try:
         limit = int(request.args.get('limit', 100))
@@ -227,8 +250,9 @@ def get_all_audit_logs():
 @bp.route('/stats', methods=['GET'])
 def get_stats():
     """获取统计信息"""
-    if not check_admin_auth():
-        return jsonify({'success': False, 'error': '未授权'}), 401
+    auth_ok, error_msg = check_admin_auth()
+    if not auth_ok:
+        return jsonify({'success': False, 'error': error_msg or '未授权'}), 401
     
     try:
         with db_manager.get_connection() as conn:
@@ -277,8 +301,9 @@ def get_stats():
 @bp.route('/mailboxes/batch-delete', methods=['POST'])
 def batch_delete_mailboxes():
     """批量删除邮箱"""
-    if not check_admin_auth():
-        return jsonify({'success': False, 'error': '未授权'}), 401
+    auth_ok, error_msg = check_admin_auth()
+    if not auth_ok:
+        return jsonify({'success': False, 'error': error_msg or '未授权'}), 401
 
     try:
         data = request.get_json()
@@ -319,8 +344,9 @@ def batch_delete_mailboxes():
 @bp.route('/mailboxes/<mailbox_id>/reset-token', methods=['POST'])
 def reset_mailbox_token(mailbox_id):
     """重置邮箱访问令牌"""
-    if not check_admin_auth():
-        return jsonify({'success': False, 'error': '未授权'}), 401
+    auth_ok, error_msg = check_admin_auth()
+    if not auth_ok:
+        return jsonify({'success': False, 'error': error_msg or '未授权'}), 401
 
     try:
         import uuid
@@ -356,8 +382,9 @@ def reset_mailbox_token(mailbox_id):
 @bp.route('/mailboxes/<mailbox_id>/enable', methods=['POST'])
 def enable_mailbox(mailbox_id):
     """恢复（启用）邮箱 - 用于恢复被软删除的邮箱"""
-    if not check_admin_auth():
-        return jsonify({'success': False, 'error': '未授权'}), 401
+    auth_ok, error_msg = check_admin_auth()
+    if not auth_ok:
+        return jsonify({'success': False, 'error': error_msg or '未授权'}), 401
 
     try:
         with db_manager.get_connection() as conn:
@@ -378,6 +405,44 @@ def enable_mailbox(mailbox_id):
         return jsonify({
             'success': True,
             'message': '邮箱已恢复'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@bp.route('/blocked-ips', methods=['GET'])
+def get_blocked_ips():
+    """获取被封禁的IP列表"""
+    auth_ok, error_msg = check_admin_auth()
+    if not auth_ok:
+        return jsonify({'success': False, 'error': error_msg or '未授权'}), 401
+
+    try:
+        blocked_ips = ip_blocker.get_blocked_ips()
+        return jsonify({
+            'success': True,
+            'data': {
+                'blocked_ips': [
+                    {'ip': ip, 'remaining_seconds': remaining}
+                    for ip, remaining in blocked_ips.items()
+                ],
+                'total': len(blocked_ips)
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@bp.route('/blocked-ips/<ip>', methods=['DELETE'])
+def unblock_ip(ip):
+    """手动解除IP封禁"""
+    auth_ok, error_msg = check_admin_auth()
+    if not auth_ok:
+        return jsonify({'success': False, 'error': error_msg or '未授权'}), 401
+
+    try:
+        ip_blocker.unblock_ip(ip)
+        return jsonify({
+            'success': True,
+            'message': f'IP {ip} 已解除封禁'
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
