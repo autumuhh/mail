@@ -1339,6 +1339,17 @@ class MailboxManager {
     renderEmailContent(body) {
         if (!body) return '<p style="color: var(--text-muted); font-style: italic;">邮件内容为空</p>';
 
+        // 检查是否是被转义的HTML（包含&lt;、&gt;等）
+        const hasEscapedHtml = body.includes('&lt;') || body.includes('&gt;') || body.includes('&amp;');
+
+        if (hasEscapedHtml) {
+            // 解码HTML实体
+            const textarea = document.createElement('textarea');
+            textarea.innerHTML = body;
+            body = textarea.value;
+            console.log('检测到转义的HTML，已解码');
+        }
+
         if (this.isHtmlEmail(body)) {
             // HTML内容：直接渲染，但要确保安全性
             console.log('检测到HTML邮件内容，长度:', body.length);
