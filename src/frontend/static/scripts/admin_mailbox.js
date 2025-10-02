@@ -1375,3 +1375,8 @@ function formatSeconds(seconds) {
     return `${minutes} 分 ${remainingSeconds} 秒`;
 }
 
+// 设置保留天数（用于注册界面的快捷按钮）
+function setRetentionDays(days) {
+    document.getElementById('reg-retention-days').value = days;
+}
+

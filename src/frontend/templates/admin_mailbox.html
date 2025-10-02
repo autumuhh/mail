@@ -507,14 +507,17 @@
 
                             <div class="form-group">
                                 <label for="reg-retention-days">保留天数 *</label>
-                                <select id="reg-retention-days">
-                                    <option value="7">7天</option>
-                                    <option value="14">14天</option>
-                                    <option value="30" selected>30天</option>
-                                    <option value="60">60天</option>
-                                    <option value="90">90天</option>
-                                </select>
-                                <small>邮箱将在指定天数后自动过期</small>
+                                <div class="input-with-presets">
+                                    <input type="number" id="reg-retention-days" min="1" max="365" value="30" placeholder="输入天数">
+                                    <div class="preset-buttons">
+                                        <button type="button" class="btn-preset" onclick="setRetentionDays(7)">7天</button>
+                                        <button type="button" class="btn-preset" onclick="setRetentionDays(14)">14天</button>
+                                        <button type="button" class="btn-preset" onclick="setRetentionDays(30)">30天</button>
+                                        <button type="button" class="btn-preset" onclick="setRetentionDays(60)">60天</button>
+                                        <button type="button" class="btn-preset" onclick="setRetentionDays(90)">90天</button>
+                                    </div>
+                                </div>
+                                <small>邮箱将在指定天数后自动过期（1-365天）</small>
                             </div>
 
                             <div class="form-group">

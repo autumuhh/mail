@@ -494,8 +494,8 @@ def register():
         email = f"{email_prefix}@{random_domain}"
 
     # Validate retention days
-    if not isinstance(retention_days, int) or retention_days < 1 or retention_days > 30:
-        return jsonify({"error": "Retention days must be between 1 and 30"}), 400
+    if not isinstance(retention_days, int) or retention_days < 1 or retention_days > 365:
+        return jsonify({"error": "Retention days must be between 1 and 365"}), 400
 
     try:
         if config.USE_DATABASE:
@@ -1093,8 +1093,8 @@ def update_retention():
     if not address or retention_days is None:
         return jsonify({"error": "Address and retention_days are required"}), 400
 
-    if not isinstance(retention_days, int) or retention_days < 1 or retention_days > 30:
-        return jsonify({"error": "Retention days must be between 1 and 30"}), 400
+    if not isinstance(retention_days, int) or retention_days < 1 or retention_days > 365:
+        return jsonify({"error": "Retention days must be between 1 and 365"}), 400
 
     try:
         if config.USE_DATABASE:

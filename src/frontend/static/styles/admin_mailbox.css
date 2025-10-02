@@ -1776,3 +1776,56 @@ body {
     color: white;
 }
 
+/* 保留天数输入框和预设按钮 */
+.input-with-presets {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.input-with-presets input[type="number"] {
+    width: 100%;
+    padding: 10px 14px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.input-with-presets input[type="number"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.preset-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.btn-preset {
+    padding: 6px 14px;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-preset:hover {
+    border-color: var(--primary-color);
+    background: var(--primary-color);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.btn-preset:active {
+    transform: translateY(0);
+}
+
