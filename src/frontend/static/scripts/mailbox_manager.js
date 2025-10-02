@@ -751,9 +751,7 @@ class MailboxManager {
                 </div>
             </div>
             <div class="email-body">
-                <div style="background: var(--bg-secondary); padding: 1.5rem; border-radius: var(--border-radius); border: 1px solid var(--border-color);">
-                    ${this.renderEmailContent(email.Body || '邮件内容为空')}
-                </div>
+                ${this.renderEmailContent(email.Body || '邮件内容为空')}
             </div>
         `;
 
