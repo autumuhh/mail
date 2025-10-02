@@ -6,6 +6,108 @@
     box-sizing: border-box;
 }
 
+/* 自定义对话框样式 */
+.custom-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.custom-modal.show {
+    opacity: 1;
+}
+
+.custom-modal-content {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow: auto;
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+}
+
+.custom-modal.show .custom-modal-content {
+    transform: scale(1);
+}
+
+.custom-modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.custom-modal-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.25rem;
+}
+
+.custom-modal-body {
+    padding: 1.5rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.custom-modal-body p {
+    margin: 0;
+}
+
+.custom-modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+.custom-modal-footer .btn {
+    padding: 0.5rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.custom-modal-footer .btn-secondary {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.custom-modal-footer .btn-secondary:hover {
+    background: var(--border-color);
+}
+
+.custom-modal-footer .btn-danger {
+    background: var(--danger-color);
+    color: white;
+}
+
+.custom-modal-footer .btn-danger:hover {
+    background: #e53e3e;
+}
+
+.custom-modal-footer .btn-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.custom-modal-footer .btn-primary:hover {
+    background: var(--primary-dark);
+}
+
 /* 关键样式优先加载 */
 .app-container {
     display: flex;

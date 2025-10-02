@@ -778,8 +778,8 @@ AdminMailboxManager.prototype.viewMailbox = async function(mailboxId) {
                             </label>
                             <div style="margin-top: 0.5rem;">
                                 <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                                    <code style="flex: 1; min-width: 300px; padding: 0.5rem; background: var(--bg-primary); border-radius: 4px; font-size: 12px; word-break: break-all;">http://localhost:5000/mailbox?address=${encodeURIComponent(mailbox.address)}&token=${mailbox.access_token}</code>
-                                    <button class="btn-icon" onclick="copyToClipboard('http://localhost:5000/mailbox?address=${encodeURIComponent(mailbox.address)}&token=${mailbox.access_token}')" title="复制链接">
+                                    <code style="flex: 1; min-width: 300px; padding: 0.5rem; background: var(--bg-primary); border-radius: 4px; font-size: 12px; word-break: break-all;">${window.location.origin}/mailbox?address=${encodeURIComponent(mailbox.address)}&token=${mailbox.access_token}</code>
+                                    <button class="btn-icon" onclick="copyToClipboard('${window.location.origin}/mailbox?address=${encodeURIComponent(mailbox.address)}&token=${mailbox.access_token}')" title="复制链接">
                                         <i class="fas fa-copy"></i>
                                     </button>
                                     <a href="/mailbox?address=${encodeURIComponent(mailbox.address)}&token=${mailbox.access_token}" target="_blank" class="btn btn-sm btn-primary" style="white-space: nowrap;">

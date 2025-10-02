@@ -1050,7 +1050,7 @@ class MailboxManager {
                 return;
             }
 
-            const url = `${window.location.origin}/mailbox?address=${this.mailboxAddress}&key=${this.mailboxKey}`;
+            const url = `${window.location.origin}/mailbox?address=${encodeURIComponent(this.mailboxAddress)}&token=${this.accessToken}`;
 
             // 更新二维码链接显示
             if (qrUrlElement) {
@@ -1081,7 +1081,7 @@ class MailboxManager {
         try {
             const qrUrlElement = document.getElementById('qr-url');
             if (qrUrlElement) {
-                const url = `${window.location.origin}/mailbox?address=${this.mailboxAddress}&key=${this.mailboxKey}`;
+                const url = `${window.location.origin}/mailbox?address=${encodeURIComponent(this.mailboxAddress)}&token=${this.accessToken}`;
                 qrUrlElement.textContent = url;
             } else {
                 console.warn('DOM元素 qr-url 未找到');
@@ -1167,8 +1167,10 @@ class MailboxManager {
      formatDate(timestamp) {
          if (!timestamp) return '未知时间';
 
-         const now = Math.floor(Date.now() / 1000);
-         const diffSeconds = now - timestamp;
+         // 将UTC时间戳转换为本地时间
+         const emailDate = new Date(timestamp * 1000);
+         const now = new Date();
+         const diffSeconds = Math.floor((now - emailDate) / 1000);
 
          // 1分钟内的显示"刚刚"
          if (diffSeconds < 60) {
@@ -1188,16 +1190,15 @@ class MailboxManager {
          }
 
          // 今天内的显示"今天 HH:MM"
-         const nowDate = new Date(now * 1000);
-         const emailDate = new Date(timestamp * 1000);
-         const isToday = nowDate.toDateString() === emailDate.toDateString();
+         const isToday = now.toDateString() === emailDate.toDateString();
 
          if (isToday) {
              return `今天 ${emailDate.getHours().toString().padStart(2, '0')}:${emailDate.getMinutes().toString().padStart(2, '0')}`;
          }
 
          // 昨天的显示"昨天 HH:MM"
-         const yesterday = new Date((now - 86400) * 1000);
+         const yesterday = new Date(now);
+         yesterday.setDate(yesterday.getDate() - 1);
          const isYesterday = yesterday.toDateString() === emailDate.toDateString();
 
          if (isYesterday) {
@@ -1223,8 +1224,10 @@ class MailboxManager {
      formatEmailTime(timestamp) {
          if (!timestamp) return '未知时间';
 
-         const now = Math.floor(Date.now() / 1000);
-         const diffSeconds = now - timestamp;
+         // 将UTC时间戳转换为本地时间
+         const emailDate = new Date(timestamp * 1000);
+         const now = new Date();
+         const diffSeconds = Math.floor((now - emailDate) / 1000);
 
          // 1分钟内的显示"刚刚"
          if (diffSeconds < 60) {
@@ -1238,16 +1241,15 @@ class MailboxManager {
          }
 
          // 24小时内的显示"今天 HH:MM"
-         const nowDate = new Date(now * 1000);
-         const emailDate = new Date(timestamp * 1000);
-         const isToday = nowDate.toDateString() === emailDate.toDateString();
+         const isToday = now.toDateString() === emailDate.toDateString();
 
          if (isToday) {
              return `今天 ${emailDate.getHours().toString().padStart(2, '0')}:${emailDate.getMinutes().toString().padStart(2, '0')}`;
          }
 
          // 昨天的显示"昨天 HH:MM"
-         const yesterday = new Date((now - 86400) * 1000);
+         const yesterday = new Date(now);
+         yesterday.setDate(yesterday.getDate() - 1);
          const isYesterday = yesterday.toDateString() === emailDate.toDateString();
 
          if (isYesterday) {
@@ -1260,12 +1262,20 @@ class MailboxManager {
              return `${days}天前`;
          }
 
-         // 超过7天的显示完整日期时间
-         return emailDate.toLocaleString('zh-CN');
+         // 超过7天的显示完整日期时间（本地时间）
+         return emailDate.toLocaleString('zh-CN', {
+             year: 'numeric',
+             month: '2-digit',
+             day: '2-digit',
+             hour: '2-digit',
+             minute: '2-digit',
+             hour12: false
+         });
      }
 
      formatFullDateTime(timestamp) {
          if (!timestamp) return '未知时间';
+         // 将UTC时间戳转换为本地时间
          const date = new Date(timestamp * 1000);
          const year = date.getFullYear();
          const month = date.getMonth() + 1;
@@ -1416,7 +1426,79 @@ class MailboxManager {
             console.error('显示Toast失败:', error);
         }
     }
-    
+
+    // 自定义确认对话框
+    showConfirmDialog(title, message) {
+        return new Promise((resolve) => {
+            const modal = document.createElement('div');
+            modal.className = 'custom-modal';
+            modal.innerHTML = `
+                <div class="custom-modal-content">
+                    <div class="custom-modal-header">
+                        <h3>${title}</h3>
+                    </div>
+                    <div class="custom-modal-body">
+                        <p>${message}</p>
+                    </div>
+                    <div class="custom-modal-footer">
+                        <button class="btn btn-secondary" id="modal-cancel">取消</button>
+                        <button class="btn btn-danger" id="modal-confirm">确定</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+            setTimeout(() => modal.classList.add('show'), 10);
+
+            const cleanup = (result) => {
+                modal.classList.remove('show');
+                setTimeout(() => modal.remove(), 300);
+                resolve(result);
+            };
+
+            modal.querySelector('#modal-cancel').onclick = () => cleanup(false);
+            modal.querySelector('#modal-confirm').onclick = () => cleanup(true);
+            modal.onclick = (e) => {
+                if (e.target === modal) cleanup(false);
+            };
+        });
+    }
+
+    // 自定义提示对话框
+    showAlertDialog(title, message) {
+        return new Promise((resolve) => {
+            const modal = document.createElement('div');
+            modal.className = 'custom-modal';
+            modal.innerHTML = `
+                <div class="custom-modal-content">
+                    <div class="custom-modal-header">
+                        <h3>${title}</h3>
+                    </div>
+                    <div class="custom-modal-body">
+                        <p>${message}</p>
+                    </div>
+                    <div class="custom-modal-footer">
+                        <button class="btn btn-primary" id="modal-ok">确定</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+            setTimeout(() => modal.classList.add('show'), 10);
+
+            const cleanup = () => {
+                modal.classList.remove('show');
+                setTimeout(() => modal.remove(), 300);
+                resolve();
+            };
+
+            modal.querySelector('#modal-ok').onclick = cleanup;
+            modal.onclick = (e) => {
+                if (e.target === modal) cleanup();
+            };
+        });
+    }
+
     closeModal(modal) {
         modal.classList.remove('active');
     }
@@ -1594,7 +1676,12 @@ async function deleteSelected() {
         return;
     }
 
-    if (!confirm(`确定要删除选中的 ${selectedEmails.length} 封邮件吗？`)) return;
+    const confirmed = await mailboxManager.showConfirmDialog(
+        '批量删除',
+        `确定要删除选中的 ${selectedEmails.length} 封邮件吗？此操作无法撤销。`
+    );
+
+    if (!confirmed) return;
 
     try {
         // 批量删除邮件
@@ -1643,7 +1730,7 @@ function copyAddress() {
 }
 
 function shareMailbox() {
-    const url = `${window.location.origin}/mailbox?address=${mailboxManager.mailboxAddress}&key=${mailboxManager.mailboxKey}`;
+    const url = `${window.location.origin}/mailbox?address=${encodeURIComponent(mailboxManager.mailboxAddress)}&token=${mailboxManager.accessToken}`;
 
     if (navigator.share) {
         navigator.share({
@@ -1663,7 +1750,7 @@ function shareMailbox() {
 }
 
 function copyQRUrl() {
-    const url = `${window.location.origin}/mailbox?address=${mailboxManager.mailboxAddress}&key=${mailboxManager.mailboxKey}`;
+    const url = `${window.location.origin}/mailbox?address=${encodeURIComponent(mailboxManager.mailboxAddress)}&token=${mailboxManager.accessToken}`;
 
     navigator.clipboard.writeText(url).then(() => {
         mailboxManager.showToast('success', '成功', '邮箱链接已复制到剪贴板');
@@ -1675,7 +1762,13 @@ function copyQRUrl() {
 // 邮件操作函数 - 已移动到MailboxManager类中
 
 async function deleteEmail(emailId) {
-    if (!confirm('确定要删除这封邮件吗？')) return;
+    // 使用自定义确认对话框
+    const confirmed = await mailboxManager.showConfirmDialog(
+        '确认删除',
+        '确定要删除这封邮件吗？此操作无法撤销。'
+    );
+
+    if (!confirmed) return;
 
     try {
         if (mailboxManager.isDemoMode) {
@@ -1704,7 +1797,8 @@ async function deleteEmail(emailId) {
 
             mailboxManager.showToast('success', '成功', '邮件已删除');
         } else {
-            throw new Error('API调用失败');
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'API调用失败');
         }
     } catch (error) {
         mailboxManager.showToast('error', '错误', '删除失败');
@@ -1983,7 +2077,12 @@ async function addSender() {
 }
 
 async function removeSender(sender) {
-    if (!confirm(`确定要移除 ${sender} 吗？`)) return;
+    const confirmed = await mailboxManager.showConfirmDialog(
+        '移除发件人',
+        `确定要从白名单中移除 ${sender} 吗？`
+    );
+
+    if (!confirmed) return;
 
     try {
         // 调用API移除发件人白名单
@@ -2042,7 +2141,12 @@ async function updateRetention() {
 }
 
 async function regenerateKey() {
-    if (!confirm('重新生成邮箱密钥将使当前密钥失效，确定继续吗？')) return;
+    const confirmed = await mailboxManager.showConfirmDialog(
+        '重新生成密钥',
+        '重新生成邮箱密钥将使当前密钥失效，确定继续吗？'
+    );
+
+    if (!confirmed) return;
 
     try {
         // 调用API重新生成密钥
@@ -2064,8 +2168,11 @@ async function regenerateKey() {
             localStorage.setItem('tempmail_mailbox_key', data.new_key);
             mailboxManager.mailboxKey = data.new_key;
 
-            // 显示新密钥
-            alert(`新的邮箱密钥：${data.new_key}\n\n请妥善保存，旧密钥已失效！`);
+            // 显示新密钥（使用自定义对话框）
+            await mailboxManager.showAlertDialog(
+                '新密钥已生成',
+                `新的邮箱密钥：<br><br><code style="background: var(--bg-tertiary); padding: 8px; border-radius: 4px; display: block; word-break: break-all;">${data.new_key}</code><br><br>请妥善保存，旧密钥已失效！`
+            );
 
             mailboxManager.showToast('success', '成功', '邮箱密钥已重新生成');
         } else {
