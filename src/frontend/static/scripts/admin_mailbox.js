@@ -1079,34 +1079,61 @@ async function batchDeleteMailboxes() {
     const mailboxIds = Array.from(checkboxes).map(cb => cb.value);
 
     if (mailboxIds.length === 0) {
-        alert('请选择要删除的邮箱');
+        adminManager.showToast('warning', '请先选择要删除的邮箱');
         return;
     }
 
-    if (!confirm(`确定要删除选中的 ${mailboxIds.length} 个邮箱吗？`)) {
-        return;
-    }
+    // 创建确认模态框
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-exclamation-triangle"></i> 确认批量删除</h3>
+            </div>
+            <div class="modal-body">
+                <p>确定要删除选中的 <strong>${mailboxIds.length}</strong> 个邮箱吗？</p>
+                <p class="text-secondary">删除后可以在详情界面恢复。</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">
+                    <i class="fas fa-times"></i>
+                    取消
+                </button>
+                <button class="btn btn-danger" id="confirm-batch-delete-btn">
+                    <i class="fas fa-trash"></i>
+                    确认删除
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
 
-    try {
-        const response = await adminManager.apiRequest('/api/admin/mailboxes/batch-delete', {
-            method: 'POST',
-            body: JSON.stringify({
-                mailbox_ids: mailboxIds,
-                soft_delete: true
-            })
-        });
+    // 绑定确认按钮事件
+    document.getElementById('confirm-batch-delete-btn').onclick = async () => {
+        try {
+            modal.remove();
 
-        adminManager.showToast('success', response.message);
+            const response = await adminManager.apiRequest('/api/admin/mailboxes/batch-delete', {
+                method: 'POST',
+                body: JSON.stringify({
+                    mailbox_ids: mailboxIds,
+                    soft_delete: true
+                })
+            });
 
-        // 取消全选
-        document.getElementById('select-all-checkbox').checked = false;
-        updateBatchDeleteButton();
+            adminManager.showToast('success', response.message);
 
-        // 重新加载列表
-        adminManager.loadMailboxes();
-    } catch (error) {
-        adminManager.showToast('error', '批量删除失败: ' + error.message);
-    }
+            // 取消全选
+            document.getElementById('select-all-checkbox').checked = false;
+            updateBatchDeleteButton();
+
+            // 重新加载列表
+            adminManager.loadMailboxes();
+        } catch (error) {
+            adminManager.showToast('error', '批量删除失败: ' + error.message);
+        }
+    };
 }
 
 // 重置邮箱token
