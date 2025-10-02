@@ -436,23 +436,47 @@
                 <!-- 封禁配置 -->
                 <div class="security-section">
                     <h3><i class="fas fa-cog"></i> 封禁配置</h3>
-                    <div class="config-info">
-                        <div class="config-item">
-                            <label>封禁时长：</label>
-                            <span id="config-block-duration">-</span> 秒
+                    <div class="config-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="config-block-duration">
+                                    <i class="fas fa-clock"></i>
+                                    封禁时长（秒）
+                                </label>
+                                <input type="number" id="config-block-duration" min="60" max="86400" step="60" value="300">
+                                <small>建议：300秒（5分钟）</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="config-max-attempts">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    最大失败次数
+                                </label>
+                                <input type="number" id="config-max-attempts" min="1" max="10" value="3">
+                                <small>建议：3次</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="config-attempt-window">
+                                    <i class="fas fa-hourglass-half"></i>
+                                    尝试窗口时间（秒）
+                                </label>
+                                <input type="number" id="config-attempt-window" min="30" max="600" step="30" value="60">
+                                <small>建议：60秒（1分钟）</small>
+                            </div>
                         </div>
-                        <div class="config-item">
-                            <label>最大失败次数：</label>
-                            <span id="config-max-attempts">-</span> 次
-                        </div>
-                        <div class="config-item">
-                            <label>尝试窗口时间：</label>
-                            <span id="config-attempt-window">-</span> 秒
-                        </div>
-                        <small class="config-note">
+                        <div class="config-note">
                             <i class="fas fa-info-circle"></i>
-                            在窗口时间内失败次数超过最大值将被封禁
-                        </small>
+                            在窗口时间内失败次数超过最大值将被封禁指定时长
+                        </div>
+                        <div class="config-actions">
+                            <button class="btn btn-primary" onclick="saveSecurityConfig()">
+                                <i class="fas fa-save"></i>
+                                保存配置
+                            </button>
+                            <button class="btn btn-secondary" onclick="loadSecurityConfig()">
+                                <i class="fas fa-undo"></i>
+                                重置
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

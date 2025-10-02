@@ -471,3 +471,69 @@ def get_source_stats():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@bp.route('/security-config', methods=['GET'])
+def get_security_config():
+    """获取安全配置"""
+    auth_ok, error_msg = check_admin_auth()
+    if not auth_ok:
+        return jsonify({'success': False, 'error': error_msg or '未授权'}), 401
+
+    try:
+        config = ip_blocker.get_config()
+        return jsonify({
+            'success': True,
+            'data': config
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@bp.route('/security-config', methods=['PUT'])
+def update_security_config():
+    """更新安全配置"""
+    auth_ok, error_msg = check_admin_auth()
+    if not auth_ok:
+        return jsonify({'success': False, 'error': error_msg or '未授权'}), 401
+
+    try:
+        data = request.get_json()
+
+        # 验证参数
+        block_duration = data.get('block_duration')
+        max_attempts = data.get('max_attempts')
+        attempt_window = data.get('attempt_window')
+
+        if block_duration is not None:
+            if not isinstance(block_duration, int) or block_duration < 60 or block_duration > 86400:
+                return jsonify({'success': False, 'error': '封禁时长必须在60-86400秒之间'}), 400
+
+        if max_attempts is not None:
+            if not isinstance(max_attempts, int) or max_attempts < 1 or max_attempts > 10:
+                return jsonify({'success': False, 'error': '最大失败次数必须在1-10次之间'}), 400
+
+        if attempt_window is not None:
+            if not isinstance(attempt_window, int) or attempt_window < 30 or attempt_window > 600:
+                return jsonify({'success': False, 'error': '尝试窗口时间必须在30-600秒之间'}), 400
+
+        # 更新配置
+        ip_blocker.update_config(
+            block_duration=block_duration,
+            max_attempts=max_attempts,
+            attempt_window=attempt_window
+        )
+
+        # 记录审计日志
+        client_ip = get_client_ip()
+        db_manager.add_audit_log(
+            action='UPDATE_CONFIG',
+            admin_ip=client_ip,
+            details=f'更新安全配置: {data}'
+        )
+
+        return jsonify({
+            'success': True,
+            'message': '配置已更新',
+            'data': ip_blocker.get_config()
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+

@@ -110,9 +110,29 @@ class IPBlocker:
                 del self.blocked_ips[ip]
                 if ip in self.failed_attempts:
                     del self.failed_attempts[ip]
-            
+
             if expired_ips:
                 print(f"[IP Blocker] 清理了 {len(expired_ips)} 个过期封禁记录")
+
+    def get_config(self):
+        """获取当前配置"""
+        return {
+            'block_duration': self.block_duration,
+            'max_attempts': self.max_attempts,
+            'attempt_window': self.attempt_window
+        }
+
+    def update_config(self, block_duration=None, max_attempts=None, attempt_window=None):
+        """更新配置（运行时）"""
+        with self.lock:
+            if block_duration is not None:
+                self.block_duration = block_duration
+            if max_attempts is not None:
+                self.max_attempts = max_attempts
+            if attempt_window is not None:
+                self.attempt_window = attempt_window
+
+            print(f"[IP Blocker] 配置已更新 - 封禁时长: {self.block_duration}秒, 最大尝试: {self.max_attempts}次, 窗口时间: {self.attempt_window}秒")
 
 # 全局IP封禁管理器实例
 ip_blocker = IPBlocker()

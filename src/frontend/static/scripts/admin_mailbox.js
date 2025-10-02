@@ -1315,10 +1315,54 @@ async function loadSourceStats() {
 
 // 加载安全配置
 async function loadSecurityConfig() {
-    // 这些配置是固定的，从后端获取
-    document.getElementById('config-block-duration').textContent = '300';
-    document.getElementById('config-max-attempts').textContent = '3';
-    document.getElementById('config-attempt-window').textContent = '60';
+    try {
+        const response = await adminManager.apiRequest('/api/admin/security-config');
+        const config = response.data;
+
+        document.getElementById('config-block-duration').value = config.block_duration;
+        document.getElementById('config-max-attempts').value = config.max_attempts;
+        document.getElementById('config-attempt-window').value = config.attempt_window;
+    } catch (error) {
+        adminManager.showToast('error', '加载配置失败');
+    }
+}
+
+// 保存安全配置
+async function saveSecurityConfig() {
+    const blockDuration = parseInt(document.getElementById('config-block-duration').value);
+    const maxAttempts = parseInt(document.getElementById('config-max-attempts').value);
+    const attemptWindow = parseInt(document.getElementById('config-attempt-window').value);
+
+    // 验证
+    if (blockDuration < 60 || blockDuration > 86400) {
+        adminManager.showToast('error', '封禁时长必须在60-86400秒之间');
+        return;
+    }
+
+    if (maxAttempts < 1 || maxAttempts > 10) {
+        adminManager.showToast('error', '最大失败次数必须在1-10次之间');
+        return;
+    }
+
+    if (attemptWindow < 30 || attemptWindow > 600) {
+        adminManager.showToast('error', '尝试窗口时间必须在30-600秒之间');
+        return;
+    }
+
+    try {
+        await adminManager.apiRequest('/api/admin/security-config', {
+            method: 'PUT',
+            body: JSON.stringify({
+                block_duration: blockDuration,
+                max_attempts: maxAttempts,
+                attempt_window: attemptWindow
+            })
+        });
+
+        adminManager.showToast('success', '配置已保存');
+    } catch (error) {
+        adminManager.showToast('error', '保存配置失败: ' + error.message);
+    }
 }
 
 // 格式化秒数为可读格式
