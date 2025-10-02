@@ -967,17 +967,20 @@ def delete_email():
             # 验证邮件是否属于该邮箱
             email = db_manager.get_email_by_id(email_id)
             if not email:
-                return jsonify({"error": "Email not found"}), 404
+                return jsonify({"error": "Email not found", "email_id": email_id}), 404
 
             if email['mailbox_id'] != mailbox['id']:
-                return jsonify({"error": "Permission denied"}), 403
+                return jsonify({
+                    "error": "Permission denied",
+                    "detail": f"Email mailbox_id ({email['mailbox_id']}) does not match user mailbox_id ({mailbox['id']})"
+                }), 403
 
             # 删除邮件
             deleted_count = inbox_handler.delete_email(email_id)
             if deleted_count > 0:
                 return jsonify({"success": True, "message": "Email deleted"}), 200
             else:
-                return jsonify({"error": "Failed to delete email"}), 500
+                return jsonify({"error": "Failed to delete email", "email_id": email_id}), 500
         else:
             return jsonify({"error": "Database storage not enabled"}), 400
     except Exception as e:
@@ -1015,12 +1018,28 @@ def delete_emails_batch():
 
             # 批量删除邮件（只删除属于该邮箱的邮件）
             deleted_count = 0
+            failed_emails = []
             for email_id in email_ids:
                 email = db_manager.get_email_by_id(email_id)
-                if email and email['mailbox_id'] == mailbox['id']:
-                    deleted_count += inbox_handler.delete_email(email_id)
+                if not email:
+                    failed_emails.append(f"{email_id}: not found")
+                    continue
 
-            return jsonify({"success": True, "message": f"Deleted {deleted_count} emails"}), 200
+                if email['mailbox_id'] != mailbox['id']:
+                    failed_emails.append(f"{email_id}: permission denied (mailbox_id mismatch: {email['mailbox_id']} != {mailbox['id']})")
+                    continue
+
+                result = inbox_handler.delete_email(email_id)
+                if result > 0:
+                    deleted_count += result
+                else:
+                    failed_emails.append(f"{email_id}: delete failed")
+
+            response = {"success": True, "message": f"Deleted {deleted_count} emails"}
+            if failed_emails:
+                response["failed"] = failed_emails
+
+            return jsonify(response), 200
         else:
             return jsonify({"error": "Database storage not enabled"}), 400
     except Exception as e:
