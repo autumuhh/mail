@@ -6,6 +6,7 @@ IP临时封禁管理器
 import time
 from typing import Dict, Optional
 from threading import Lock
+import config
 
 class IPBlocker:
     def __init__(self):
@@ -14,11 +15,13 @@ class IPBlocker:
         # 存储IP的失败尝试次数和时间戳
         self.failed_attempts: Dict[str, list] = {}
         self.lock = Lock()
-        
-        # 配置
-        self.block_duration = 300  # 封禁时长（秒），默认5分钟
-        self.max_attempts = 3  # 最大失败尝试次数
-        self.attempt_window = 60  # 尝试窗口时间（秒），默认1分钟
+
+        # 从配置文件读取配置
+        self.block_duration = config.IP_BLOCK_DURATION  # 封禁时长（秒）
+        self.max_attempts = config.IP_MAX_FAILED_ATTEMPTS  # 最大失败尝试次数
+        self.attempt_window = config.IP_ATTEMPT_WINDOW  # 尝试窗口时间（秒）
+
+        print(f"[IP Blocker] 初始化完成 - 封禁时长: {self.block_duration}秒, 最大尝试: {self.max_attempts}次, 窗口时间: {self.attempt_window}秒")
     
     def is_blocked(self, ip: str) -> bool:
         """检查IP是否被封禁"""

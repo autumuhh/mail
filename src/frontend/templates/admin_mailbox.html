@@ -33,6 +33,10 @@
                         <i class="fas fa-history"></i>
                         <span>审计日志</span>
                     </li>
+                    <li class="nav-item" data-view="security">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>安全监控</span>
+                    </li>
                     <li class="nav-item" data-view="register">
                         <i class="fas fa-user-plus"></i>
                         <span>用户注册</span>
@@ -375,6 +379,80 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- 安全监控视图 -->
+            <div class="view security-view" id="security-view" style="display: none;">
+                <div class="view-header">
+                    <h2><i class="fas fa-shield-alt"></i> 安全监控</h2>
+                    <button class="btn btn-secondary" onclick="refreshSecurityInfo()">
+                        <i class="fas fa-sync-alt"></i>
+                        刷新
+                    </button>
+                </div>
+
+                <!-- 被封禁的IP -->
+                <div class="security-section">
+                    <h3><i class="fas fa-ban"></i> 被封禁的IP地址</h3>
+                    <div class="blocked-ips-container">
+                        <table class="security-table">
+                            <thead>
+                                <tr>
+                                    <th>IP地址</th>
+                                    <th>剩余时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="blocked-ips-list">
+                                <tr>
+                                    <td colspan="3" class="loading-row">
+                                        <i class="fas fa-spinner fa-spin"></i>
+                                        加载中...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 创建来源统计 -->
+                <div class="security-section">
+                    <h3><i class="fas fa-chart-pie"></i> 邮箱创建来源统计</h3>
+                    <div class="source-stats-container">
+                        <div class="stats-grid" id="source-stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-icon"><i class="fas fa-spinner fa-spin"></i></div>
+                                <div class="stat-info">
+                                    <div class="stat-label">加载中...</div>
+                                    <div class="stat-value">-</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 封禁配置 -->
+                <div class="security-section">
+                    <h3><i class="fas fa-cog"></i> 封禁配置</h3>
+                    <div class="config-info">
+                        <div class="config-item">
+                            <label>封禁时长：</label>
+                            <span id="config-block-duration">-</span> 秒
+                        </div>
+                        <div class="config-item">
+                            <label>最大失败次数：</label>
+                            <span id="config-max-attempts">-</span> 次
+                        </div>
+                        <div class="config-item">
+                            <label>尝试窗口时间：</label>
+                            <span id="config-attempt-window">-</span> 秒
+                        </div>
+                        <small class="config-note">
+                            <i class="fas fa-info-circle"></i>
+                            在窗口时间内失败次数超过最大值将被封禁
+                        </small>
+                    </div>
                 </div>
             </div>
 

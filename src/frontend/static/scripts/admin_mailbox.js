@@ -240,6 +240,8 @@ class AdminMailboxManager {
         // 加载对应数据
         if (viewName === 'dashboard') {
             this.loadStats();
+        } else if (viewName === 'security') {
+            refreshSecurityInfo();
         } else if (viewName === 'mailboxes') {
             this.loadMailboxes();
         } else if (viewName === 'audit') {
@@ -1162,5 +1164,149 @@ function copyToClipboard(text) {
         document.body.removeChild(input);
         adminManager.showToast('success', '已复制到剪贴板');
     });
+}
+
+// 刷新安全信息
+async function refreshSecurityInfo() {
+    await loadBlockedIPs();
+    await loadSourceStats();
+    await loadSecurityConfig();
+}
+
+// 加载被封禁的IP列表
+async function loadBlockedIPs() {
+    const tbody = document.getElementById('blocked-ips-list');
+    tbody.innerHTML = '<tr><td colspan="3" class="loading-row"><i class="fas fa-spinner fa-spin"></i> 加载中...</td></tr>';
+
+    try {
+        const response = await adminManager.apiRequest('/api/admin/blocked-ips');
+        const blockedIPs = response.data.blocked_ips;
+
+        if (blockedIPs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="empty-row">当前没有被封禁的IP</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = blockedIPs.map(item => `
+            <tr>
+                <td><code>${item.ip}</code></td>
+                <td>${formatSeconds(item.remaining_seconds)}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="unblockIP('${item.ip}')">
+                        <i class="fas fa-unlock"></i>
+                        解除封禁
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        tbody.innerHTML = '<tr><td colspan="3" class="error-row">加载失败</td></tr>';
+        adminManager.showToast('error', '加载被封禁IP失败');
+    }
+}
+
+// 解除IP封禁
+async function unblockIP(ip) {
+    if (!confirm(`确定要解除 ${ip} 的封禁吗？`)) {
+        return;
+    }
+
+    try {
+        await adminManager.apiRequest(`/api/admin/blocked-ips/${ip}`, {
+            method: 'DELETE'
+        });
+
+        adminManager.showToast('success', `IP ${ip} 已解除封禁`);
+        loadBlockedIPs();
+    } catch (error) {
+        adminManager.showToast('error', '解除封禁失败: ' + error.message);
+    }
+}
+
+// 加载创建来源统计
+async function loadSourceStats() {
+    const grid = document.getElementById('source-stats-grid');
+    grid.innerHTML = '<div class="stat-card"><div class="stat-icon"><i class="fas fa-spinner fa-spin"></i></div><div class="stat-info"><div class="stat-label">加载中...</div><div class="stat-value">-</div></div></div>';
+
+    try {
+        const response = await adminManager.apiRequest('/api/admin/stats');
+        const stats = response.data;
+
+        // 创建来源统计
+        const sourceIcons = {
+            'admin': 'fa-user-shield',
+            'register': 'fa-user-plus',
+            'api_v2': 'fa-code',
+            'unknown': 'fa-question'
+        };
+
+        const sourceLabels = {
+            'admin': '管理员创建',
+            'register': '用户注册',
+            'api_v2': 'API创建',
+            'unknown': '未知来源'
+        };
+
+        // 按来源统计邮箱数量（这里需要后端支持，暂时显示总数）
+        grid.innerHTML = `
+            <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-label">管理员创建</div>
+                    <div class="stat-value">-</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-label">用户注册</div>
+                    <div class="stat-value">-</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                    <i class="fas fa-code"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-label">API创建</div>
+                    <div class="stat-value">-</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                    <i class="fas fa-inbox"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-label">总邮箱数</div>
+                    <div class="stat-value">${stats.total_mailboxes}</div>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        grid.innerHTML = '<div class="stat-card"><div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div><div class="stat-info"><div class="stat-label">加载失败</div><div class="stat-value">-</div></div></div>';
+        adminManager.showToast('error', '加载统计信息失败');
+    }
+}
+
+// 加载安全配置
+async function loadSecurityConfig() {
+    // 这些配置是固定的，从后端获取
+    document.getElementById('config-block-duration').textContent = '300';
+    document.getElementById('config-max-attempts').textContent = '3';
+    document.getElementById('config-attempt-window').textContent = '60';
+}
+
+// 格式化秒数为可读格式
+function formatSeconds(seconds) {
+    if (seconds < 60) {
+        return `${seconds} 秒`;
+    }
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes} 分 ${remainingSeconds} 秒`;
 }
 

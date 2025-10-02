@@ -1607,3 +1607,100 @@ body {
     color: #fbbf24;
 }
 
+/* 安全监控视图样式 */
+.security-section {
+    margin-bottom: 32px;
+}
+
+.security-section h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.security-table {
+    width: 100%;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.security-table thead {
+    background: var(--bg-tertiary);
+}
+
+.security-table th {
+    padding: 16px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.security-table td {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.security-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.security-table tbody tr:hover {
+    background: var(--bg-tertiary);
+}
+
+.source-stats-container {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.config-info {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+}
+
+.config-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 16px;
+}
+
+.config-item label {
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.config-item span {
+    color: var(--primary-color);
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.config-note {
+    display: block;
+    margin-top: 16px;
+    padding: 12px;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+

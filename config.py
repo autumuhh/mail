@@ -48,3 +48,8 @@ ENABLE_SENDER_WHITELIST = os.getenv("ENABLE_SENDER_WHITELIST", "false").lower() 
 
 # 测试用：快速过期时间（单位：天，可以设置小数）
 # EMAIL_RETENTION_DAYS = 0.001  # 约1.4分钟，用于测试
+
+# IP封禁配置
+IP_BLOCK_DURATION = int(os.getenv("IP_BLOCK_DURATION", 300))  # 封禁时长（秒），默认5分钟
+IP_MAX_FAILED_ATTEMPTS = int(os.getenv("IP_MAX_FAILED_ATTEMPTS", 3))  # 最大失败尝试次数
+IP_ATTEMPT_WINDOW = int(os.getenv("IP_ATTEMPT_WINDOW", 60))  # 尝试窗口时间（秒），默认1分钟
