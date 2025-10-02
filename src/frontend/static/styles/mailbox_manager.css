@@ -630,6 +630,40 @@ body {
     border-radius: var(--border-radius);
     padding: 2rem;
     line-height: 1.8;
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+/* 邮件内容容器 */
+.email-body > div {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+/* 邮件内容中的所有元素 */
+.email-body * {
+    max-width: 100% !important;
+    box-sizing: border-box;
+}
+
+/* 邮件内容中的表格 */
+.email-body table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: auto;
+    border-collapse: collapse;
+}
+
+/* 邮件内容中的图片 */
+.email-body img {
+    max-width: 100% !important;
+    height: auto !important;
+    display: block;
+}
+
+/* 邮件内容中的iframe */
+.email-body iframe {
+    max-width: 100% !important;
 }
 
 /* 设置页面 */
