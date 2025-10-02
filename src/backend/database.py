@@ -466,6 +466,7 @@ class DatabaseManager:
             if row:
                 return {
                     'id': row['id'],
+                    'mailbox_id': row['mailbox_id'],
                     'From': row['from_address'],
                     'To': row['to_address'],
                     'Subject': row['subject'],
