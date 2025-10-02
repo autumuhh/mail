@@ -1359,6 +1359,10 @@ class MailboxManager {
                 .replace(/javascript:/gi, '') // 移除javascript协议
                 .replace(/on\w+\s*=/gi, ''); // 移除事件处理属性
 
+            // 修复邮件内部的样式限制
+            safeHtml = safeHtml.replace(/body\s*\{\s*max-width\s*:\s*\d+px/gi, 'body { max-width: none');
+            safeHtml = safeHtml.replace(/body\s*\{\s*width\s*:\s*\d+px\s*!important/gi, 'body { width: 100%');
+
             return safeHtml;
         } else {
             // 纯文本内容：转换换行符并保留格式
