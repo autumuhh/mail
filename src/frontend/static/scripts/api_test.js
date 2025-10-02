@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function() {
             createMailboxBtn.disabled = true;
             createMailboxBtn.textContent = '创建中...';
 
-            const response = await fetch('/api/create_mailbox', {
+            const response = await fetch('/api/create_mailbox_v2', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
