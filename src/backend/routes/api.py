@@ -425,19 +425,39 @@ def register():
     用户注册接口 - 创建用户账户，可选择同时创建临时邮箱
     需要Authorization请求头验证管理员密码
     """
+    # 导入IP封禁器
+    from ip_blocker import ip_blocker
+
+    # 获取客户端IP
+    client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
+
+    # 检查IP是否被封禁
+    if ip_blocker.is_blocked(client_ip):
+        remaining = ip_blocker.get_remaining_block_time(client_ip)
+        return jsonify({
+            "error": "IP blocked",
+            "message": f"IP已被临时封禁，剩余 {remaining} 秒"
+        }), 403
+
     # Check Authorization header (admin password required for registration)
     admin_password = request.headers.get("Authorization", None)
     if not admin_password:
+        ip_blocker.record_failed_attempt(client_ip)
         return jsonify({
             "error": "Authentication required",
             "message": "Registration requires admin password in Authorization header"
         }), 401
 
     if admin_password != config.PASSWORD:
+        is_blocked = ip_blocker.record_failed_attempt(client_ip)
+        if is_blocked:
+            return jsonify({
+                "error": "Too many failed attempts",
+                "message": f"认证失败次数过多，IP已被封禁 {ip_blocker.block_duration} 秒"
+            }), 403
         return jsonify({"error": "Invalid admin password"}), 401
 
     # Check IP whitelist
-    client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
     if not inbox_handler.is_ip_whitelisted(client_ip):
         return jsonify({"error": "Access denied - IP not whitelisted"}), 403
 
