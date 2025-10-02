@@ -941,6 +941,11 @@ def delete_email():
     if not inbox_handler.is_ip_whitelisted(client_ip):
         return jsonify({"error": "Access denied - IP not whitelisted"}), 403
 
+    # 验证访问令牌
+    access_token = request.args.get('token')
+    if not access_token:
+        return jsonify({"error": "Access token is required"}), 401
+
     data = request.get_json()
     if not data:
         return jsonify({"error": "No data provided"}), 400
@@ -952,11 +957,27 @@ def delete_email():
 
     try:
         if config.USE_DATABASE:
+            from database import db_manager
+
+            # 验证token并获取邮箱
+            mailbox = db_manager.get_mailbox_by_token(access_token)
+            if not mailbox:
+                return jsonify({"error": "Invalid access token"}), 401
+
+            # 验证邮件是否属于该邮箱
+            email = db_manager.get_email_by_id(email_id)
+            if not email:
+                return jsonify({"error": "Email not found"}), 404
+
+            if email['mailbox_id'] != mailbox['id']:
+                return jsonify({"error": "Permission denied"}), 403
+
+            # 删除邮件
             deleted_count = inbox_handler.delete_email(email_id)
             if deleted_count > 0:
                 return jsonify({"success": True, "message": "Email deleted"}), 200
             else:
-                return jsonify({"error": "Email not found"}), 404
+                return jsonify({"error": "Failed to delete email"}), 500
         else:
             return jsonify({"error": "Database storage not enabled"}), 400
     except Exception as e:
@@ -969,6 +990,11 @@ def delete_emails_batch():
     if not inbox_handler.is_ip_whitelisted(client_ip):
         return jsonify({"error": "Access denied - IP not whitelisted"}), 403
 
+    # 验证访问令牌
+    access_token = request.args.get('token')
+    if not access_token:
+        return jsonify({"error": "Access token is required"}), 401
+
     data = request.get_json()
     if not data:
         return jsonify({"error": "No data provided"}), 400
@@ -980,9 +1006,20 @@ def delete_emails_batch():
 
     try:
         if config.USE_DATABASE:
+            from database import db_manager
+
+            # 验证token并获取邮箱
+            mailbox = db_manager.get_mailbox_by_token(access_token)
+            if not mailbox:
+                return jsonify({"error": "Invalid access token"}), 401
+
+            # 批量删除邮件（只删除属于该邮箱的邮件）
             deleted_count = 0
             for email_id in email_ids:
-                deleted_count += inbox_handler.delete_email(email_id)
+                email = db_manager.get_email_by_id(email_id)
+                if email and email['mailbox_id'] == mailbox['id']:
+                    deleted_count += inbox_handler.delete_email(email_id)
+
             return jsonify({"success": True, "message": f"Deleted {deleted_count} emails"}), 200
         else:
             return jsonify({"error": "Database storage not enabled"}), 400
