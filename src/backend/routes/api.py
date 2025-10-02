@@ -164,112 +164,113 @@ def get_random_address():
     }), 200
 
 # 新增：创建数据库邮箱接口（支持时间参数和UUID）
-@bp.route('/create_mailbox_v2', methods=['POST'])
-def create_mailbox_v2():
-    """
-    创建邮箱 V2 版本 - 支持数据库存储、自定义时间和UUID
-    """
-    # Check IP whitelist
-    client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
-    if not inbox_handler.is_ip_whitelisted(client_ip):
-        return jsonify({"error": "Access denied - IP not whitelisted"}), 403
-
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "No data provided"}), 400
-
-    # Get parameters
-    custom_address = data.get('address', '')
-    sender_whitelist = data.get('sender_whitelist', [])
-    retention_days = data.get('retention_days', config.MAILBOX_RETENTION_DAYS)
-    custom_created_time = data.get('created_at')  # 自定义创建时间
-
-    # Generate address if not provided
-    if not custom_address:
-        random_string = ''.join(random.choices(string.ascii_lowercase + string.digits, k=16))
-        # 从多个域名中随机选择一个
-        random_domain = random.choice(config.DOMAINS)
-        address = f"{random_string}@{random_domain}"
-    else:
-        # Validate custom address
-        if '@' not in custom_address:
-            # 如果没有指定域名，使用默认域名
-            address = f"{custom_address}@{config.DOMAIN}"
-        else:
-            address = custom_address
-
-    # Validate parameters
-    if not isinstance(sender_whitelist, list):
-        return jsonify({"error": "sender_whitelist must be an array"}), 400
-
-    if retention_days <= 0:
-        return jsonify({"error": "retention_days must be positive"}), 400
-
-    # Validate custom created time
-    if custom_created_time is not None:
-        if not isinstance(custom_created_time, int) or custom_created_time <= 0:
-            return jsonify({"error": "created_at must be a positive integer timestamp"}), 400
-
-    try:
-        if config.USE_DATABASE:
-            # 使用数据库
-            # 检查邮箱是否已存在
-            existing_mailbox = inbox_handler.get_mailbox_info(address)
-            if existing_mailbox and not existing_mailbox['is_expired']:
-                return jsonify({
-                    "error": "Mailbox already exists",
-                    "existing_mailbox": {
-                        "address": existing_mailbox['address'],
-                        "mailbox_id": existing_mailbox['id'],
-                        "created_at": existing_mailbox['created_at'],
-                        "expires_at": existing_mailbox['expires_at']
-                    }
-                }), 409
-
-            # 创建邮箱
-            mailbox = inbox_handler.create_or_get_mailbox(
-                address=address,
-                retention_days=retention_days,
-                sender_whitelist=sender_whitelist,
-                created_by_ip=client_ip,
-                created_source="api_v2"
-            )
-
-            # 如果指定了自定义创建时间，更新它
-            if custom_created_time is not None:
-                expires_at = custom_created_time + (retention_days * 24 * 60 * 60)
-                from database import db_manager
-                with db_manager.get_connection() as conn:
-                    conn.execute('''
-                        UPDATE mailboxes
-                        SET created_at = ?, expires_at = ?
-                        WHERE id = ?
-                    ''', (custom_created_time, expires_at, mailbox['id']))
-                    conn.commit()
-                mailbox['created_at'] = custom_created_time
-                mailbox['expires_at'] = expires_at
-
-            return jsonify({
-                "success": True,
-                "address": address,
-                "mailbox_id": mailbox['id'],
-                "mailbox_key": mailbox['mailbox_key'],  # 返回邮箱密钥
-                "created_at": mailbox['created_at'],
-                "expires_at": mailbox['expires_at'],
-                "sender_whitelist": sender_whitelist,
-                "retention_days": retention_days,
-                "available_domains": config.DOMAINS,
-                "storage_type": "database",
-                "message": "Mailbox created successfully. Please save your mailbox key securely."
-            }), 201
-
-        else:
-            return jsonify({
-                "error": "Database storage not enabled. Use /create_mailbox for JSON storage."
-            }), 400
-
-    except Exception as e:
-        return jsonify({"error": f"Failed to create mailbox: {str(e)}"}), 500
+# 已禁用：防止接口被滥用，只保留管理员注册接口
+# @bp.route('/create_mailbox_v2', methods=['POST'])
+# def create_mailbox_v2():
+#     """
+#     创建邮箱 V2 版本 - 支持数据库存储、自定义时间和UUID
+#     """
+#     # Check IP whitelist
+#     client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
+#     if not inbox_handler.is_ip_whitelisted(client_ip):
+#         return jsonify({"error": "Access denied - IP not whitelisted"}), 403
+#
+#     data = request.get_json()
+#     if not data:
+#         return jsonify({"error": "No data provided"}), 400
+#
+#     # Get parameters
+#     custom_address = data.get('address', '')
+#     sender_whitelist = data.get('sender_whitelist', [])
+#     retention_days = data.get('retention_days', config.MAILBOX_RETENTION_DAYS)
+#     custom_created_time = data.get('created_at')  # 自定义创建时间
+#
+#     # Generate address if not provided
+#     if not custom_address:
+#         random_string = ''.join(random.choices(string.ascii_lowercase + string.digits, k=16))
+#         # 从多个域名中随机选择一个
+#         random_domain = random.choice(config.DOMAINS)
+#         address = f"{random_string}@{random_domain}"
+#     else:
+#         # Validate custom address
+#         if '@' not in custom_address:
+#             # 如果没有指定域名，使用默认域名
+#             address = f"{custom_address}@{config.DOMAIN}"
+#         else:
+#             address = custom_address
+#
+#     # Validate parameters
+#     if not isinstance(sender_whitelist, list):
+#         return jsonify({"error": "sender_whitelist must be an array"}), 400
+#
+#     if retention_days <= 0:
+#         return jsonify({"error": "retention_days must be positive"}), 400
+#
+#     # Validate custom created time
+#     if custom_created_time is not None:
+#         if not isinstance(custom_created_time, int) or custom_created_time <= 0:
+#             return jsonify({"error": "created_at must be a positive integer timestamp"}), 400
+#
+#     try:
+#         if config.USE_DATABASE:
+#             # 使用数据库
+#             # 检查邮箱是否已存在
+#             existing_mailbox = inbox_handler.get_mailbox_info(address)
+#             if existing_mailbox and not existing_mailbox['is_expired']:
+#                 return jsonify({
+#                     "error": "Mailbox already exists",
+#                     "existing_mailbox": {
+#                         "address": existing_mailbox['address'],
+#                         "mailbox_id": existing_mailbox['id'],
+#                         "created_at": existing_mailbox['created_at'],
+#                         "expires_at": existing_mailbox['expires_at']
+#                     }
+#                 }), 409
+#
+#             # 创建邮箱
+#             mailbox = inbox_handler.create_or_get_mailbox(
+#                 address=address,
+#                 retention_days=retention_days,
+#                 sender_whitelist=sender_whitelist,
+#                 created_by_ip=client_ip,
+#                 created_source="api_v2"
+#             )
+#
+#             # 如果指定了自定义创建时间，更新它
+#             if custom_created_time is not None:
+#                 expires_at = custom_created_time + (retention_days * 24 * 60 * 60)
+#                 from database import db_manager
+#                 with db_manager.get_connection() as conn:
+#                     conn.execute('''
+#                         UPDATE mailboxes
+#                         SET created_at = ?, expires_at = ?
+#                         WHERE id = ?
+#                     ''', (custom_created_time, expires_at, mailbox['id']))
+#                     conn.commit()
+#                 mailbox['created_at'] = custom_created_time
+#                 mailbox['expires_at'] = expires_at
+#
+#             return jsonify({
+#                 "success": True,
+#                 "address": address,
+#                 "mailbox_id": mailbox['id'],
+#                 "mailbox_key": mailbox['mailbox_key'],  # 返回邮箱密钥
+#                 "created_at": mailbox['created_at'],
+#                 "expires_at": mailbox['expires_at'],
+#                 "sender_whitelist": sender_whitelist,
+#                 "retention_days": retention_days,
+#                 "available_domains": config.DOMAINS,
+#                 "storage_type": "database",
+#                 "message": "Mailbox created successfully. Please save your mailbox key securely."
+#             }), 201
+#
+#         else:
+#             return jsonify({
+#                 "error": "Database storage not enabled. Use /create_mailbox for JSON storage."
+#             }), 400
+#
+#     except Exception as e:
+#         return jsonify({"error": f"Failed to create mailbox: {str(e)}"}), 500
 
 # 新增：通过邮箱密钥获取访问令牌
 @bp.route('/get_mailbox_token', methods=['POST'])

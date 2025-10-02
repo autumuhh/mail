@@ -444,10 +444,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    // 注释掉自动创建邮箱功能，防止滥用
     // generate an email when the page loads
-    (async () => {
-        await generateRandomEmail();
-    })();
+    // (async () => {
+    //     await generateRandomEmail();
+    // })();
 
     // 更新域名选择器
     function updateDomainSelector(domains) {
