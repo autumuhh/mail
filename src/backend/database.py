@@ -681,7 +681,7 @@ class DatabaseManager:
 
     def delete_email(self, email_id: str) -> int:
         """删除邮件，返回删除的数量"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self.get_connection() as conn:
             # 先获取邮件大小和邮箱ID
             cursor = conn.execute('''
                 SELECT mailbox_id, size_bytes FROM emails WHERE id = ?
