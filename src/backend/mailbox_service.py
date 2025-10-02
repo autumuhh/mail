@@ -93,23 +93,24 @@ class MailboxService:
         except Exception as e:
             print(f"审计日志记录失败: {e}")
     
-    def list_mailboxes(self, page: int = 1, page_size: int = 20, 
-                      search: str = None, status: str = None) -> Dict:
+    def list_mailboxes(self, page: int = 1, page_size: int = 20,
+                      search: str = None, status: str = None, source: str = None) -> Dict:
         """
         获取邮箱列表（分页）
         status: 'active', 'expired', 'disabled', 'all'
+        source: 'admin', 'register', 'api_v2', 'unknown', 'all'
         """
         offset = (page - 1) * page_size
         current_time = int(time.time())
-        
+
         # 构建查询条件
         where_clauses = []
         params = []
-        
+
         if search:
             where_clauses.append("(address LIKE ? OR id LIKE ?)")
             params.extend([f"%{search}%", f"%{search}%"])
-        
+
         if status == 'active':
             where_clauses.append("is_active = 1 AND expires_at > ?")
             params.append(current_time)
@@ -118,7 +119,11 @@ class MailboxService:
             params.append(current_time)
         elif status == 'disabled':
             where_clauses.append("is_active = 0")
-        
+
+        if source:
+            where_clauses.append("created_source = ?")
+            params.append(source)
+
         where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
         
         with self.db.get_connection() as conn:
@@ -128,10 +133,11 @@ class MailboxService:
             
             # 获取数据
             query = f'''
-                SELECT id, address, created_at, expires_at, retention_days, 
-                       is_active, sender_whitelist, whitelist_enabled, 
-                       created_by_ip, last_accessed, updated_by_admin, updated_at
-                FROM mailboxes 
+                SELECT id, address, created_at, expires_at, retention_days,
+                       is_active, sender_whitelist, whitelist_enabled,
+                       created_by_ip, last_accessed, updated_by_admin, updated_at,
+                       created_source
+                FROM mailboxes
                 WHERE {where_sql}
                 ORDER BY created_at DESC
                 LIMIT ? OFFSET ?
@@ -160,6 +166,7 @@ class MailboxService:
                     'last_accessed': row['last_accessed'],
                     'updated_by_admin': row['updated_by_admin'],
                     'updated_at': row['updated_at'],
+                    'created_source': row['created_source'],
                     'email_count': stats['total_emails'],
                     'unread_count': stats['unread_emails']
                 })

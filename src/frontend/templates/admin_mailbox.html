@@ -296,6 +296,19 @@
                         <button class="filter-btn" data-status="expired">过期</button>
                         <button class="filter-btn" data-status="disabled">禁用</button>
                     </div>
+                    <div class="source-filter">
+                        <label for="source-filter-select">
+                            <i class="fas fa-filter"></i>
+                            来源：
+                        </label>
+                        <select id="source-filter-select" onchange="changeSourceFilter(this.value)">
+                            <option value="all">全部</option>
+                            <option value="admin">管理员</option>
+                            <option value="register">注册</option>
+                            <option value="api_v2">API</option>
+                            <option value="unknown">未知</option>
+                        </select>
+                    </div>
                     <div class="page-size-selector">
                         <label for="page-size-select">
                             <i class="fas fa-list"></i>

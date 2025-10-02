@@ -57,20 +57,22 @@ def list_mailboxes():
     auth_ok, error_msg = check_admin_auth()
     if not auth_ok:
         return jsonify({'success': False, 'error': error_msg or '未授权'}), 401
-    
+
     try:
         page = int(request.args.get('page', 1))
         page_size = int(request.args.get('page_size', 20))
         search = request.args.get('search', '')
         status = request.args.get('status', 'all')
-        
+        source = request.args.get('source', 'all')
+
         result = mailbox_service.list_mailboxes(
             page=page,
             page_size=page_size,
             search=search if search else None,
-            status=status if status != 'all' else None
+            status=status if status != 'all' else None,
+            source=source if source != 'all' else None
         )
-        
+
         return jsonify({
             'success': True,
             'data': result

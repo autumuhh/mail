@@ -7,6 +7,7 @@ class AdminMailboxManager {
         this.currentPage = 1;
         this.pageSize = 20;
         this.currentStatus = 'all';
+        this.currentSource = 'all';
         this.searchQuery = '';
         this.init();
     }
@@ -416,19 +417,20 @@ class AdminMailboxManager {
     
     async loadMailboxes() {
         const tbody = document.getElementById('mailbox-list');
-        tbody.innerHTML = '<tr><td colspan="7" class="loading-row"><i class="fas fa-spinner fa-spin"></i> 加载中...</td></tr>';
-        
+        tbody.innerHTML = '<tr><td colspan="9" class="loading-row"><i class="fas fa-spinner fa-spin"></i> 加载中...</td></tr>';
+
         try {
             const params = new URLSearchParams({
                 page: this.currentPage,
                 page_size: this.pageSize,
                 status: this.currentStatus,
+                source: this.currentSource,
                 search: this.searchQuery
             });
-            
+
             const response = await this.apiRequest(`/api/admin/mailboxes?${params}`);
             const data = response.data;
-            
+
             this.renderMailboxList(data.mailboxes);
             this.renderPagination(data);
         } catch (error) {
@@ -604,6 +606,14 @@ function refreshMailboxList() {
 function changePageSize(size) {
     if (adminManager) {
         adminManager.pageSize = parseInt(size);
+        adminManager.currentPage = 1; // 重置到第一页
+        adminManager.loadMailboxes();
+    }
+}
+
+function changeSourceFilter(source) {
+    if (adminManager) {
+        adminManager.currentSource = source;
         adminManager.currentPage = 1; // 重置到第一页
         adminManager.loadMailboxes();
     }
