@@ -125,8 +125,15 @@ class DatabaseManager:
                 pass
 
             try:
-                conn.execute('ALTER TABLE mailboxes ADD COLUMN storage_limit INTEGER DEFAULT 52428800')  # 默认50MB
+                conn.execute('ALTER TABLE mailboxes ADD COLUMN storage_limit INTEGER DEFAULT 3145728')  # 默认3MB
                 print("Added storage_limit column to mailboxes table")
+            except sqlite3.OperationalError:
+                pass
+
+            # 更新已存在邮箱的容量限制为3MB
+            try:
+                conn.execute('UPDATE mailboxes SET storage_limit = 3145728 WHERE storage_limit = 52428800 OR storage_limit IS NULL')
+                print("Updated existing mailboxes storage_limit to 3MB")
             except sqlite3.OperationalError:
                 pass
 

@@ -227,9 +227,9 @@ class MailboxService:
                 'unread_count': stats['unread_emails'],
                 'last_email_time': stats['last_email_time'],
                 'storage_used': stats.get('storage_used', 0),
-                'storage_limit': stats.get('storage_limit', 52428800),
+                'storage_limit': stats.get('storage_limit', 3145728),
                 'storage_used_mb': stats.get('storage_used_mb', 0),
-                'storage_limit_mb': stats.get('storage_limit_mb', 50),
+                'storage_limit_mb': stats.get('storage_limit_mb', 3),
                 'storage_percent': stats.get('storage_percent', 0),
                 'allowed_domains': json.loads(safe_get('allowed_domains') or '[]') if safe_get('allowed_domains') else []
             }

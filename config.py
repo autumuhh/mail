@@ -47,9 +47,9 @@ MAILBOX_RETENTION_DAYS = int(os.getenv("MAILBOX_RETENTION_DAYS", 30))  # 邮箱�
 ENABLE_SENDER_WHITELIST = os.getenv("ENABLE_SENDER_WHITELIST", "false").lower() == "true"
 
 # Mailbox storage limits
-MAX_MAILBOX_SIZE_MB = int(os.getenv("MAX_MAILBOX_SIZE_MB", 50))  # 单个邮箱最大容量（MB）
+MAX_MAILBOX_SIZE_MB = int(os.getenv("MAX_MAILBOX_SIZE_MB", 3))  # 单个邮箱最大容量（MB）
 MAX_MAILBOX_SIZE_BYTES = MAX_MAILBOX_SIZE_MB * 1024 * 1024  # 转换为字节
-MAX_EMAIL_SIZE_MB = int(os.getenv("MAX_EMAIL_SIZE_MB", 10))  # 单封邮件最大大小（MB）
+MAX_EMAIL_SIZE_MB = int(os.getenv("MAX_EMAIL_SIZE_MB", 2))  # 单封邮件最大大小（MB）
 MAX_EMAIL_SIZE_BYTES = MAX_EMAIL_SIZE_MB * 1024 * 1024  # 转换为字节
 
 # 测试用：快速过期时间（单位：天，可以设置小数）
