@@ -431,25 +431,28 @@ class AdminMailboxManager {
             this.renderPagination(data);
         } catch (error) {
             console.error('加载邮箱列表失败:', error);
-            tbody.innerHTML = '<tr><td colspan="7" class="error-row">加载失败</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="error-row">加载失败</td></tr>';
             this.showToast('error', '加载邮箱列表失败');
         }
     }
     
     renderMailboxList(mailboxes) {
         const tbody = document.getElementById('mailbox-list');
-        
+
         if (mailboxes.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="empty-row">暂无数据</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="empty-row">暂无数据</td></tr>';
             return;
         }
-        
+
         tbody.innerHTML = mailboxes.map(mailbox => {
             const statusClass = mailbox.is_expired ? 'expired' : (mailbox.is_active ? 'active' : 'disabled');
             const statusText = mailbox.is_expired ? '已过期' : (mailbox.is_active ? '活跃' : '已禁用');
-            
+
             return `
                 <tr>
+                    <td>
+                        <input type="checkbox" class="mailbox-checkbox" value="${mailbox.id}" onchange="updateBatchDeleteButton()">
+                    </td>
                     <td>
                         <div class="mailbox-address">
                             ${mailbox.address}
@@ -469,6 +472,17 @@ class AdminMailboxManager {
                             <button class="btn-icon" onclick="adminManager.editMailbox('${mailbox.id}')" title="编辑">
                                 <i class="fas fa-edit"></i>
                             </button>
+                            <button class="btn-icon" onclick="resetMailboxToken('${mailbox.id}')" title="重置令牌">
+                                <i class="fas fa-key"></i>
+                            </button>
+                            ${mailbox.is_active ?
+                                `<button class="btn-icon btn-warning" onclick="disableMailbox('${mailbox.id}')" title="禁用">
+                                    <i class="fas fa-ban"></i>
+                                </button>` :
+                                `<button class="btn-icon btn-success" onclick="enableMailbox('${mailbox.id}')" title="启用">
+                                    <i class="fas fa-check"></i>
+                                </button>`
+                            }
                             <button class="btn-icon btn-danger" onclick="adminManager.deleteMailbox('${mailbox.id}')" title="删除">
                                 <i class="fas fa-trash"></i>
                             </button>
@@ -998,4 +1012,162 @@ AdminMailboxManager.prototype.showAuditDetail = function(log) {
     `;
     document.body.appendChild(modal);
 };
+
+// 全选/取消全选
+function toggleSelectAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.mailbox-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = checkbox.checked;
+    });
+    updateBatchDeleteButton();
+}
+
+// 更新批量删除按钮状态
+function updateBatchDeleteButton() {
+    const checkboxes = document.querySelectorAll('.mailbox-checkbox:checked');
+    const count = checkboxes.length;
+    const btn = document.getElementById('batch-delete-btn');
+    const countSpan = document.getElementById('selected-count');
+
+    if (count > 0) {
+        btn.style.display = 'inline-block';
+        countSpan.textContent = count;
+    } else {
+        btn.style.display = 'none';
+    }
+}
+
+// 批量删除邮箱
+async function batchDeleteMailboxes() {
+    const checkboxes = document.querySelectorAll('.mailbox-checkbox:checked');
+    const mailboxIds = Array.from(checkboxes).map(cb => cb.value);
+
+    if (mailboxIds.length === 0) {
+        alert('请选择要删除的邮箱');
+        return;
+    }
+
+    if (!confirm(`确定要删除选中的 ${mailboxIds.length} 个邮箱吗？`)) {
+        return;
+    }
+
+    try {
+        const response = await adminManager.apiRequest('/api/admin/mailboxes/batch-delete', {
+            method: 'POST',
+            body: JSON.stringify({
+                mailbox_ids: mailboxIds,
+                soft_delete: true
+            })
+        });
+
+        adminManager.showToast('success', response.message);
+
+        // 取消全选
+        document.getElementById('select-all-checkbox').checked = false;
+        updateBatchDeleteButton();
+
+        // 重新加载列表
+        adminManager.loadMailboxes();
+    } catch (error) {
+        adminManager.showToast('error', '批量删除失败: ' + error.message);
+    }
+}
+
+// 重置邮箱token
+async function resetMailboxToken(mailboxId) {
+    if (!confirm('确定要重置此邮箱的访问令牌吗？重置后旧令牌将失效。')) {
+        return;
+    }
+
+    try {
+        const response = await adminManager.apiRequest(`/api/admin/mailboxes/${mailboxId}/reset-token`, {
+            method: 'POST'
+        });
+
+        // 显示新token
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-key"></i> 新的访问令牌</h3>
+                    <button class="close-btn" onclick="this.closest('.modal').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        请妥善保存新令牌，关闭后将无法再次查看！
+                    </div>
+                    <div class="form-group">
+                        <label>新访问令牌：</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" value="${response.data.new_token}" readonly style="flex: 1;">
+                            <button class="btn btn-primary" onclick="copyToClipboard('${response.data.new_token}')">
+                                <i class="fas fa-copy"></i> 复制
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">关闭</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        adminManager.showToast('success', '令牌重置成功');
+    } catch (error) {
+        adminManager.showToast('error', '重置令牌失败: ' + error.message);
+    }
+}
+
+// 禁用邮箱
+async function disableMailbox(mailboxId) {
+    if (!confirm('确定要禁用此邮箱吗？禁用后用户将无法访问。')) {
+        return;
+    }
+
+    try {
+        await adminManager.apiRequest(`/api/admin/mailboxes/${mailboxId}/disable`, {
+            method: 'POST'
+        });
+
+        adminManager.showToast('success', '邮箱已禁用');
+        adminManager.loadMailboxes();
+    } catch (error) {
+        adminManager.showToast('error', '禁用失败: ' + error.message);
+    }
+}
+
+// 启用邮箱
+async function enableMailbox(mailboxId) {
+    try {
+        await adminManager.apiRequest(`/api/admin/mailboxes/${mailboxId}/enable`, {
+            method: 'POST'
+        });
+
+        adminManager.showToast('success', '邮箱已启用');
+        adminManager.loadMailboxes();
+    } catch (error) {
+        adminManager.showToast('error', '启用失败: ' + error.message);
+    }
+}
+
+// 复制到剪贴板
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        adminManager.showToast('success', '已复制到剪贴板');
+    }).catch(() => {
+        // 降级方案
+        const input = document.createElement('input');
+        input.value = text;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        adminManager.showToast('success', '已复制到剪贴板');
+    });
+}
 

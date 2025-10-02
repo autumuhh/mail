@@ -269,6 +269,10 @@
                 <div class="view-header">
                     <h2><i class="fas fa-inbox"></i> 邮箱管理</h2>
                     <div class="view-actions">
+                        <button class="btn btn-danger" id="batch-delete-btn" onclick="batchDeleteMailboxes()" style="display: none;">
+                            <i class="fas fa-trash"></i>
+                            批量删除 (<span id="selected-count">0</span>)
+                        </button>
                         <button class="btn btn-primary" onclick="document.querySelector('[data-view=register]').click()">
                             <i class="fas fa-plus"></i>
                             创建邮箱
@@ -311,6 +315,9 @@
                     <table class="mailbox-table">
                         <thead>
                             <tr>
+                                <th style="width: 40px;">
+                                    <input type="checkbox" id="select-all-checkbox" onchange="toggleSelectAll(this)">
+                                </th>
                                 <th>邮箱地址</th>
                                 <th>状态</th>
                                 <th>创建时间</th>
@@ -322,7 +329,7 @@
                         </thead>
                         <tbody id="mailbox-list">
                             <tr>
-                                <td colspan="7" class="loading-row">
+                                <td colspan="8" class="loading-row">
                                     <i class="fas fa-spinner fa-spin"></i>
                                     加载中...
                                 </td>

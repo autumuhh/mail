@@ -1530,3 +1530,80 @@ body {
     }
 }
 
+/* 批量操作样式 */
+.mailbox-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--primary-color);
+}
+
+#select-all-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--primary-color);
+}
+
+.btn-warning {
+    background: var(--warning-color);
+    color: white;
+}
+
+.btn-warning:hover {
+    background: #dd6b20;
+}
+
+.btn-success {
+    background: var(--success-color);
+    color: white;
+}
+
+.btn-success:hover {
+    background: #38a169;
+}
+
+/* 操作按钮图标颜色 */
+.btn-icon.btn-warning i {
+    color: white;
+}
+
+.btn-icon.btn-success i {
+    color: white;
+}
+
+/* 批量删除按钮动画 */
+#batch-delete-btn {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 警告提示框样式 */
+.alert-warning {
+    background: #fef3c7;
+    border: 1px solid #fbbf24;
+    color: #92400e;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+[data-theme="dark"] .alert-warning {
+    background: #451a03;
+    border-color: #92400e;
+    color: #fbbf24;
+}
+

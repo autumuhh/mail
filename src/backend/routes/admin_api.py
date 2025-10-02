@@ -274,3 +274,140 @@ def get_stats():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@bp.route('/mailboxes/batch-delete', methods=['POST'])
+def batch_delete_mailboxes():
+    """批量删除邮箱"""
+    if not check_admin_auth():
+        return jsonify({'success': False, 'error': '未授权'}), 401
+
+    try:
+        data = request.get_json()
+        mailbox_ids = data.get('mailbox_ids', [])
+        soft_delete = data.get('soft_delete', True)
+
+        if not mailbox_ids:
+            return jsonify({'success': False, 'error': '未提供邮箱ID'}), 400
+
+        success_count = 0
+        failed_count = 0
+        errors = []
+
+        for mailbox_id in mailbox_ids:
+            success, message = mailbox_service.delete_mailbox(
+                mailbox_id=mailbox_id,
+                soft_delete=soft_delete,
+                admin_user='admin',
+                ip_address=get_client_ip()
+            )
+
+            if success:
+                success_count += 1
+            else:
+                failed_count += 1
+                errors.append({'mailbox_id': mailbox_id, 'error': message})
+
+        return jsonify({
+            'success': True,
+            'message': f'成功删除 {success_count} 个邮箱，失败 {failed_count} 个',
+            'success_count': success_count,
+            'failed_count': failed_count,
+            'errors': errors
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@bp.route('/mailboxes/<mailbox_id>/reset-token', methods=['POST'])
+def reset_mailbox_token(mailbox_id):
+    """重置邮箱访问令牌"""
+    if not check_admin_auth():
+        return jsonify({'success': False, 'error': '未授权'}), 401
+
+    try:
+        import uuid
+        new_token = str(uuid.uuid4())
+
+        # 更新数据库中的token
+        with db_manager.get_connection() as conn:
+            conn.execute('''
+                UPDATE mailboxes SET access_token = ? WHERE id = ?
+            ''', (new_token, mailbox_id))
+            conn.commit()
+
+        # 记录审计日志
+        mailbox_service._log_audit(
+            action='RESET_TOKEN',
+            mailbox_id=mailbox_id,
+            admin_user='admin',
+            changes={'new_token': new_token},
+            ip_address=get_client_ip()
+        )
+
+        return jsonify({
+            'success': True,
+            'message': '令牌重置成功',
+            'data': {
+                'mailbox_id': mailbox_id,
+                'new_token': new_token
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@bp.route('/mailboxes/<mailbox_id>/disable', methods=['POST'])
+def disable_mailbox(mailbox_id):
+    """禁用邮箱"""
+    if not check_admin_auth():
+        return jsonify({'success': False, 'error': '未授权'}), 401
+
+    try:
+        with db_manager.get_connection() as conn:
+            conn.execute('''
+                UPDATE mailboxes SET is_active = 0 WHERE id = ?
+            ''', (mailbox_id,))
+            conn.commit()
+
+        # 记录审计日志
+        mailbox_service._log_audit(
+            action='DISABLE',
+            mailbox_id=mailbox_id,
+            admin_user='admin',
+            changes={'is_active': False},
+            ip_address=get_client_ip()
+        )
+
+        return jsonify({
+            'success': True,
+            'message': '邮箱已禁用'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@bp.route('/mailboxes/<mailbox_id>/enable', methods=['POST'])
+def enable_mailbox(mailbox_id):
+    """启用邮箱"""
+    if not check_admin_auth():
+        return jsonify({'success': False, 'error': '未授权'}), 401
+
+    try:
+        with db_manager.get_connection() as conn:
+            conn.execute('''
+                UPDATE mailboxes SET is_active = 1 WHERE id = ?
+            ''', (mailbox_id,))
+            conn.commit()
+
+        # 记录审计日志
+        mailbox_service._log_audit(
+            action='ENABLE',
+            mailbox_id=mailbox_id,
+            admin_user='admin',
+            changes={'is_active': True},
+            ip_address=get_client_ip()
+        )
+
+        return jsonify({
+            'success': True,
+            'message': '邮箱已启用'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
