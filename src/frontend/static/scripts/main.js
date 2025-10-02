@@ -92,12 +92,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 updateDomainSelector(newAddress.available_domains);
             }
 
-            // 创建邮箱（确保邮箱在后端存在）
-            if (newAddress.address) {
-                await createMailboxIfNotExists(newAddress.address);
-            }
+            // 已废弃：自动创建邮箱功能
+            // 现在需要通过用户注册界面手动创建邮箱
+            // if (newAddress.address) {
+            //     await createMailboxIfNotExists(newAddress.address);
+            // }
 
-            // 再更新邮箱地址
+            // 更新邮箱地址显示
             updateEmail(newAddress.address);
         } catch (error) {
             console.error('生成随机邮箱失败:', error);
@@ -105,46 +106,12 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // 创建邮箱（如果不存在）
-    async function createMailboxIfNotExists(address) {
-        try {
-            console.log('检查邮箱是否存在:', address);
-
-            // 先检查邮箱是否存在
-            const checkResponse = await fetch(`/api/mailbox_info_v2?address=${encodeURIComponent(address)}`);
-
-            if (checkResponse.status === 404) {
-                // 邮箱不存在，创建它
-                console.log('邮箱不存在，准备创建:', address);
-                const createResponse = await fetch('/api/create_mailbox_v2', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        address: address,
-                        sender_whitelist: [], // 空白名单，接收所有邮件
-                        retention_days: 7
-                    })
-                });
-
-                if (createResponse.ok) {
-                    const createData = await createResponse.json();
-                    console.log('邮箱创建成功:', createData);
-                } else {
-                    const errorText = await createResponse.text();
-                    console.warn(`邮箱 ${address} 创建失败:`, createResponse.status, errorText);
-                }
-            } else if (checkResponse.ok) {
-                console.log('邮箱已存在');
-            } else {
-                console.warn('检查邮箱失败:', checkResponse.status);
-            }
-        } catch (error) {
-            console.warn('检查/创建邮箱失败:', error);
-            // 不抛出错误，因为这不应该阻止用户使用
-        }
-    }
+    // 已废弃：创建邮箱功能已移至用户注册界面
+    // 首页已重定向到管理员界面，此函数不再使用
+    // async function createMailboxIfNotExists(address) {
+    //     // 此函数调用的 /api/create_mailbox_v2 接口已被禁用
+    //     // 现在只能通过 /api/register 接口创建邮箱（需要管理员密码）
+    // }
 
     // update the current email
     function updateEmail(email) {
@@ -481,17 +448,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const selectedDomain = this.value;
         if (selectedDomain && emailPrefix.value.trim()) {
             combineEmailAddress();
-            // 创建邮箱
-            const fullAddress = `${emailPrefix.value}@${selectedDomain}`;
-            await createMailboxIfNotExists(fullAddress);
+            // 已废弃：自动创建邮箱功能
+            // const fullAddress = `${emailPrefix.value}@${selectedDomain}`;
+            // await createMailboxIfNotExists(fullAddress);
         } else if (selectedDomain) {
             // 如果没有用户名，生成随机用户名
             const randomString = Math.random().toString(36).substring(2, 18);
             emailPrefix.value = randomString;
             combineEmailAddress();
-            // 创建邮箱
-            const fullAddress = `${randomString}@${selectedDomain}`;
-            await createMailboxIfNotExists(fullAddress);
+            // 已废弃：自动创建邮箱功能
+            // const fullAddress = `${randomString}@${selectedDomain}`;
+            // await createMailboxIfNotExists(fullAddress);
         }
     });
 
@@ -499,9 +466,9 @@ document.addEventListener("DOMContentLoaded", () => {
     emailPrefix.addEventListener('input', async function() {
         if (this.value.trim() && domainSelector.value) {
             combineEmailAddress();
-            // 创建邮箱
-            const fullAddress = `${this.value.trim()}@${domainSelector.value}`;
-            await createMailboxIfNotExists(fullAddress);
+            // 已废弃：自动创建邮箱功能
+            // const fullAddress = `${this.value.trim()}@${domainSelector.value}`;
+            // await createMailboxIfNotExists(fullAddress);
         }
     });
 
