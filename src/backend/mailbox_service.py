@@ -211,7 +211,13 @@ class MailboxService:
                 'updated_at': row['updated_at'],
                 'email_count': stats['total_emails'],
                 'unread_count': stats['unread_emails'],
-                'last_email_time': stats['last_email_time']
+                'last_email_time': stats['last_email_time'],
+                'storage_used': stats.get('storage_used', 0),
+                'storage_limit': stats.get('storage_limit', 52428800),
+                'storage_used_mb': stats.get('storage_used_mb', 0),
+                'storage_limit_mb': stats.get('storage_limit_mb', 50),
+                'storage_percent': stats.get('storage_percent', 0),
+                'allowed_domains': json.loads(row['allowed_domains'] or '[]') if row.get('allowed_domains') else []
             }
     
     def create_mailbox(self, address: str, retention_days: int = None,

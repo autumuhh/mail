@@ -712,6 +712,20 @@ AdminMailboxManager.prototype.viewMailbox = async function(mailboxId) {
                             <div>总计 ${mailbox.email_count} 封，未读 ${mailbox.unread_count} 封</div>
                         </div>
                         <div class="detail-item">
+                            <label>存储容量</label>
+                            <div>
+                                <div class="storage-info">
+                                    <div class="storage-bar">
+                                        <div class="storage-used" style="width: ${mailbox.storage_percent || 0}%"></div>
+                                    </div>
+                                    <div class="storage-text">
+                                        ${(mailbox.storage_used_mb || 0).toFixed(2)} MB / ${(mailbox.storage_limit_mb || 50).toFixed(2)} MB
+                                        (${(mailbox.storage_percent || 0).toFixed(1)}%)
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="detail-item">
                             <label>白名单状态</label>
                             <div>${mailbox.whitelist_enabled ? '已启用' : '未启用'}</div>
                         </div>
