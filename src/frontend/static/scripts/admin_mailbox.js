@@ -114,7 +114,7 @@ class AdminMailboxManager {
         }
     }
 
-    generateRandomEmailPrefix() {
+    async generateRandomEmailPrefix() {
         // 生成随机字符串（8-12位）
         const length = Math.floor(Math.random() * 5) + 8; // 8-12
         const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -129,11 +129,11 @@ class AdminMailboxManager {
             prefixInput.value = result;
         }
 
-        // 加载域名列表
-        this.loadAvailableDomains();
+        // 加载域名列表并随机选择一个
+        await this.loadAvailableDomains(true);
     }
 
-    async loadAvailableDomains() {
+    async loadAvailableDomains(randomSelect = false) {
         try {
             const domains = await this.fetchAvailableDomains();
             const domainSelect = document.getElementById('reg-email-domain');
@@ -150,9 +150,10 @@ class AdminMailboxManager {
                     domainSelect.appendChild(option);
                 });
 
-                // 如果当前没有选择域名，自动选择第一个
-                if (!domainSelect.value) {
-                    domainSelect.value = domains[0];
+                // 如果需要随机选择域名
+                if (randomSelect) {
+                    const randomIndex = Math.floor(Math.random() * domains.length);
+                    domainSelect.value = domains[randomIndex];
                 }
             }
         } catch (error) {
@@ -360,8 +361,20 @@ class AdminMailboxManager {
                         <label>过期时间：</label>
                         <div class="info-value">${this.formatDate(response.data.expires_at)}</div>
                     </div>
+                    <div class="info-item">
+                        <label>邮箱访问地址：</label>
+                        <div class="info-value">
+                            <a href="/mailbox?address=${encodeURIComponent(response.data.address)}&token=${response.data.access_token}" target="_blank" style="color: var(--primary-color); text-decoration: none;">
+                                ${window.location.origin}/mailbox?address=${encodeURIComponent(response.data.address)}&token=${response.data.access_token}
+                            </a>
+                        </div>
+                    </div>
                 </div>
                 <div class="result-actions">
+                    <button class="btn btn-success" onclick="window.open('/mailbox?address=${encodeURIComponent(response.data.address)}&token=${response.data.access_token}', '_blank')">
+                        <i class="fas fa-external-link-alt"></i>
+                        打开邮箱
+                    </button>
                     <button class="btn btn-primary" onclick="adminManager.switchView('register')">
                         <i class="fas fa-plus"></i>
                         继续创建

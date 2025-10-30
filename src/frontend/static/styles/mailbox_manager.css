@@ -540,6 +540,7 @@ body {
     flex: 1;
     overflow-y: auto;
     padding: 1rem;
+    position: relative;
 }
 
 .email-item {
@@ -654,7 +655,7 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 200px;
+    padding: 4rem 1rem;
     color: var(--text-muted);
 }
 
@@ -1233,7 +1234,7 @@ body {
 
 .toast {
     background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
+    border: none;
     border-radius: var(--border-radius);
     padding: 1rem 1.5rem;
     margin-bottom: 0.75rem;
