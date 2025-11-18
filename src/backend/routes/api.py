@@ -418,6 +418,151 @@ def user_login():
     except Exception as e:
         return jsonify({"error": f"Login failed: {str(e)}"}), 500
 
+# 使用子管理员token创建邮箱
+@bp.route('/register_with_token', methods=['POST'])
+def register_with_token():
+    """
+    使用子管理员token创建邮箱
+    需要在请求头中提供 X-Sub-Admin-Token
+    """
+    # 导入IP封禁器
+    from ip_blocker import ip_blocker
+
+    # 获取客户端IP
+    client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
+
+    # 检查IP是否被封禁
+    if ip_blocker.is_blocked(client_ip):
+        remaining = ip_blocker.get_remaining_block_time(client_ip)
+        return jsonify({
+            "error": "IP blocked",
+            "message": f"IP已被临时封禁，剩余 {remaining} 秒"
+        }), 403
+
+    # 检查token
+    token = request.headers.get("X-Sub-Admin-Token", None)
+    if not token:
+        ip_blocker.record_failed_attempt(client_ip)
+        return jsonify({
+            "error": "Authentication required",
+            "message": "Sub-admin token required in X-Sub-Admin-Token header"
+        }), 401
+
+    # 验证token
+    if not config.USE_DATABASE:
+        return jsonify({"error": "Database not enabled"}), 500
+
+    from database import db_manager
+
+    sub_admin = db_manager.get_sub_admin_by_token(token)
+    if not sub_admin:
+        is_blocked = ip_blocker.record_failed_attempt(client_ip)
+        if is_blocked:
+            return jsonify({
+                "error": "Too many failed attempts",
+                "message": f"认证失败次数过多，IP已被封禁 {ip_blocker.block_duration} 秒"
+            }), 403
+        return jsonify({"error": "Invalid token"}), 401
+
+    if not sub_admin['is_active']:
+        return jsonify({"error": "Sub-admin is disabled"}), 403
+
+    # 获取子管理员的权限
+    allowed_domains = sub_admin['domains']
+    sender_whitelist = sub_admin['sender_whitelist']
+    max_retention_days = sub_admin.get('max_retention_days', 30)
+
+    # 检查IP白名单
+    if not inbox_handler.is_ip_whitelisted(client_ip):
+        return jsonify({"error": "Access denied - IP not whitelisted"}), 403
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    # Get parameters
+    email_input = data.get('email', '').strip()
+    retention_days = data.get('retention_days', config.MAILBOX_RETENTION_DAYS)
+
+    # Validate required fields
+    if not email_input:
+        return jsonify({"error": "Email address or prefix is required"}), 400
+
+    # Check if user provided full email or just prefix
+    if '@' in email_input:
+        # User provided full email address
+        email = email_input
+
+        # Validate email format
+        if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email):
+            return jsonify({"error": "Invalid email address format"}), 400
+
+        # 验证域名是否在允许的范围内
+        email_domain = email.split('@')[1]
+        if email_domain not in allowed_domains:
+            return jsonify({
+                "error": "Domain not allowed",
+                "message": f"只能使用以下域名: {', '.join(allowed_domains)}"
+            }), 403
+    else:
+        # User provided only prefix, add random domain from allowed domains
+        email_prefix = email_input
+
+        # Validate email prefix format
+        if not re.match(r'^[a-zA-Z0-9_]{3,20}$', email_prefix):
+            return jsonify({"error": "Email prefix must be 3-20 characters, letters, numbers, and underscores only"}), 400
+
+        # Generate full email address with random domain from allowed domains
+        random_domain = random.choice(allowed_domains)
+        email = f"{email_prefix}@{random_domain}"
+
+    # Validate retention days
+    if not isinstance(retention_days, int) or retention_days < 1 or retention_days > 365:
+        return jsonify({"error": "Retention days must be between 1 and 365"}), 400
+
+    # 检查是否超过子管理员的最长保留天数限制
+    if retention_days > max_retention_days:
+        return jsonify({
+            "error": "Retention days exceeds limit",
+            "message": f"保留天数不能超过 {max_retention_days} 天"
+        }), 400
+
+    try:
+        # 检查邮箱是否已存在
+        existing_mailbox = inbox_handler.get_mailbox_info(email)
+        if existing_mailbox and not existing_mailbox['is_expired']:
+            return jsonify({
+                "error": "Mailbox already exists",
+                "existing_mailbox": {
+                    "address": existing_mailbox['address'],
+                    "created_at": existing_mailbox['created_at'],
+                    "expires_at": existing_mailbox['expires_at']
+                }
+            }), 409
+
+        # 创建邮箱，并设置发件人白名单
+        mailbox = inbox_handler.create_or_get_mailbox(
+            address=email,
+            retention_days=retention_days,
+            sender_whitelist=sender_whitelist,
+            created_by_ip=client_ip,
+            created_source="sub_admin_token"
+        )
+
+        return jsonify({
+            "success": True,
+            "mailbox_created": True,
+            "mailbox_address": email,
+            "access_token": mailbox['access_token'],
+            "created_at": mailbox['created_at'],
+            "expires_at": mailbox['expires_at'],
+            "retention_days": retention_days,
+            "message": "Temporary mailbox created successfully"
+        }), 201
+    except Exception as e:
+        return jsonify({"error": f"Failed to create mailbox: {str(e)}"}), 500
+
+
 # 新增：用户注册接口
 @bp.route('/register', methods=['POST'])
 def register():
@@ -1438,8 +1583,10 @@ def send_test_email():
         msg['To'] = to_email
 
         # 发送邮件
+        print(f"[DEBUG] Sending email from {from_email} to {to_email}")
         smtp_server.send_message(msg)
         smtp_server.quit()
+        print(f"[DEBUG] Email sent successfully")
 
         return jsonify({"message": "Email sent successfully"}), 200
 

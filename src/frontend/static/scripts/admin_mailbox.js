@@ -248,6 +248,8 @@ class AdminMailboxManager {
             this.loadMailboxes();
         } else if (viewName === 'audit') {
             this.loadAuditLogs();
+        } else if (viewName === 'sub-admins') {
+            loadSubAdmins();
         } else if (viewName === 'register') {
             // 重置注册表单
             const form = document.getElementById('admin-register-form');
@@ -1443,4 +1445,270 @@ function formatSeconds(seconds) {
 function setRetentionDays(days) {
     document.getElementById('reg-retention-days').value = days;
 }
+
+// ==================== 子管理员管理 ====================
+
+// 加载子管理员列表
+async function loadSubAdmins() {
+    try {
+        const response = await adminManager.apiRequest('/api/admin/sub-admins');
+
+        if (response.success) {
+            displaySubAdmins(response.data);
+        } else {
+            adminManager.showToast('error', response.error || '加载子管理员列表失败');
+        }
+    } catch (error) {
+        console.error('加载子管理员列表失败:', error);
+        adminManager.showToast('error', '加载子管理员列表失败');
+    }
+}
+
+// 显示子管理员列表
+function displaySubAdmins(subAdmins) {
+    const tbody = document.getElementById('sub-admins-tbody');
+
+    if (!subAdmins || subAdmins.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="empty-cell">
+                    <i class="fas fa-inbox"></i>
+                    <p>暂无子管理员</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = subAdmins.map(admin => `
+        <tr>
+            <td><code>${admin.token}</code></td>
+            <td>
+                <div class="domains-tags">
+                    ${admin.domains.map(d => `<span class="domain-tag">${d}</span>`).join('')}
+                </div>
+            </td>
+            <td>
+                <div class="domains-tags">
+                    ${admin.sender_whitelist && admin.sender_whitelist.length > 0
+                        ? admin.sender_whitelist.map(d => `<span class="domain-tag">${d}</span>`).join('')
+                        : '<span class="text-muted">不限制</span>'}
+                </div>
+            </td>
+            <td>${admin.max_retention_days || 30} 天</td>
+            <td>
+                <span class="status-badge ${admin.is_active ? 'status-active' : 'status-inactive'}">
+                    ${admin.is_active ? '启用' : '禁用'}
+                </span>
+            </td>
+            <td>${adminManager.formatDate(admin.created_at)}</td>
+            <td>${admin.notes || '-'}</td>
+            <td>
+                <button class="btn btn-sm btn-primary" onclick="editSubAdmin('${admin.id}')">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="deleteSubAdmin('${admin.id}', '${admin.token}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// 显示创建子管理员模态框
+async function showCreateSubAdminModal() {
+    document.getElementById('sub-admin-modal-title').textContent = '添加子管理员';
+    document.getElementById('sub-admin-id').value = '';
+    document.getElementById('sub-admin-token').value = '';
+    document.getElementById('sub-admin-token').disabled = false;
+    document.getElementById('sub-admin-notes').value = '';
+    document.getElementById('sub-admin-sender-whitelist').value = '';
+    document.getElementById('sub-admin-max-retention-days').value = '30';
+    document.getElementById('sub-admin-active').checked = true;
+
+    // 加载可用域名
+    await loadDomainsForSubAdmin();
+
+    document.getElementById('sub-admin-modal').style.display = 'flex';
+}
+
+// 编辑子管理员
+async function editSubAdmin(subAdminId) {
+    try {
+        const response = await adminManager.apiRequest('/api/admin/sub-admins');
+
+        if (response.success) {
+            const admin = response.data.find(a => a.id === subAdminId);
+            if (!admin) {
+                adminManager.showToast('error', '未找到该子管理员');
+                return;
+            }
+
+            document.getElementById('sub-admin-modal-title').textContent = '编辑子管理员';
+            document.getElementById('sub-admin-id').value = admin.id;
+            document.getElementById('sub-admin-token').value = admin.token;
+            document.getElementById('sub-admin-token').disabled = true;
+            document.getElementById('sub-admin-notes').value = admin.notes || '';
+            document.getElementById('sub-admin-active').checked = admin.is_active;
+            document.getElementById('sub-admin-max-retention-days').value = admin.max_retention_days || 30;
+
+            // 设置发件人白名单（每行一个域名）
+            document.getElementById('sub-admin-sender-whitelist').value =
+                (admin.sender_whitelist && admin.sender_whitelist.length > 0)
+                    ? admin.sender_whitelist.join('\n')
+                    : '';
+
+            // 加载可用域名并选中已分配的域名
+            await loadDomainsForSubAdmin(admin.domains);
+
+            document.getElementById('sub-admin-modal').style.display = 'flex';
+        }
+    } catch (error) {
+        console.error('加载子管理员信息失败:', error);
+        adminManager.showToast('error', '加载子管理员信息失败');
+    }
+}
+
+// 加载域名复选框
+async function loadDomainsForSubAdmin(selectedDomains = []) {
+    try {
+        const response = await fetch('/api/get_random_address');
+        const result = await response.json();
+
+        const domainsContainer = document.getElementById('sub-admin-domains-container');
+
+        if (response.ok && result.available_domains) {
+            // 可创建的域名
+            domainsContainer.innerHTML = result.available_domains.map(domain => `
+                <label class="checkbox-label">
+                    <input type="checkbox" name="sub-admin-domain" value="${domain}"
+                        ${selectedDomains.includes(domain) ? 'checked' : ''}>
+                    ${domain}
+                </label>
+            `).join('');
+        } else {
+            domainsContainer.innerHTML = '<p class="text-muted">无可用域名</p>';
+        }
+    } catch (error) {
+        console.error('加载域名失败:', error);
+        document.getElementById('sub-admin-domains-container').innerHTML =
+            '<p class="text-danger">加载域名失败</p>';
+    }
+}
+
+// 关闭子管理员模态框
+function closeSubAdminModal() {
+    document.getElementById('sub-admin-modal').style.display = 'none';
+}
+
+// 保存子管理员
+async function saveSubAdmin(event) {
+    event.preventDefault();
+
+    const subAdminId = document.getElementById('sub-admin-id').value;
+    const token = document.getElementById('sub-admin-token').value.trim();
+    const notes = document.getElementById('sub-admin-notes').value.trim();
+    const isActive = document.getElementById('sub-admin-active').checked;
+    const maxRetentionDays = parseInt(document.getElementById('sub-admin-max-retention-days').value);
+
+    // 获取选中的域名
+    const domainCheckboxes = document.querySelectorAll('input[name="sub-admin-domain"]:checked');
+    const domains = Array.from(domainCheckboxes).map(cb => cb.value);
+
+    // 获取发件人白名单（从文本域，每行一个域名）
+    const senderWhitelistText = document.getElementById('sub-admin-sender-whitelist').value.trim();
+    const senderWhitelist = senderWhitelistText
+        ? senderWhitelistText.split('\n').map(line => line.trim()).filter(line => line.length > 0)
+        : [];
+
+    // 验证
+    if (!token) {
+        adminManager.showToast('error', 'Token不能为空');
+        return;
+    }
+
+    if (domains.length === 0) {
+        adminManager.showToast('error', '至少需要选择一个可创建的域名');
+        return;
+    }
+
+    if (isNaN(maxRetentionDays) || maxRetentionDays < 1 || maxRetentionDays > 365) {
+        adminManager.showToast('error', '最长保留天数必须在1-365之间');
+        return;
+    }
+
+    try {
+        let response;
+
+        if (subAdminId) {
+            // 更新
+            const updateData = {
+                domains: domains,
+                sender_whitelist: senderWhitelist,
+                max_retention_days: maxRetentionDays,
+                is_active: isActive ? 1 : 0,
+                notes: notes
+            };
+
+            response = await adminManager.apiRequest(`/api/admin/sub-admins/${subAdminId}`, {
+                method: 'PUT',
+                body: JSON.stringify(updateData)
+            });
+        } else {
+            // 创建
+            response = await adminManager.apiRequest('/api/admin/sub-admins', {
+                method: 'POST',
+                body: JSON.stringify({
+                    token: token,
+                    domains: domains,
+                    sender_whitelist: senderWhitelist,
+                    max_retention_days: maxRetentionDays,
+                    notes: notes
+                })
+            });
+        }
+
+        if (response.success) {
+            adminManager.showToast('success', response.message || '保存成功');
+            closeSubAdminModal();
+            loadSubAdmins();
+        } else {
+            adminManager.showToast('error', response.error || '保存失败');
+        }
+    } catch (error) {
+        console.error('保存子管理员失败:', error);
+        adminManager.showToast('error', '保存失败');
+    }
+}
+
+// 删除子管理员
+async function deleteSubAdmin(subAdminId, token) {
+    if (!confirm(`确定要删除子管理员 "${token}" 吗？`)) {
+        return;
+    }
+
+    try {
+        const response = await adminManager.apiRequest(`/api/admin/sub-admins/${subAdminId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.success) {
+            adminManager.showToast('success', '删除成功');
+            loadSubAdmins();
+        } else {
+            adminManager.showToast('error', response.error || '删除失败');
+        }
+    } catch (error) {
+        console.error('删除子管理员失败:', error);
+        adminManager.showToast('error', '删除失败');
+    }
+}
+
+// 绑定子管理员表单提交事件
+document.addEventListener('DOMContentLoaded', () => {
+    const subAdminForm = document.getElementById('sub-admin-form');
+    if (subAdminForm) {
+        subAdminForm.addEventListener('submit', saveSubAdmin);
+    }
+});
 

@@ -541,3 +541,138 @@ def update_security_config():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
+# ==================== 子管理员管理 API ====================
+
+@bp.route('/sub-admins', methods=['GET'])
+def get_sub_admins():
+    """获取所有子管理员列表"""
+    is_auth, error_msg = check_admin_auth()
+    if not is_auth:
+        return jsonify({'success': False, 'error': error_msg}), 401
+
+    try:
+        sub_admins = db_manager.get_all_sub_admins()
+
+        return jsonify({
+            'success': True,
+            'data': sub_admins
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/sub-admins', methods=['POST'])
+def create_sub_admin():
+    """创建子管理员"""
+    is_auth, error_msg = check_admin_auth()
+    if not is_auth:
+        return jsonify({'success': False, 'error': error_msg}), 401
+
+    try:
+        data = request.get_json()
+        token = data.get('token', '').strip()
+        domains = data.get('domains', [])
+        sender_whitelist = data.get('sender_whitelist', [])
+        max_retention_days = data.get('max_retention_days', 30)
+        notes = data.get('notes', '').strip()
+
+        # 验证必填字段
+        if not token:
+            return jsonify({'success': False, 'error': 'Token不能为空'}), 400
+
+        if not domains or len(domains) == 0:
+            return jsonify({'success': False, 'error': '至少需要分配一个域名'}), 400
+
+        # 验证 max_retention_days
+        try:
+            max_retention_days = int(max_retention_days)
+            if max_retention_days < 1 or max_retention_days > 365:
+                return jsonify({'success': False, 'error': '最长保留天数必须在1-365之间'}), 400
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'error': '最长保留天数必须是有效的数字'}), 400
+
+        # 检查token是否已存在
+        existing = db_manager.get_sub_admin_by_token(token)
+        if existing:
+            return jsonify({'success': False, 'error': 'Token已存在'}), 400
+
+        # 创建子管理员
+        sub_admin_id = db_manager.create_sub_admin(
+            token=token,
+            domains=domains,
+            sender_whitelist=sender_whitelist,
+            max_retention_days=max_retention_days,
+            created_by='admin',
+            notes=notes
+        )
+
+        return jsonify({
+            'success': True,
+            'message': '子管理员创建成功',
+            'data': {'id': sub_admin_id, 'token': token}
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/sub-admins/<sub_admin_id>', methods=['PUT'])
+def update_sub_admin(sub_admin_id):
+    """更新子管理员"""
+    is_auth, error_msg = check_admin_auth()
+    if not is_auth:
+        return jsonify({'success': False, 'error': error_msg}), 401
+
+    try:
+        data = request.get_json()
+        domains = data.get('domains')
+        sender_whitelist = data.get('sender_whitelist')
+        max_retention_days = data.get('max_retention_days')
+        is_active = data.get('is_active')
+        notes = data.get('notes')
+
+        # 验证 max_retention_days
+        if max_retention_days is not None:
+            try:
+                max_retention_days = int(max_retention_days)
+                if max_retention_days < 1 or max_retention_days > 365:
+                    return jsonify({'success': False, 'error': '最长保留天数必须在1-365之间'}), 400
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'error': '最长保留天数必须是有效的数字'}), 400
+
+        # 更新子管理员
+        db_manager.update_sub_admin(
+            sub_admin_id=sub_admin_id,
+            domains=domains,
+            sender_whitelist=sender_whitelist,
+            max_retention_days=max_retention_days,
+            is_active=is_active,
+            notes=notes
+        )
+
+        return jsonify({
+            'success': True,
+            'message': '子管理员更新成功'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/sub-admins/<sub_admin_id>', methods=['DELETE'])
+def delete_sub_admin(sub_admin_id):
+    """删除子管理员"""
+    is_auth, error_msg = check_admin_auth()
+    if not is_auth:
+        return jsonify({'success': False, 'error': error_msg}), 401
+
+    try:
+        # 删除子管理员
+        db_manager.delete_sub_admin(sub_admin_id)
+
+        return jsonify({
+            'success': True,
+            'message': '子管理员删除成功'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+

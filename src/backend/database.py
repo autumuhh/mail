@@ -193,6 +193,22 @@ class DatabaseManager:
                 )
             ''')
 
+            # 子管理员表
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS sub_admins (
+                    id TEXT PRIMARY KEY,
+                    token TEXT UNIQUE NOT NULL,
+                    domains TEXT NOT NULL,
+                    sender_whitelist TEXT,
+                    max_retention_days INTEGER DEFAULT 30,
+                    created_at INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL,
+                    is_active INTEGER DEFAULT 1,
+                    created_by TEXT,
+                    notes TEXT
+                )
+            ''')
+
             # 创建索引
             conn.execute('CREATE INDEX IF NOT EXISTS idx_mailboxes_address ON mailboxes (address)')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_mailboxes_expires ON mailboxes (expires_at)')
@@ -202,6 +218,66 @@ class DatabaseManager:
             conn.execute('CREATE INDEX IF NOT EXISTS idx_invite_codes_used ON invite_codes (is_used)')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_audit_logs_mailbox ON audit_logs (mailbox_id)')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs (timestamp)')
+
+            # 数据库迁移：重建 sub_admins 表（去掉 password_hash，添加 sender_whitelist）
+            try:
+                # 检查列是否存在
+                cursor = conn.execute("PRAGMA table_info(sub_admins)")
+                columns = [row[1] for row in cursor.fetchall()]
+
+                # 如果存在 password_hash 列，需要重建表
+                if 'password_hash' in columns:
+                    print("数据库迁移：开始重建 sub_admins 表...")
+
+                    # 1. 备份现有数据
+                    cursor = conn.execute('SELECT id, token, domains, created_at, updated_at, is_active, created_by, notes FROM sub_admins')
+                    old_data = cursor.fetchall()
+
+                    # 2. 删除旧表
+                    conn.execute('DROP TABLE sub_admins')
+
+                    # 3. 创建新表
+                    conn.execute('''
+                        CREATE TABLE sub_admins (
+                            id TEXT PRIMARY KEY,
+                            token TEXT UNIQUE NOT NULL,
+                            domains TEXT NOT NULL,
+                            sender_whitelist TEXT,
+                            max_retention_days INTEGER DEFAULT 30,
+                            created_at INTEGER NOT NULL,
+                            updated_at INTEGER NOT NULL,
+                            is_active INTEGER DEFAULT 1,
+                            created_by TEXT,
+                            notes TEXT
+                        )
+                    ''')
+
+                    # 4. 恢复数据（不包括 password_hash）
+                    for row in old_data:
+                        conn.execute('''
+                            INSERT INTO sub_admins (id, token, domains, sender_whitelist, max_retention_days, created_at, updated_at, is_active, created_by, notes)
+                            VALUES (?, ?, ?, NULL, 30, ?, ?, ?, ?, ?)
+                        ''', row)
+
+                    conn.commit()
+                    print(f"数据库迁移：成功重建 sub_admins 表，迁移了 {len(old_data)} 条记录")
+
+                else:
+                    # 添加缺少的列
+                    if 'sender_whitelist' not in columns:
+                        conn.execute('ALTER TABLE sub_admins ADD COLUMN sender_whitelist TEXT')
+                        print("数据库迁移：已添加 sender_whitelist 列到 sub_admins 表")
+
+                    if 'max_retention_days' not in columns:
+                        conn.execute('ALTER TABLE sub_admins ADD COLUMN max_retention_days INTEGER DEFAULT 30')
+                        print("数据库迁移：已添加 max_retention_days 列到 sub_admins 表")
+
+                    conn.commit()
+
+            except Exception as e:
+                print(f"数据库迁移失败: {e}")
+                import traceback
+                traceback.print_exc()
 
             conn.commit()
     
@@ -219,6 +295,9 @@ class DatabaseManager:
         if sender_whitelist is None:
             sender_whitelist = []
 
+        # 如果设置了白名单，自动启用白名单功能
+        whitelist_enabled = len(sender_whitelist) > 0
+
         with self.get_connection() as conn:
             conn.execute('''
                 INSERT INTO mailboxes
@@ -227,7 +306,7 @@ class DatabaseManager:
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 mailbox_id, address, current_time, expires_at, retention_days,
-                json.dumps(sender_whitelist), False, created_by_ip, access_token, mailbox_key, current_time, created_source
+                json.dumps(sender_whitelist), whitelist_enabled, created_by_ip, access_token, mailbox_key, current_time, created_source
             ))
             conn.commit()
 
@@ -238,7 +317,7 @@ class DatabaseManager:
             'expires_at': expires_at,
             'retention_days': retention_days,
             'sender_whitelist': sender_whitelist,
-            'whitelist_enabled': False,
+            'whitelist_enabled': whitelist_enabled,
             'access_token': access_token,
             'mailbox_key': mailbox_key,  # 返回邮箱密钥
             'is_active': True,
@@ -997,6 +1076,150 @@ class DatabaseManager:
                 })
 
             return codes
+
+    # ==================== 子管理员管理 ====================
+
+    def create_sub_admin(self, token, domains, sender_whitelist=None, max_retention_days=30, created_by=None, notes=None):
+        """创建子管理员"""
+        import uuid
+        import time
+
+        sub_admin_id = str(uuid.uuid4())
+        current_time = int(time.time())
+
+        # domains 是列表，转换为逗号分隔的字符串
+        domains_str = ','.join(domains) if isinstance(domains, list) else domains
+
+        # sender_whitelist 是列表，转换为逗号分隔的字符串
+        if sender_whitelist and isinstance(sender_whitelist, list) and len(sender_whitelist) > 0:
+            sender_whitelist_str = ','.join(sender_whitelist)
+        elif sender_whitelist and isinstance(sender_whitelist, str):
+            sender_whitelist_str = sender_whitelist
+        else:
+            sender_whitelist_str = None
+
+        with self.get_connection() as conn:
+            conn.execute('''
+                INSERT INTO sub_admins (id, token, domains, sender_whitelist, max_retention_days, created_at, updated_at, created_by, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (sub_admin_id, token, domains_str, sender_whitelist_str, max_retention_days, current_time, current_time, created_by, notes))
+
+        return sub_admin_id
+
+    def get_sub_admin_by_token(self, token):
+        """根据token获取子管理员信息"""
+        with self.get_connection() as conn:
+            cursor = conn.execute('''
+                SELECT id, token, domains, sender_whitelist, max_retention_days, created_at, updated_at, is_active, created_by, notes
+                FROM sub_admins WHERE token = ? AND is_active = 1
+            ''', (token,))
+
+            row = cursor.fetchone()
+            if row:
+                # 处理 sender_whitelist，可能为 None 或空字符串
+                sender_whitelist_value = row[3]  # sender_whitelist 是第4列（索引3）
+                if sender_whitelist_value:
+                    sender_whitelist = sender_whitelist_value.split(',')
+                else:
+                    sender_whitelist = []
+
+                return {
+                    'id': row[0],
+                    'token': row[1],
+                    'domains': row[2].split(',') if row[2] else [],
+                    'sender_whitelist': sender_whitelist,
+                    'max_retention_days': row[4],
+                    'created_at': row[5],
+                    'updated_at': row[6],
+                    'is_active': row[7],
+                    'created_by': row[8],
+                    'notes': row[9]
+                }
+            return None
+
+    def get_all_sub_admins(self):
+        """获取所有子管理员"""
+        with self.get_connection() as conn:
+            cursor = conn.execute('''
+                SELECT id, token, domains, sender_whitelist, max_retention_days, created_at, updated_at, is_active, created_by, notes
+                FROM sub_admins ORDER BY created_at DESC
+            ''')
+
+            rows = cursor.fetchall()
+            sub_admins = []
+
+            for row in rows:
+                # 处理 sender_whitelist，可能为 None 或空字符串
+                sender_whitelist_value = row[3]  # sender_whitelist 是第4列（索引3）
+                if sender_whitelist_value:
+                    sender_whitelist = sender_whitelist_value.split(',')
+                else:
+                    sender_whitelist = []
+
+                sub_admins.append({
+                    'id': row[0],
+                    'token': row[1],
+                    'domains': row[2].split(',') if row[2] else [],
+                    'sender_whitelist': sender_whitelist,
+                    'max_retention_days': row[4],
+                    'created_at': row[5],
+                    'updated_at': row[6],
+                    'is_active': row[7],
+                    'created_by': row[8],
+                    'notes': row[9]
+                })
+
+            return sub_admins
+
+    def update_sub_admin(self, sub_admin_id, domains=None, sender_whitelist=None, max_retention_days=None, is_active=None, notes=None):
+        """更新子管理员信息"""
+        import time
+
+        current_time = int(time.time())
+        updates = []
+        params = []
+
+        if domains is not None:
+            domains_str = ','.join(domains) if isinstance(domains, list) else domains
+            updates.append('domains = ?')
+            params.append(domains_str)
+
+        if sender_whitelist is not None:
+            if isinstance(sender_whitelist, list) and len(sender_whitelist) > 0:
+                sender_whitelist_str = ','.join(sender_whitelist)
+            elif isinstance(sender_whitelist, str):
+                sender_whitelist_str = sender_whitelist
+            else:
+                sender_whitelist_str = None
+            updates.append('sender_whitelist = ?')
+            params.append(sender_whitelist_str)
+
+        if max_retention_days is not None:
+            updates.append('max_retention_days = ?')
+            params.append(max_retention_days)
+
+        if is_active is not None:
+            updates.append('is_active = ?')
+            params.append(is_active)
+
+        if notes is not None:
+            updates.append('notes = ?')
+            params.append(notes)
+
+        updates.append('updated_at = ?')
+        params.append(current_time)
+
+        params.append(sub_admin_id)
+
+        with self.get_connection() as conn:
+            conn.execute(f'''
+                UPDATE sub_admins SET {', '.join(updates)} WHERE id = ?
+            ''', params)
+
+    def delete_sub_admin(self, sub_admin_id):
+        """删除子管理员"""
+        with self.get_connection() as conn:
+            conn.execute('DELETE FROM sub_admins WHERE id = ?', (sub_admin_id,))
 
 # 全局数据库实例
 db_manager = DatabaseManager()

@@ -41,6 +41,10 @@
                         <i class="fas fa-user-plus"></i>
                         <span>用户注册</span>
                     </li>
+                    <li class="nav-item" data-view="sub-admins">
+                        <i class="fas fa-users-cog"></i>
+                        <span>子管理员</span>
+                    </li>
                     <li class="nav-item" data-view="settings">
                         <i class="fas fa-cog"></i>
                         <span>系统设置</span>
@@ -565,6 +569,43 @@
                 </div>
             </div>
 
+            <!-- 子管理员管理视图 -->
+            <div class="view sub-admins-view" id="sub-admins-view" style="display: none;">
+                <div class="view-header">
+                    <h2><i class="fas fa-users-cog"></i> 子管理员管理</h2>
+                    <button class="btn btn-primary" onclick="showCreateSubAdminModal()">
+                        <i class="fas fa-plus"></i>
+                        添加子管理员
+                    </button>
+                </div>
+
+                <div class="sub-admins-content">
+                    <div class="table-container">
+                        <table class="data-table" id="sub-admins-table">
+                            <thead>
+                                <tr>
+                                    <th>Token</th>
+                                    <th>可创建域名</th>
+                                    <th>发件人白名单</th>
+                                    <th>最长保留天数</th>
+                                    <th>状态</th>
+                                    <th>创建时间</th>
+                                    <th>备注</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sub-admins-tbody">
+                                <tr>
+                                    <td colspan="8" class="loading-cell">
+                                        <i class="fas fa-spinner fa-spin"></i> 加载中...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <!-- 系统设置视图 -->
             <div class="view settings-view" id="settings-view" style="display: none;">
                 <div class="view-header">
@@ -592,6 +633,65 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- 创建/编辑子管理员模态框 -->
+    <div class="modal" id="sub-admin-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="sub-admin-modal-title">添加子管理员</h3>
+                <button class="modal-close" onclick="closeSubAdminModal()">&times;</button>
+            </div>
+            <form id="sub-admin-form">
+                <input type="hidden" id="sub-admin-id">
+
+                <div class="form-group">
+                    <label for="sub-admin-token">Token <span class="required">*</span></label>
+                    <input type="text" id="sub-admin-token" required placeholder="子管理员唯一标识">
+                    <small>用于API调用时的身份验证</small>
+                </div>
+
+                <div class="form-group">
+                    <label>可创建的域名 <span class="required">*</span></label>
+                    <div id="sub-admin-domains-container" class="domains-checkbox-container">
+                        <!-- 动态加载域名复选框 -->
+                    </div>
+                    <small>子管理员只能创建这些域名的邮箱</small>
+                </div>
+
+                <div class="form-group">
+                    <label>发件人白名单</label>
+                    <textarea id="sub-admin-sender-whitelist" rows="3" placeholder="每行一个域名，例如：&#10;example.com&#10;test.org&#10;留空表示不限制"></textarea>
+                    <small>创建的邮箱只能接收这些域名的邮件，每行一个域名，留空表示不限制</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="sub-admin-max-retention-days">最长保留天数 <span class="required">*</span></label>
+                    <input type="number" id="sub-admin-max-retention-days" min="1" max="365" value="30" required>
+                    <small>子管理员创建的邮箱最长保留天数（1-365天）</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="sub-admin-notes">备注</label>
+                    <textarea id="sub-admin-notes" rows="3" placeholder="可选的备注信息"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="sub-admin-active" checked>
+                        启用
+                    </label>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeSubAdminModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        保存
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- Toast 通知 -->
