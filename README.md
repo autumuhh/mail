@@ -3,9 +3,16 @@
     TempMail
 </h1>
 
-TempMail is a self hostable and easy to use disposable email service that allows you to receive emails on a random email address on your domain.
+TempMail is a powerful, self-hostable, and easy-to-use disposable email service. It allows you to receive emails on a random email address on your domain.
+
+**Now with V2 Features:**
+*   **Database Storage:** Robust SQLite support for better performance and data integrity.
+*   **Dual Authentication:** Secure access via Token (for users) and Admin Password (for API).
+*   **Enhanced API:** Comprehensive RESTful API V2 for integration and management.
 
 ![App Screenshot](pictures/app.png)
+
+*Note: The screenshot above shows the main landing page of the application.*
 
 ## App Features
 
@@ -13,20 +20,25 @@ TempMail is a self hostable and easy to use disposable email service that allows
 
 - Signing up to services without using your real email address
 - Easily creating multiple accounts on services
+- System integration via REST API
+- Automated email testing
 
 ### Features
 
-- [x] Random email generation
-- [x] Use custom emails
-- [x] Support for password protected inboxes
-- [x] Clean UI
-- [x] Easy setup
+- [x] **Random email generation**
+- [x] **Use custom emails**
+- [x] **Password protected inboxes (Dual Auth)**
+- [x] **SQLite Database Support** (New in V2)
+- [x] **Multi-domain support**
+- [x] **Clean UI**
+- [x] **Easy setup**
+- [x] **RESTful API V2**
 
 ### Planned Features
 
 - [x] Better mobile UI
 - [ ] Settings web page
-- [ ] Multi domain support
+- [x] Multi domain support
 
 ## Running the application
 
@@ -97,5 +109,13 @@ services:
       - "25:25"
     environment:
       - DOMAIN=yourdomain.com
+      - USE_DATABASE=true
 ```
 and then start it: `sudo docker compose up -d`
+
+## Documentation
+
+*   [API Documentation (V2)](API_DOCUMENTATION.md)
+*   [Database Features Guide](DATABASE_FEATURES.md)
+*   [Dual Authentication Guide](DUAL_AUTH_API_GUIDE.md)
+*   [Admin Auth API Guide](ADMIN_AUTH_API_GUIDE.md)
