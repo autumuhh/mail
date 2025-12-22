@@ -11,7 +11,7 @@ Maildrop is a self hostable and easy to use disposable email service that allows
 *   **Enhanced API:** Comprehensive RESTful API V2 for integration and management.
 *   **Flexible Retention:** Support for custom email retention periods (up to permanent storage).
 
-![App Screenshot](pictures/app.png)
+![App Screenshot](pictures/index.png)
 
 ## App Features
 
