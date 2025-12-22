@@ -530,11 +530,12 @@
                                         <button type="button" class="btn-preset" onclick="setRetentionDays(7)">7天</button>
                                         <button type="button" class="btn-preset" onclick="setRetentionDays(14)">14天</button>
                                         <button type="button" class="btn-preset" onclick="setRetentionDays(30)">30天</button>
-                                        <button type="button" class="btn-preset" onclick="setRetentionDays(60)">60天</button>
                                         <button type="button" class="btn-preset" onclick="setRetentionDays(90)">90天</button>
+                                        <button type="button" class="btn-preset" onclick="setRetentionDays(365)">365天</button>
+                                        <button type="button" class="btn-preset" onclick="setRetentionDays(36500)">永久</button>
                                     </div>
                                 </div>
-                                <small>邮箱将在指定天数后自动过期（1-365天）</small>
+                                <small>邮箱将在指定天数后自动过期（1-36500天）</small>
                             </div>
 
                             <div class="form-group">
@@ -667,8 +668,8 @@
 
                 <div class="form-group">
                     <label for="sub-admin-max-retention-days">最长保留天数 <span class="required">*</span></label>
-                    <input type="number" id="sub-admin-max-retention-days" min="1" max="365" value="30" required>
-                    <small>子管理员创建的邮箱最长保留天数（1-365天）</small>
+                    <input type="number" id="sub-admin-max-retention-days" min="1" max="36500" value="30" required>
+                    <small>子管理员创建的邮箱最长保留天数（1-36500天）</small>
                 </div>
 
                 <div class="form-group">

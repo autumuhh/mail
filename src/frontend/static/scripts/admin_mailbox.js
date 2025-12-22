@@ -854,7 +854,7 @@ AdminMailboxManager.prototype.editMailbox = async function(mailboxId) {
                         </div>
                         <div class="form-group">
                             <label for="edit-retention-days">保留天数</label>
-                            <input type="number" id="edit-retention-days" value="${mailbox.retention_days}" min="1" max="90">
+                            <input type="number" id="edit-retention-days" value="${mailbox.retention_days}" min="1" max="36500">
                         </div>
                         <div class="form-group">
                             <label for="edit-sender-whitelist">发件人白名单</label>
@@ -1632,8 +1632,8 @@ async function saveSubAdmin(event) {
         return;
     }
 
-    if (isNaN(maxRetentionDays) || maxRetentionDays < 1 || maxRetentionDays > 365) {
-        adminManager.showToast('error', '最长保留天数必须在1-365之间');
+    if (isNaN(maxRetentionDays) || maxRetentionDays < 1 || maxRetentionDays > 36500) {
+        adminManager.showToast('error', '最长保留天数必须在1-36500之间');
         return;
     }
 

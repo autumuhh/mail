@@ -587,8 +587,8 @@ def create_sub_admin():
         # 验证 max_retention_days
         try:
             max_retention_days = int(max_retention_days)
-            if max_retention_days < 1 or max_retention_days > 365:
-                return jsonify({'success': False, 'error': '最长保留天数必须在1-365之间'}), 400
+            if max_retention_days < 1 or max_retention_days > 36500:
+                return jsonify({'success': False, 'error': '最长保留天数必须在1-36500之间'}), 400
         except (ValueError, TypeError):
             return jsonify({'success': False, 'error': '最长保留天数必须是有效的数字'}), 400
 
@@ -635,8 +635,8 @@ def update_sub_admin(sub_admin_id):
         if max_retention_days is not None:
             try:
                 max_retention_days = int(max_retention_days)
-                if max_retention_days < 1 or max_retention_days > 365:
-                    return jsonify({'success': False, 'error': '最长保留天数必须在1-365之间'}), 400
+                if max_retention_days < 1 or max_retention_days > 36500:
+                    return jsonify({'success': False, 'error': '最长保留天数必须在1-36500之间'}), 400
             except (ValueError, TypeError):
                 return jsonify({'success': False, 'error': '最长保留天数必须是有效的数字'}), 400
 

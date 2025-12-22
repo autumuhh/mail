@@ -44,6 +44,7 @@ IP_WHITELIST = os.getenv("IP_WHITELIST", "127.0.0.1,::1,192.168.0.0/16,10.0.0.0/
 
 # Mailbox lifecycle settings
 MAILBOX_RETENTION_DAYS = int(os.getenv("MAILBOX_RETENTION_DAYS", 30))  # 邮箱保留天数
+MAX_RETENTION_DAYS = int(os.getenv("MAX_RETENTION_DAYS", 36500))  # 最大保留天数（约100年，视为永久）
 ENABLE_SENDER_WHITELIST = os.getenv("ENABLE_SENDER_WHITELIST", "false").lower() == "true"
 
 # Mailbox storage limits

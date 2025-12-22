@@ -10,7 +10,7 @@ TempMail is a powerful, self-hostable, and easy-to-use disposable email service.
 *   **Dual Authentication:** Secure access via Token (for users) and Admin Password (for API).
 *   **Enhanced API:** Comprehensive RESTful API V2 for integration and management.
 
-![App Screenshot](pictures/app.png)
+![App Screenshot](pictures/index.png)
 
 *Note: The screenshot above shows the main landing page of the application.*
 

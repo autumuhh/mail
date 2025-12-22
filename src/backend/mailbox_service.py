@@ -14,7 +14,7 @@ import config
 class MailboxService:
     def __init__(self, db_manager: DatabaseManager):
         self.db = db_manager
-        self.max_retention_days = getattr(config, 'MAX_RETENTION_DAYS', 90)
+        self.max_retention_days = getattr(config, 'MAX_RETENTION_DAYS', 365)
         self.default_retention_days = getattr(config, 'MAILBOX_RETENTION_DAYS', 30)
         
     def _validate_email_address(self, address: str) -> Tuple[bool, str]:
