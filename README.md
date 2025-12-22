@@ -1,18 +1,17 @@
 <h1>
     <img src="pictures/icon.svg" height="32" width="auto" alt="logo" style="vertical-align: middle; margin-right: 15px;">
-    TempMail
+    Maildrop
 </h1>
 
-TempMail is a powerful, self-hostable, and easy-to-use disposable email service. It allows you to receive emails on a random email address on your domain.
+Maildrop is a self hostable and easy to use disposable email service that allows you to receive emails on a random email address on your domain.  
 
 **Now with V2 Features:**
 *   **Database Storage:** Robust SQLite support for better performance and data integrity.
 *   **Dual Authentication:** Secure access via Token (for users) and Admin Password (for API).
 *   **Enhanced API:** Comprehensive RESTful API V2 for integration and management.
+*   **Flexible Retention:** Support for custom email retention periods (up to permanent storage).
 
-![App Screenshot](pictures/index.png)
-
-*Note: The screenshot above shows the main landing page of the application.*
+![App Screenshot](pictures/app.png)
 
 ## App Features
 
@@ -33,11 +32,13 @@ TempMail is a powerful, self-hostable, and easy-to-use disposable email service.
 - [x] **Clean UI**
 - [x] **Easy setup**
 - [x] **RESTful API V2**
+- [x] **Admin Panel** for managing mailboxes and system settings
+- [x] **Configurable Retention** (from minutes to permanent)
 
 ### Planned Features
 
 - [x] Better mobile UI
-- [ ] Settings web page
+- [x] Settings web page (Admin Panel)
 - [x] Multi domain support
 
 ## Running the application
@@ -79,30 +80,30 @@ TempMail is a powerful, self-hostable, and easy-to-use disposable email service.
 
 ### Connecting to your domain  
 
-1. Ensure port 25 is open as this is the port the email server uses. Some ISPs block this so you may need to use a tunnel or host TempMail in the cloud.
+1. Ensure port 25 is open as this is the port the email server uses. Some ISPs block this so you may need to use a tunnel or host maildrop in the cloud.
 2. Edit your domains dns settings and create an `A` record pointing to your public IP.
 3. Edit your domains dns settings and create an `MX` record pointing to the domain you made your `A` record on.
 4. Edit `.env` and change the domain to your domain.
 
 ### Running with docker
 
-Use this command to run TempMail in a docker container:
+Use this command to run maildrop in a docker container:
 ```
 sudo docker run \
   -d \
   --restart unless-stopped \
-  --name tempmail \
+  --name maildrop \
   -p 5000:5000 \
   -p 25:25 \
   -e DOMAIN="yourdomain.com" \
-  autumuhh/mail:latest
+  autumuhh/mail:latest  
 ```
 Or if you prefer docker compose, Add this to your compose.yml file:
 ```
 services:
-  tempmail:
+  maildrop:
     image: autumuhh/mail:latest
-    container_name: tempmail
+    container_name: maildrop
     restart: unless-stopped
     ports:
       - "5000:5000"
