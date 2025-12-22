@@ -52,8 +52,8 @@ TempMail is a powerful, self-hostable, and easy-to-use disposable email service.
 1.  **Clone the repository**
 
     ```bash
-    git clone https://github.com/haileyydev/tempmail.git
-    cd tempmail
+    git clone https://github.com/autumuhh/mail.git
+    cd mail
     ```
 
 2.  **Create a venv and activate it**
@@ -95,13 +95,13 @@ sudo docker run \
   -p 5000:5000 \
   -p 25:25 \
   -e DOMAIN="yourdomain.com" \
-  haileyydev/tempmail:latest
+  autumuhh/mail:latest
 ```
 Or if you prefer docker compose, Add this to your compose.yml file:
 ```
 services:
   tempmail:
-    image: haileyydev/tempmail:latest
+    image: autumuhh/mail:latest
     container_name: tempmail
     restart: unless-stopped
     ports:
@@ -116,6 +116,3 @@ and then start it: `sudo docker compose up -d`
 ## Documentation
 
 *   [API Documentation (V2)](API_DOCUMENTATION.md)
-*   [Database Features Guide](DATABASE_FEATURES.md)
-*   [Dual Authentication Guide](DUAL_AUTH_API_GUIDE.md)
-*   [Admin Auth API Guide](ADMIN_AUTH_API_GUIDE.md)
