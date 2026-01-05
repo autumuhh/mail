@@ -116,4 +116,5 @@ and then start it: `sudo docker compose up -d`
 
 ## Documentation
 
+*   [Deployment and Usage Guide](DEPLOYMENT_GUIDE.md) - **Recommended for beginners**
 *   [API Documentation (V2)](API_DOCUMENTATION.md)
