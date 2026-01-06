@@ -6,6 +6,7 @@ WORKDIR /app
 # 安装系统依赖
 RUN apt-get update && apt-get install -y \
     gcc \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # 复制依赖文件
@@ -32,11 +33,6 @@ EXPOSE 25 5000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:5000/ || exit 1
 
-# 创建非root用户
-RUN useradd -m -u 1000 tempmail && \
-    chown -R tempmail:tempmail /app
-
-USER tempmail
-
 # 启动应用
+# 注意：由于需要监听 25 端口，容器内应用需要 root 权限
 CMD ["python", "app.py"]
