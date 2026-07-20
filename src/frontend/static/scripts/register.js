@@ -1,8 +1,8 @@
-// 用户注册页面JavaScript功能
+'use strict';
 
+// 注册页只保存当前标签页中的管理员密码；任何凭据都不会进入 URL 或 Web Storage。
 class RegisterManager {
     constructor() {
-        // 管理员登录相关元素
         this.adminLoginSection = document.getElementById('admin-login-section');
         this.registerCard = document.getElementById('register-card');
         this.adminPassword = document.getElementById('admin-password');
@@ -10,525 +10,364 @@ class RegisterManager {
         this.adminLogoutBtn = document.getElementById('admin-logout-btn');
         this.adminLoginError = document.getElementById('admin-login-error');
 
-        // 注册相关元素
         this.form = document.getElementById('register-form');
         this.progressContainer = document.getElementById('register-progress');
         this.progressFill = document.getElementById('progress-fill');
         this.progressText = document.getElementById('progress-text');
+        this.progressValue = document.getElementById('progress-value');
         this.toastContainer = document.getElementById('toast-container');
-        this.batchResult = document.getElementById('batch-result');
-        this.batchResultSummary = document.getElementById('batch-result-summary');
-        this.batchResultList = document.getElementById('batch-result-list');
+
+        this.successDialog = document.getElementById('success-dialog');
+        this.policyDialog = document.getElementById('policy-dialog');
+        this.createdAddress = document.getElementById('created-address');
+        this.createdKey = document.getElementById('created-key');
+        this.createdRetention = document.getElementById('created-retention');
+        this.createdLink = document.getElementById('created-link');
+        this.copyCreatedLink = document.getElementById('copy-created-link');
+        this.openCreatedMailbox = document.getElementById('open-created-mailbox');
 
         this.isAdminAuthenticated = false;
         this.adminPasswordValue = '';
+        this.currentAccessUrl = '';
 
-        // 注释掉URL自动验证逻辑，现在只在前端显示验证界面
-        // 检查URL中是否包含管理员密码（从admin页面跳转过来）
-        // const urlParams = new URLSearchParams(window.location.search);
-        // const adminPasswordFromUrl = urlParams.get('admin_password');
-
-        // if (adminPasswordFromUrl) {
-        //     // 如果URL中包含管理员密码，自动进行验证
-        //     this.autoVerifyAdmin(adminPasswordFromUrl);
-        // }
-
-        this.init();
-    }
-
-    init() {
         this.setupEventListeners();
-        this.showProgress = this.showProgress.bind(this);
-        this.hideProgress = this.hideProgress.bind(this);
+        this.loadAvailableDomains();
     }
 
     setupEventListeners() {
-        // 管理员登录相关
         this.adminLoginBtn.addEventListener('click', () => this.handleAdminLogin());
         this.adminLogoutBtn.addEventListener('click', () => this.handleAdminLogout());
-        this.adminPassword.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.handleAdminLogin();
+        this.adminPassword.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                this.handleAdminLogin();
+            }
         });
 
-        // 表单提交
-        this.form.addEventListener('submit', (e) => {
-            e.preventDefault();
+        this.form.addEventListener('submit', (event) => {
+            event.preventDefault();
             this.handleRegister();
         });
 
-        // 实时验证
-         const emailInput = document.getElementById('email-input');
-         const batchCountInput = document.getElementById('batch-count');
+        const emailInput = document.getElementById('email-input');
+        emailInput.addEventListener('input', () => {
+            emailInput.removeAttribute('aria-invalid');
+            emailInput.setCustomValidity('');
+        });
 
-          if (emailInput) {
-              emailInput.addEventListener('input', () => this.validateRegisterInput(true));
-          }
+        document.querySelectorAll('[data-dialog-open]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const dialog = document.getElementById(button.dataset.dialogOpen);
+                window.MaildropUI.openDialog(dialog, button);
+            });
+        });
 
-          if (batchCountInput) {
-              batchCountInput.addEventListener('input', () => this.validateRegisterInput(true));
-          }
+        this.copyCreatedLink.addEventListener('click', () => this.copyAccessLink());
+        this.openCreatedMailbox.addEventListener('click', () => this.openAccessLink());
 
-         // 加载可用域名
-         this.loadAvailableDomains();
+        [this.successDialog, this.policyDialog].forEach((dialog) => {
+            dialog.addEventListener('click', (event) => {
+                if (event.target === dialog) {
+                    window.MaildropUI.closeDialog(dialog);
+                }
+            });
+        });
     }
 
-    // 显示进度条
     showProgress(message, percentage = 0) {
-        this.progressContainer.style.display = 'block';
-        this.progressFill.style.width = `${percentage}%`;
+        const safePercentage = Math.max(0, Math.min(100, Number(percentage) || 0));
+        this.progressContainer.hidden = false;
+        this.progressFill.style.width = `${safePercentage}%`;
         this.progressText.textContent = message;
+        this.progressValue.textContent = `${safePercentage}%`;
     }
 
-    // 隐藏进度条
     hideProgress() {
-        this.progressContainer.style.display = 'none';
+        this.progressContainer.hidden = true;
         this.progressFill.style.width = '0%';
+        this.progressValue.textContent = '0%';
     }
 
-    // 显示Toast通知
     showToast(message, type = 'info', duration = 5000) {
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        toast.innerHTML = `
-            <div class="toast-icon">
-                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
-            </div>
-            <div class="toast-content">
-                <div class="toast-message">${message}</div>
-            </div>
-            <button class="toast-close" onclick="this.parentElement.remove()">
-                <i class="fas fa-times"></i>
-            </button>
-        `;
-
-        this.toastContainer.appendChild(toast);
-
-        // 触发动画
-        setTimeout(() => toast.classList.add('show'), 100);
-
-        // 自动移除
-        if (duration > 0) {
-            setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 300);
-            }, duration);
-        }
-
-        return toast;
+        return window.MaildropUI.toast(String(message), type, { duration });
     }
 
+    validateEmail(showFeedback = true) {
+        const input = document.getElementById('email-input');
+        const value = input.value.trim();
+        let message = '';
 
-    // 验证用户名规则（仅英文+数字，3-20位）
-    isValidUsername(username) {
-        return /^[a-zA-Z0-9]{3,20}$/.test(username);
+        if (!value) {
+            message = '请输入邮箱地址或前缀';
+        } else if (value.includes('@')) {
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                message = '请输入有效的邮箱地址格式';
+            }
+        } else if (!/^[a-zA-Z0-9_]{3,20}$/.test(value)) {
+            message = '邮箱前缀必须为 3–20 位字母、数字或下划线';
+        }
+
+        input.setCustomValidity(message);
+        input.toggleAttribute('aria-invalid', Boolean(message));
+        if (message && showFeedback) {
+            this.showToast(message, 'warning', 3200);
+            input.focus();
+        }
+        return !message;
     }
 
-    // 验证注册输入（支持单个/批量）
-    validateRegisterInput(silent = false) {
-        const emailInputEl = document.getElementById('email-input');
-        const batchCountEl = document.getElementById('batch-count');
-        const emailInput = emailInputEl ? emailInputEl.value.trim() : '';
-        const count = batchCountEl ? parseInt(batchCountEl.value, 10) || 1 : 1;
+    async loadAvailableDomains() {
+        const container = document.getElementById('domains-display');
+        container.setAttribute('aria-busy', 'true');
 
-        const showWarning = (message) => {
-            if (!silent) {
-                this.showToast(message, 'warning', 3000);
-            }
-        };
-
-        if (!emailInput) {
-            showWarning('请输入邮箱地址或前缀');
-            return false;
+        try {
+            const response = await fetch('/api/get_random_address');
+            const result = await this.parseResponse(response);
+            const domains = response.ok && Array.isArray(result?.available_domains)
+                ? result.available_domains
+                : ['localhost', 'test.local'];
+            this.displayDomains(domains);
+        } catch (error) {
+            console.error('加载域名失败：', error);
+            this.displayDomains(['localhost', 'test.local']);
+            this.showToast('未能读取服务端域名，已显示本地备用项。', 'warning');
+        } finally {
+            container.setAttribute('aria-busy', 'false');
         }
-
-        if (count < 1 || count > 100) {
-            showWarning('创建数量必须在1-100之间');
-            return false;
-        }
-
-        // 批量创建只允许前缀
-        if (count > 1) {
-            if (emailInput.includes('@')) {
-                showWarning('批量创建时请输入用户名英文数字前缀，不要输入完整邮箱');
-                return false;
-            }
-
-            if (!/^[a-zA-Z0-9]+$/.test(emailInput)) {
-                showWarning('批量前缀仅支持英文和数字');
-                return false;
-            }
-
-            const suffixLen = Math.max(2, String(count).length);
-            const maxPrefixLen = 20 - suffixLen;
-            if (emailInput.length < 1 || emailInput.length > maxPrefixLen) {
-                showWarning(`当前数量下，前缀长度需为1-${maxPrefixLen}`);
-                return false;
-            }
-
-            return true;
-        }
-
-        // 单个创建：支持完整邮箱或前缀
-        if (emailInput.includes('@')) {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(emailInput)) {
-                showWarning('请输入有效的邮箱地址格式');
-                return false;
-            }
-
-            const username = emailInput.split('@')[0];
-            if (!this.isValidUsername(username)) {
-                showWarning('用户名必须为3-20位英文或数字');
-                return false;
-            }
-
-            return true;
-        }
-
-        if (!this.isValidUsername(emailInput)) {
-            showWarning('邮箱前缀必须为3-20位英文或数字');
-            return false;
-        }
-
-        return true;
     }
 
-     // 加载可用域名
-     async loadAvailableDomains() {
-         try {
-             const response = await fetch('/api/get_random_address');
-             const result = await response.json();
+    displayDomains(domains) {
+        const container = document.getElementById('domains-display');
+        const list = document.createElement('div');
+        list.className = 'domains-list';
 
-             if (response.ok && result.available_domains) {
-                 this.displayDomains(result.available_domains);
-             } else {
-                 this.displayDomains(['localhost', 'test.local']);
-             }
-         } catch (error) {
-             console.error('加载域名失败:', error);
-             this.displayDomains(['localhost', 'test.local']);
-         }
-     }
+        domains
+            .map((domain) => String(domain || '').trim())
+            .filter(Boolean)
+            .forEach((domain) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'domain-tag';
+                button.dataset.domain = domain;
+                button.textContent = domain;
+                button.addEventListener('click', () => selectDomain(domain));
+                list.appendChild(button);
+            });
 
-     // 显示可用域名
-     displayDomains(domains) {
-         const container = document.getElementById('domains-display');
-         if (!container) return;
+        container.replaceChildren(list);
+    }
 
-         const domainsHtml = domains.map(domain =>
-             `<span class="domain-tag" data-domain="${domain}" onclick="selectDomain('${domain}')">${domain}</span>`
-         ).join('');
-
-         container.innerHTML = `
-             <div class="domains-list">
-                 ${domainsHtml}
-             </div>
-         `;
-     }
-
-
-
-    // 处理管理员登录
     async handleAdminLogin() {
         const password = this.adminPassword.value.trim();
-
         if (!password) {
             this.showAdminError('请输入管理员密码');
+            this.adminPassword.focus();
             return;
         }
 
-        // 禁用登录按钮
-        this.adminLoginBtn.disabled = true;
-        this.adminLoginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 验证中...';
         this.hideAdminError();
+        window.MaildropUI.setBusy(this.adminLoginBtn, true, '验证中…');
 
         try {
             const response = await fetch('/api/admin_login', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ password })
             });
+            const result = await this.parseResponse(response);
 
-            const result = await response.json();
-
-            if (response.ok && result.success) {
-                this.isAdminAuthenticated = true;
-                this.adminPasswordValue = password;
-
-                // 隐藏管理员登录，显示注册表单
-                this.adminLoginSection.style.display = 'none';
-                this.registerCard.style.display = 'block';
-
-                this.showToast('管理员验证成功！', 'success');
-            } else {
-                throw new Error(result.message || '管理员密码错误');
+            if (!response.ok || !result?.success) {
+                throw new Error(result?.message || '管理员密码错误');
             }
+
+            this.isAdminAuthenticated = true;
+            this.adminPasswordValue = password;
+            this.adminPassword.value = '';
+            this.adminLoginSection.hidden = true;
+            this.registerCard.hidden = false;
+            document.getElementById('email-input').focus();
+            this.showToast('管理员验证成功。', 'success');
         } catch (error) {
-            console.error('管理员登录错误:', error);
+            console.error('管理员登录失败：', error);
             this.showAdminError(error.message || '管理员登录失败，请稍后重试');
         } finally {
-            // 恢复按钮状态
-            this.adminLoginBtn.disabled = false;
-            this.adminLoginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> 验证管理员身份';
+            window.MaildropUI.setBusy(this.adminLoginBtn, false);
         }
     }
 
-    // 处理管理员退出
     handleAdminLogout() {
         this.isAdminAuthenticated = false;
         this.adminPasswordValue = '';
-        this.adminPassword.value = '';
-
-        // 显示管理员登录，隐藏注册表单
-        this.adminLoginSection.style.display = 'block';
-        this.registerCard.style.display = 'none';
-
-        this.showToast('已退出管理员验证', 'info');
+        this.currentAccessUrl = '';
+        this.form.reset();
+        this.hideProgress();
+        this.registerCard.hidden = true;
+        this.adminLoginSection.hidden = false;
+        this.adminPassword.focus();
+        this.showToast('已退出管理员验证。', 'info');
     }
 
-    // 显示管理员错误信息
     showAdminError(message) {
-        if (this.adminLoginError) {
-            this.adminLoginError.textContent = message;
-            this.adminLoginError.style.display = 'block';
-        }
+        this.adminLoginError.textContent = message;
+        this.adminLoginError.hidden = false;
     }
 
-    // 隐藏管理员错误信息
     hideAdminError() {
-        if (this.adminLoginError) {
-            this.adminLoginError.style.display = 'none';
-        }
+        this.adminLoginError.textContent = '';
+        this.adminLoginError.hidden = true;
     }
 
-    // 渲染批量创建结果
-    renderBatchResult(createdList = [], failedList = [], total = 0) {
-        if (!this.batchResult || !this.batchResultSummary || !this.batchResultList) {
+    async handleRegister() {
+        if (!this.isAdminAuthenticated || !this.adminPasswordValue) {
+            this.showToast('管理员会话已失效，请重新验证。', 'error');
+            this.handleAdminLogout();
             return;
         }
 
-        this.batchResult.style.display = 'block';
-        this.batchResultList.innerHTML = '';
-        this.batchResultSummary.textContent = `总计 ${total} 个，成功 ${createdList.length} 个，失败 ${failedList.length} 个`;
-
-        createdList.forEach((item) => {
-            const address = item.mailbox_address || '';
-            const token = item.access_token || '';
-            const accessUrl = `${window.location.origin}/mailbox?address=${encodeURIComponent(address)}&token=${encodeURIComponent(token)}`;
-
-            const row = document.createElement('div');
-            row.className = 'batch-result-item';
-
-            const addressEl = document.createElement('div');
-            addressEl.className = 'address';
-            addressEl.textContent = `邮箱：${address}`;
-
-            const link = document.createElement('a');
-            link.className = 'access-link';
-            link.href = accessUrl;
-            link.target = '_blank';
-            link.rel = 'noopener noreferrer';
-            link.textContent = '打开邮箱';
-
-            row.appendChild(addressEl);
-            row.appendChild(link);
-            this.batchResultList.appendChild(row);
-        });
-
-        failedList.forEach((item) => {
-            const row = document.createElement('div');
-            row.className = 'batch-result-item';
-
-            const failText = document.createElement('div');
-            failText.className = 'address';
-            failText.textContent = `失败：${item.address || 'unknown'}（${item.error || '未知错误'}）`;
-            row.appendChild(failText);
-
-            this.batchResultList.appendChild(row);
-        });
-    }
-
-    // 处理注册
-    async handleRegister() {
         const formData = new FormData(this.form);
-        const emailInput = String(formData.get('email') || '').trim();
-        const count = parseInt(String(formData.get('count') || '1'), 10) || 1;
+        const emailValue = formData.get('email');
         const data = {
-            email: emailInput,
-            count,
-            retention_days: parseInt(formData.get('retention_days')) || 7,
+            email: typeof emailValue === 'string' ? emailValue.trim() : '',
+            retention_days: Number.parseInt(formData.get('retention_days'), 10) || 7,
             agree_terms: formData.get('agree-terms') === 'on'
         };
 
-        // 基础验证
-        if (!data.email) {
-            this.showToast('请输入邮箱地址或前缀', 'error');
+        if (!this.validateEmail()) {
             return;
         }
-
         if (!data.agree_terms) {
-            this.showToast('请同意服务条款和隐私政策', 'warning');
+            this.showToast('请先同意服务条款和隐私说明。', 'warning');
+            document.getElementById('agree-terms').focus();
             return;
         }
-
-        // 字段验证
-        if (!this.validateRegisterInput()) {
-            return;
-        }
-
-        // 验证保留天数
         if (data.retention_days < 1 || data.retention_days > 30) {
-            this.showToast('保留天数必须在1-30天之间', 'warning');
+            this.showToast('保留天数必须在 1–30 天之间。', 'warning');
             return;
         }
 
-        // 禁用按钮
-        const submitBtn = document.getElementById('register-btn');
-        const btnText = submitBtn.querySelector('span');
-        const loadingSpinner = submitBtn.querySelector('.loading-spinner');
-
-        submitBtn.disabled = true;
-        btnText.textContent = '创建中...';
-        loadingSpinner.style.display = 'block';
+        const submitButton = document.getElementById('register-btn');
+        window.MaildropUI.setBusy(submitButton, true, '创建中…');
+        this.showProgress('正在创建邮箱…', 25);
 
         try {
-            if (this.batchResult) {
-                this.batchResult.style.display = 'none';
-            }
-
-            this.showProgress('正在创建邮箱...', 20);
-
-            // 发送注册请求
             const response = await fetch('/api/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': this.adminPasswordValue  // 添加管理员密码到请求头
+                    'Authorization': this.adminPasswordValue
                 },
                 body: JSON.stringify(data)
             });
+            const result = await this.parseResponse(response);
 
-            const result = await response.json();
-
-            if (response.ok && result.success) {
-                this.showProgress('邮箱创建完成！', 100);
-
-                const createdList = Array.isArray(result.created) ? result.created : [];
-                const failedList = Array.isArray(result.failed) ? result.failed : [];
-                const total = Number.isInteger(result.total) ? result.total : count;
-
-                if (createdList.length === 1 && failedList.length === 0) {
-                    const mailbox = createdList[0];
-                    const accessUrl = `${window.location.origin}/mailbox?address=${encodeURIComponent(mailbox.mailbox_address)}&token=${encodeURIComponent(mailbox.access_token)}`;
-                    this.showToast(`创建成功：${mailbox.mailbox_address}`, 'success', 3500);
-                    this.showToast(`<a href="${accessUrl}" target="_blank" style="color: #007bff; word-break: break-all;">${accessUrl}</a>`, 'info', 8000);
-                } else {
-                    this.showToast(`批量创建完成：成功 ${createdList.length} / ${total}`, 'success', 3500);
-                }
-
-                this.renderBatchResult(createdList, failedList, total);
-            } else {
-                throw new Error(result.error || '注册失败');
+            if (!response.ok || !result?.success) {
+                throw new Error(result?.error || result?.message || '注册失败');
             }
 
-        } catch (error) {
-            console.error('注册错误:', error);
-            this.showToast(error.message || '注册失败，请稍后重试', 'error');
-        } finally {
-            this.hideProgress();
+            this.showProgress('正在生成固定访问链接…', 75);
+            if (!result.mailbox_created || !result.mailbox_key || !result.mailbox_address) {
+                throw new Error('邮箱已创建，但响应中缺少邮箱密钥');
+            }
 
-            // 恢复按钮状态
-            submitBtn.disabled = false;
-            btnText.textContent = '创建邮箱';
-            loadingSpinner.style.display = 'none';
+            // 分段编码邮箱与密钥，确保特殊字符不会改变凭据路由含义。
+            const accessPath = `/web/${encodeURIComponent(result.mailbox_address)}----${encodeURIComponent(result.mailbox_key)}`;
+            const accessUrl = `${window.location.origin}${accessPath}`;
+            this.showProgress('邮箱创建完成', 100);
+            this.presentSuccess(result, accessUrl);
+            this.showToast('临时邮箱创建成功。', 'success');
+        } catch (error) {
+            console.error('创建邮箱失败：', error);
+            this.showToast(error.message || '注册失败，请稍后重试', 'error');
+            this.hideProgress();
+        } finally {
+            window.MaildropUI.setBusy(submitButton, false);
+        }
+    }
+
+    presentSuccess(result, accessUrl) {
+        this.currentAccessUrl = accessUrl;
+        this.createdAddress.textContent = String(result.mailbox_address);
+        this.createdKey.textContent = String(result.mailbox_key);
+        this.createdRetention.textContent = `${Number(result.retention_days) || 7} 天`;
+        this.createdLink.textContent = accessUrl;
+        this.createdLink.href = accessUrl;
+        window.MaildropUI.openDialog(this.successDialog, document.getElementById('register-btn'));
+    }
+
+    async copyAccessLink() {
+        if (!this.currentAccessUrl) {
+            return;
+        }
+
+        try {
+            await navigator.clipboard.writeText(this.currentAccessUrl);
+            this.showToast('访问链接已复制。', 'success');
+        } catch (error) {
+            console.error('复制访问链接失败：', error);
+            this.showToast('无法自动复制，请手动选择链接。', 'warning');
+            this.createdLink.focus();
+        }
+    }
+
+    openAccessLink() {
+        if (this.currentAccessUrl) {
+            window.open(this.currentAccessUrl, '_blank', 'noopener,noreferrer');
+        }
+    }
+
+    async parseResponse(response) {
+        const raw = await response.text();
+        if (!raw) {
+            return null;
+        }
+        try {
+            return JSON.parse(raw);
+        } catch (_error) {
+            return { error: raw };
         }
     }
 }
 
-
-// 选择域名并拼接到输入框
 function selectDomain(domain) {
     const emailInput = document.getElementById('email-input');
-    if (!emailInput) return;
+    if (!emailInput) {
+        return;
+    }
+
+    const safeDomain = String(domain || '').trim();
+    if (!safeDomain) {
+        return;
+    }
 
     const currentValue = emailInput.value.trim();
-
-    // 如果当前输入框有内容且不包含@，则添加@域名
     if (currentValue && !currentValue.includes('@')) {
-        emailInput.value = `${currentValue}@${domain}`;
+        emailInput.value = `${currentValue}@${safeDomain}`;
     } else if (!currentValue) {
-        // 如果输入框为空，显示提示
-        emailInput.value = `yourname@${domain}`;
+        emailInput.value = `yourname@${safeDomain}`;
         emailInput.focus();
-        // 选中文本，让用户可以直接替换
         emailInput.setSelectionRange(0, 8);
     } else {
-        // 如果已经是完整邮箱，替换域名部分
         const parts = currentValue.split('@');
         if (parts.length === 2) {
-            emailInput.value = `${parts[0]}@${domain}`;
+            emailInput.value = `${parts[0]}@${safeDomain}`;
         }
     }
 
-    // 添加视觉反馈
-    showDomainSelectedFeedback(domain);
+    emailInput.dispatchEvent(new Event('input', { bubbles: true }));
+    showDomainSelectedFeedback(safeDomain);
 }
 
-// 显示域名选择反馈
 function showDomainSelectedFeedback(domain) {
-    const feedback = document.createElement('div');
-    feedback.className = 'domain-feedback';
-    feedback.innerHTML = `
-        <i class="fas fa-check-circle"></i>
-        已选择域名: ${domain}
-    `;
-    feedback.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: linear-gradient(135deg, #48bb78, #38a169);
-        color: white;
-        padding: 1rem 2rem;
-        border-radius: 25px;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-        z-index: 2000;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-weight: 600;
-        animation: domainFeedback 0.3s ease-out;
-    `;
-
-    document.body.appendChild(feedback);
-
-    // 动画效果
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes domainFeedback {
-            0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
-            50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
-            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-        }
-    `;
-    document.head.appendChild(style);
-
-    // 2秒后移除反馈
-    setTimeout(() => {
-        feedback.style.opacity = '0';
-        feedback.style.transform = 'translate(-50%, -50%) scale(0.8)';
-        setTimeout(() => feedback.remove(), 300);
-    }, 2000);
+    window.MaildropUI.toast(`已选择域名：${domain}`, 'success', { duration: 2200 });
 }
 
-// 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', () => {
-    new RegisterManager();
+    window.registerManager = new RegisterManager();
 });
 
-// 导出供其他模块使用
+// 保留旧页面的全局调用入口，便于外部脚本继续选择域名。
+window.selectDomain = selectDomain;
+
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = RegisterManager;
 }

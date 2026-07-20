@@ -1,440 +1,204 @@
-# API 文档 (V2)
+# Maildrop 页面与 API 文档
 
-本文档详细描述了项目的所有 API 端点，包括参数、请求示例和响应格式。
+本文档描述当前公开页面、邮箱凭据流和主要 API。所有示例默认服务地址为
+`http://127.0.0.1:5000`。
 
-## 用户 API (`src/backend/routes/api.py`)
+## 页面路由
 
-这些 API 主要面向最终用户，用于邮箱的创建、管理和邮件收发。
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| `GET` | `/` | 公开邮箱登录页 |
+| `GET` | `/login` | 重定向到 `/` |
+| `GET` | `/web` | 公开邮箱登录页 |
+| `GET` | `/web/<编码邮箱>----<编码密钥>` | 收件箱页面，刷新时重新校验密钥 |
+| `GET` | `/admin` | 唯一管理后台入口 |
+| `GET` | `/register` | 管理员授权的邮箱注册页 |
+| `GET` | `/api-test` | 只读 API 调试台 |
 
----
+`/mailbox` 携带旧 address/token 查询参数的访问方式与 `/admin/mailboxes` 不保留兼容
+路由，访问应返回 `404`。生成页面链接时必须分别对邮箱和密钥执行 URL 编码：
 
-### 1. 获取随机邮箱地址
+```text
+/web/user%40example.com----mailbox-key
+```
 
-- **功能:** 生成一个随机的临时邮箱地址。
-- **端点:** `GET /api/get_random_address`
-- **认证:** 需要请求的 IP 地址在白名单中。
-- **请求示例:**
-  ```bash
-  curl -X GET http://127.0.0.1:5000/api/get_random_address
-  ```
-- **成功响应 (200):**
-  ```json
-  {
-    "address": "a1b2c3d4e5f6g7h8@example.com",
-    "available_domains": ["example.com", "maildrop.cc"]
-  }
-  ```
-- **失败响应 (403):**
-  ```json
-  {
-    "error": "Access denied - IP not whitelisted"
-  }
-  ```
+> `/web/...` 按产品要求将邮箱密钥保留在地址栏。该密钥可能进入浏览器历史、书签、
+> 截图与反向代理访问日志；页面虽使用禁止缓存、禁止引用和禁止索引响应头，仍应将完整
+> URL 视为敏感凭据。
 
----
+`/api-test` 只提供以下调试流程：用邮箱地址与 `mailbox_key` 调用
+`POST /api/get_mailbox_token`，再以 Bearer 令牌读取 `/api/mailbox_info_v2` 和
+`/api/get_inbox`。调试页不创建或修改数据，不提供发信功能；密钥与令牌只保存在页面
+内存，响应统一经 `<pre>.textContent` 输出。
 
-### 2. 获取邮箱访问令牌
+## 邮箱认证流程
 
-- **功能:** 使用邮箱地址和邮箱密钥进行身份验证，以获取用于后续 API 调用的访问令牌。
-- **端点:** `POST /api/get_mailbox_token`
-- **认证:** 需要请求的 IP 地址在白名单中。
-- **请求体 (JSON):**
-  ```json
-  {
-    "address": "user@example.com",
-    "mailbox_key": "your-secret-mailbox-key"
-  }
-  ```
-- **请求示例:**
-  ```bash
-  curl -X POST http://127.0.0.1:5000/api/get_mailbox_token \
-  -H "Content-Type: application/json" \
-  -d '{
-    "address": "user@example.com",
-    "mailbox_key": "your-secret-mailbox-key"
-  }'
-  ```
-- **成功响应 (200):**
-  ```json
-  {
-    "success": true,
-    "address": "user@example.com",
-    "access_token": "generated-access-token",
-    "mailbox_id": "a-mailbox-uuid",
-    "expires_at": 1678886400,
-    "message": "Access token retrieved successfully"
-  }
-  ```
-- **失败响应 (401):**
-  ```json
-  {
-    "error": "Invalid mailbox key"
-  }
-  ```
+公开 API 仍会先应用项目配置的 IP 白名单；未放行的来源返回 `403`。
 
----
+### 1. 用邮箱密钥换取访问令牌
 
-### 3. 用户登录
+```http
+POST /api/get_mailbox_token
+Content-Type: application/json
+```
 
-- **功能:** 使用用户名和密码验证注册用户，并返回其个人资料及关联的邮箱列表。
-- **端点:** `POST /api/user_login`
-- **认证:** 需要请求的 IP 地址在白名单中。
-- **请求体 (JSON):**
-  ```json
-  {
-    "username": "testuser",
-    "password": "password123"
-  }
-  ```
-- **请求示例:**
-  ```bash
-  curl -X POST http://127.0.0.1:5000/api/user_login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "testuser",
-    "password": "password123"
-  }'
-  ```
-- **成功响应 (200):**
-  ```json
-  {
-    "success": true,
-    "user": {
-      "id": "user-uuid",
-      "username": "testuser",
-      "email": "testuser@email.com",
-      "created_at": 1678880000,
-      "last_login": 1678886400
-    },
-    "mailboxes": [
-      {
-        "id": "mailbox-uuid-1",
-        "address": "box1@example.com",
-        "access_token": "token-for-box1",
-        "expires_at": 1679886400
-      }
-    ],
-    "message": "Login successful. You have 1 active mailboxes."
-  }
-  ```
-- **失败响应 (401):**
-  ```json
-  {
-    "error": "Invalid username or password"
-  }
-  ```
+```json
+{
+  "address": "user@example.com",
+  "mailbox_key": "your-mailbox-key"
+}
+```
 
----
+成功响应：
 
-### 4. 使用子管理员令牌注册邮箱
+```json
+{
+  "success": true,
+  "address": "user@example.com",
+  "access_token": "generated-access-token",
+  "mailbox_id": "mailbox-uuid",
+  "expires_at": 1678886400
+}
+```
 
-- **功能:** 允许拥有子管理员权限的用户创建新的临时邮箱。
-- **端点:** `POST /api/register_with_token`
-- **认证:**
-  - 请求头中必须包含 `X-Sub-Admin-Token`。
-  - 需要请求的 IP 地址在白名单中。
-- **请求体 (JSON):**
-  ```json
-  {
-    "email": "new_mailbox_prefix",
-    "retention_days": 7
-  }
-  ```
-- **请求示例:**
-  ```bash
-  curl -X POST http://127.0.0.1:5000/api/register_with_token \
-  -H "Content-Type: application/json" \
-  -H "X-Sub-Admin-Token: sub-admin-secret-token" \
-  -d '{
-    "email": "new_mailbox_prefix",
-    "retention_days": 7
-  }'
-  ```
-- **成功响应 (201):**
-  ```json
-  {
-    "success": true,
-    "mailbox_created": true,
-    "mailbox_address": "new_mailbox_prefix@allowed-domain.com",
-    "access_token": "generated-access-token",
-    "created_at": 1678886400,
-    "expires_at": 1679491200,
-    "retention_days": 7,
-    "message": "Temporary mailbox created successfully"
-  }
-  ```
-- **失败响应 (401):**
-  ```json
-  {
-    "error": "Invalid token"
-  }
-  ```
+### 2. 调用邮箱 API
 
----
+后续邮箱 API 仅接受 Bearer 令牌，不接受 query string 中的旧 `token` 参数：
 
-### 5. 获取收件箱
+```http
+Authorization: Bearer generated-access-token
+```
 
-- **功能:** 获取指定邮箱地址的邮件列表。
-- **端点:** `GET /api/get_inbox`
-- **认证:**
-  1.  **令牌认证 (推荐):** 在 URL 参数中提供 `access_token`。
-  2.  **密码认证:** 在请求头中提供 `Authorization` 管理员密码。
-- **请求示例 (令牌认证):**
-  ```bash
-  curl -X GET "http://127.0.0.1:5000/api/get_inbox?address=user@example.com&token=user-access-token"
-  ```
-- **请求示例 (密码认证):**
-  ```bash
-  curl -X GET "http://127.0.0.1:5000/api/get_inbox?address=user@example.com" \
-  -H "Authorization: your_admin_password"
-  ```
-- **成功响应 (200):**
-  ```json
-  [
-    {
-      "id": "email-uuid-1",
-      "From": "sender@domain.com",
-      "To": "user@example.com",
-      "Subject": "Hello World",
-      "Body": "This is the email body.",
-      "Timestamp": 1678886400,
-      "is_read": false
-    }
-  ]
-  ```
-- **失败响应 (410):**
-  ```json
-  {
-    "error": "Mailbox expired"
-  }
-  ```
+公开页面只把访问令牌保存到当前会话的 `sessionStorage['maildrop_access_token']` 与内存；
+邮箱密钥不写入 Web Storage。
 
----
+典型错误状态：
 
-### 6. 删除邮件
+- `401`：凭据或访问令牌无效；
+- `403`：令牌不属于目标邮箱；
+- `404`：邮箱或邮件不存在；
+- `410`：邮箱已过期；
+- `423`：邮箱已禁用。
 
-- **功能:** 从邮箱中删除一封或多封邮件。
-- **端点:**
-  - `POST /api/delete_email` (删除单封)
-  - `POST /api/delete_emails_batch` (批量删除)
-- **认证:** URL 参数中必须提供 `token` (邮箱的 `access_token`)。
-- **请求体 (删除单封):**
-  ```json
-  {
-    "email_id": "email-uuid-to-delete"
-  }
-  ```
-- **请求体 (批量删除):**
-  ```json
-  {
-    "email_ids": ["email-uuid-1", "email-uuid-2"]
-  }
-  ```
-- **请求示例 (删除单封):**
-  ```bash
-  curl -X POST "http://127.0.0.1:5000/api/delete_email?token=user-access-token" \
-  -H "Content-Type: application/json" \
-  -d '{"email_id": "email-uuid-to-delete"}'
-  ```
-- **成功响应 (200):**
-  ```json
-  {
-    "success": true,
-    "message": "Email deleted"
-  }
-  ```
-- **失败响应 (401):**
-  ```json
-  {
-    "error": "Invalid access token"
-  }
-  ```
+## 公开与注册 API
 
----
+### 基础信息
 
-## 管理员 API (`src/backend/routes/admin_api.py`)
+| 方法 | 端点 | 说明 |
+| --- | --- | --- |
+| `GET` | `/api/get_random_address` | 获取随机邮箱地址与可用域名 |
+| `GET` | `/api/get_domain` | 获取域名配置 |
+| `POST` | `/api/get_mailbox_token` | 邮箱地址 + 邮箱密钥换取访问令牌 |
 
-这些 API 专为管理员设计，用于系统范围的管理和监控。所有请求都需要在 `Authorization` 请求头中提供管理员密码。
+### 创建邮箱
 
----
+#### 管理员密码注册
 
-### 1. 获取邮箱列表
+```http
+POST /api/register
+Authorization: <ADMIN_PASSWORD>
+Content-Type: application/json
+```
 
-- **功能:** 列出系统中的所有邮箱，支持分页、搜索和状态过滤。
-- **端点:** `GET /admin/mailboxes`
-- **认证:** 管理员密码。
-- **请求示例:**
-  ```bash
-  curl -X GET "http://127.0.0.1:5000/admin/mailboxes?page=1&page_size=10&status=active" \
-  -H "Authorization: your_admin_password"
-  ```
-- **成功响应 (200):**
-  ```json
-  {
-    "success": true,
-    "data": {
-      "mailboxes": [
-        {
-          "id": "mailbox-uuid",
-          "address": "user@example.com",
-          "is_active": true,
-          "expires_at": 1679491200
-        }
-      ],
-      "total": 100,
-      "page": 1,
-      "page_size": 10
-    }
-  }
-  ```
+#### 子管理员令牌注册
 
----
+```http
+POST /api/register_with_token
+X-Sub-Admin-Token: <SUB_ADMIN_TOKEN>
+Content-Type: application/json
+```
 
-### 2. 创建邮箱
+请求可包含 `email`、`retention_days` 和发件人白名单等字段。创建成功响应会同时返回
+`access_token` 与 `mailbox_key`；公开页面链接只能使用 `mailbox_key`：
 
-- **功能:** 管理员直接创建一个新的邮箱。
-- **端点:** `POST /admin/mailboxes`
-- **认证:** 管理员密码。
-- **请求体 (JSON):**
-  ```json
-  {
-    "address": "newuser@example.com",
-    "retention_days": 30,
-    "sender_whitelist": ["@trusted.com"],
-    "allowed_domains": ["example.com"]
-  }
-  ```
-- **请求示例:**
-  ```bash
-  curl -X POST http://127.0.0.1:5000/admin/mailboxes \
-  -H "Content-Type: application/json" \
-  -H "Authorization: your_admin_password" \
-  -d '{
-    "address": "newuser@example.com",
-    "retention_days": 30
-  }'
-  ```
-- **成功响应 (200):**
-  ```json
-  {
-    "success": true,
-    "message": "Mailbox created successfully",
-    "data": {
-      "id": "new-mailbox-uuid",
-      "address": "newuser@example.com",
-      "access_token": "generated-access-token"
-    }
-  }
-  ```
+```json
+{
+  "success": true,
+  "mailbox_created": true,
+  "mailbox_address": "user@example.com",
+  "access_token": "generated-access-token",
+  "mailbox_key": "generated-mailbox-key",
+  "retention_days": 30
+}
+```
 
----
+### 收件箱与邮箱设置
 
-### 3. 更新邮箱
+以下接口均要求 `Authorization: Bearer <access_token>`，并校验目标邮箱归属：
 
-- **功能:** 更新指定邮箱的属性。
-- **端点:** `PUT /admin/mailboxes/<mailbox_id>`
-- **认证:** 管理员密码。
-- **请求体 (JSON):**
-  ```json
-  {
-    "retention_days": 60,
-    "is_active": false
-  }
-  ```
-- **请求示例:**
-  ```bash
-  curl -X PUT http://127.0.0.1:5000/admin/mailboxes/mailbox-uuid-to-update \
-  -H "Content-Type: application/json" \
-  -H "Authorization: your_admin_password" \
-  -d '{
-    "is_active": false
-  }'
-  ```
-- **成功响应 (200):**
-  ```json
-  {
-    "success": true,
-    "message": "Mailbox updated successfully"
-  }
-  ```
+| 方法 | 端点 | 说明 |
+| --- | --- | --- |
+| `GET` | `/api/mailbox_info_v2` | 从 Bearer 令牌推导并返回邮箱信息；响应不返回访问令牌或邮箱密钥 |
+| `GET` | `/api/get_inbox?address=<邮箱>` | 获取邮件列表 |
+| `GET` | `/api/get_email?address=<邮箱>&id=<邮件ID>` | 获取单封邮件 |
+| `POST` | `/api/mark_email_read` | 标记单封邮件已读 |
+| `POST` | `/api/mark_all_read` | 全部标记已读 |
+| `POST` | `/api/delete_email` | 删除单封邮件 |
+| `POST` | `/api/delete_emails_batch` | 批量删除邮件 |
+| `POST` | `/api/add_sender_whitelist` | 添加发件人白名单项 |
+| `POST` | `/api/remove_sender_whitelist` | 删除发件人白名单项 |
+| `POST` | `/api/update_retention` | 更新保留天数 |
+| `POST` | `/api/regenerate_mailbox_key` | 重新生成邮箱密钥 |
+| `POST` | `/api/toggle_mailbox_status` | 启用或禁用邮箱 |
+| `POST` | `/api/toggle_whitelist` | 启用或禁用白名单 |
 
----
+`get_inbox` 使用 `address` 查询参数，`get_email` 使用 `address` 与 `id` 查询参数；地址型
+写接口在 JSON 中提交 `address`，邮件型写接口提交 `email_id` 或 `email_ids`。这些参数
+只用于定位资源，不能替代 Bearer 鉴权。
 
-### 4. 删除邮箱
+示例：
 
-- **功能:** 删除一个邮箱（支持软删除和硬删除）。
-- **端点:** `DELETE /admin/mailboxes/<mailbox_id>`
-- **认证:** 管理员密码。
-- **请求示例 (软删除):**
-  ```bash
-  curl -X DELETE "http://127.0.0.1:5000/admin/mailboxes/mailbox-uuid-to-delete?soft=true" \
-  -H "Authorization: your_admin_password"
-  ```
-- **成功响应 (200):**
-  ```json
-  {
-    "success": true,
-    "message": "Mailbox soft deleted"
-  }
-  ```
+```bash
+curl "http://127.0.0.1:5000/api/get_inbox?address=user%40example.com" \
+  -H "Authorization: Bearer generated-access-token"
+```
 
----
+## 管理员 API
 
-### 5. 获取系统统计信息
+管理员 Blueprint 统一使用 `/api/admin` 前缀，并严格要求
+`Authorization: Bearer <ADMIN_PASSWORD>`。部署未配置 `PASSWORD` 时管理认证保持关闭。
 
-- **功能:** 获取关于邮箱和邮件的总体统计数据。
-- **端点:** `GET /admin/stats`
-- **认证:** 管理员密码。
-- **请求示例:**
-  ```bash
-  curl -X GET http://127.0.0.1:5000/admin/stats \
-  -H "Authorization: your_admin_password"
-  ```
-- **成功响应 (200):**
-  ```json
-  {
-    "success": true,
-    "data": {
-      "total_mailboxes": 150,
-      "active_mailboxes": 120,
-      "expired_mailboxes": 20,
-      "disabled_mailboxes": 10,
-      "total_emails": 5000,
-      "unread_emails": 300
-    }
-  }
-  ```
+### 邮箱与统计
 
----
+| 方法 | 端点 | 说明 |
+| --- | --- | --- |
+| `GET` | `/api/admin/mailboxes` | 分页查询邮箱 |
+| `GET` | `/api/admin/mailboxes/<mailbox_id>` | 获取邮箱详情 |
+| `POST` | `/api/admin/mailboxes` | 创建邮箱 |
+| `PUT` | `/api/admin/mailboxes/<mailbox_id>` | 更新邮箱 |
+| `DELETE` | `/api/admin/mailboxes/<mailbox_id>` | 删除或软删除邮箱 |
+| `POST` | `/api/admin/mailboxes/batch-delete` | 批量删除邮箱 |
+| `POST` | `/api/admin/mailboxes/<mailbox_id>/reset-token` | 重置访问令牌 |
+| `POST` | `/api/admin/mailboxes/<mailbox_id>/enable` | 恢复邮箱 |
+| `GET` | `/api/admin/mailboxes/<mailbox_id>/audit-logs` | 查询邮箱审计日志 |
+| `GET` | `/api/admin/audit-logs` | 查询全局审计日志 |
+| `GET` | `/api/admin/stats` | 系统统计 |
+| `GET` | `/api/admin/source-stats` | 创建来源统计 |
 
-### 6. 子管理员管理
+管理员创建邮箱成功时，`data` 包含 `address`、`access_token` 与 `mailbox_key`。管理端
+生成的公开链接格式同样只能是 `/web/<编码邮箱>----<编码密钥>`。
 
-- **功能:** 创建、更新和删除子管理员及其权限。
-- **端点:**
-  - `GET /admin/sub-admins`
-  - `POST /admin/sub-admins`
-  - `PUT /admin/sub-admins/<sub_admin_id>`
-  - `DELETE /admin/sub-admins/<sub_admin_id>`
-- **认证:** 管理员密码。
-- **请求示例 (创建子管理员):**
-  ```bash
-  curl -X POST http://127.0.0.1:5000/admin/sub-admins \
-  -H "Content-Type: application/json" \
-  -H "Authorization: your_admin_password" \
-  -d '{
-    "token": "new-sub-admin-token",
-    "domains": ["customer-domain.com"],
-    "max_retention_days": 15,
-    "notes": "Sub-admin for Customer X"
-  }'
-  ```
-- **成功响应 (创建):**
-  ```json
-  {
-    "success": true,
-    "message": "子管理员创建成功",
-    "data": {
-      "id": "new-sub-admin-id",
-      "token": "new-sub-admin-token"
-    }
-  }
+### 安全配置与子管理员
+
+| 方法 | 端点 | 说明 |
+| --- | --- | --- |
+| `GET` | `/api/admin/blocked-ips` | 查询被封禁 IP |
+| `DELETE` | `/api/admin/blocked-ips/<ip>` | 解除 IP 封禁 |
+| `GET` | `/api/admin/security-config` | 查询安全配置 |
+| `PUT` | `/api/admin/security-config` | 更新安全配置 |
+| `GET` | `/api/admin/sub-admins` | 查询子管理员 |
+| `POST` | `/api/admin/sub-admins` | 创建子管理员 |
+| `PUT` | `/api/admin/sub-admins/<sub_admin_id>` | 更新子管理员 |
+| `DELETE` | `/api/admin/sub-admins/<sub_admin_id>` | 删除子管理员 |
+
+## 已移除或不兼容
+
+- 旧测试发信 API 已删除，服务不提供写信、回复、转发或测试发信能力；
+- 未使用且允许请求指定文件路径的旧迁移、导出 API 已删除；
+- `/api/create_mailbox_v2` 已移除且未注册，请求返回 `404`；
+- 无调用方且会批量返回访问令牌的 `/api/user_login` 已移除，请求返回 `404`；
+- 会直接改写 `.env` 的旧 `/api/admin/whitelist` 与 `/api/admin/test_ip` 已移除；
+- `/mailbox` 旧 token 页面链接不兼容；
+- `/admin/mailboxes` 旧管理页面入口不兼容。
+
+Maildrop 的 SMTP 组件只负责接收邮件并写入存储，不承担站内出站邮件发送。

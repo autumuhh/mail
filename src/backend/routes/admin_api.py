@@ -5,9 +5,11 @@
 
 from flask import Blueprint, request, jsonify
 import config
+import hmac
 import sys
 import os
 import re
+from typing import Optional, Tuple
 
 # 添加backend目录到路径
 backend_dir = os.path.dirname(os.path.dirname(__file__))
@@ -21,9 +23,29 @@ from ip_blocker import ip_blocker
 bp = Blueprint('admin_api', __name__)
 mailbox_service = MailboxService(db_manager)
 
+# 用户名（邮箱 @ 前 local-part）规则：仅英文大小写字母 + 数字，长度 3–20
+LOCAL_PART_PATTERN = re.compile(r'^[a-zA-Z0-9]{3,20}$')
+
+
+def validate_local_part(address: Optional[str]) -> Tuple[bool, Optional[str]]:
+    """校验邮箱 local-part，防止绕过前端校验"""
+    # 请求体来自外部，先约束类型，避免非字符串 address 触发 TypeError 并返回 500。
+    if not isinstance(address, str) or not address or '@' not in address:
+        return False, '邮箱地址格式不正确'
+
+    local_part = address.split('@', 1)[0]
+    if not LOCAL_PART_PATTERN.match(local_part):
+        return False, '用户名仅允许英文/数字，长度 3–20'
+
+    return True, None
+
 def check_admin_auth():
     """检查管理员权限，并记录失败尝试"""
     client_ip = get_client_ip()
+
+    # 管理密码未配置时直接关闭管理 API，避免空密码或默认密码被接受。
+    if not config.PASSWORD:
+        return False, '管理员密码未配置'
 
     # 检查IP是否被封禁
     if ip_blocker.is_blocked(client_ip):
@@ -35,9 +57,12 @@ def check_admin_auth():
         ip_blocker.record_failed_attempt(client_ip)
         return False, '缺少Authorization请求头'
 
-    # 简单的密码验证（实际应用中应使用更安全的方式）
-    password = auth_header.replace('Bearer ', '')
-    if password != config.PASSWORD:
+    scheme, separator, password = auth_header.partition(' ')
+    if not separator or scheme.lower() != 'bearer' or not password:
+        ip_blocker.record_failed_attempt(client_ip)
+        return False, 'Authorization 请求头格式错误'
+
+    if not hmac.compare_digest(password, config.PASSWORD):
         # 记录失败尝试
         is_blocked = ip_blocker.record_failed_attempt(client_ip)
         if is_blocked:
@@ -46,11 +71,10 @@ def check_admin_auth():
 
     return True, None
 
-def get_client_ip():
+def get_client_ip() -> str:
     """获取客户端IP"""
-    if request.headers.get('X-Forwarded-For'):
-        return request.headers.get('X-Forwarded-For').split(',')[0]
-    return request.remote_addr
+    # X-Forwarded-For 可由客户端伪造；可信代理应在应用入口统一配置 ProxyFix。
+    return request.remote_addr or 'unknown'
 
 @bp.route('/mailboxes', methods=['GET'])
 def list_mailboxes():
@@ -62,16 +86,16 @@ def list_mailboxes():
     try:
         page = int(request.args.get('page', 1))
         page_size = int(request.args.get('page_size', 20))
-        search = request.args.get('search', '')
-        status = request.args.get('status', 'all')
-        source = request.args.get('source', 'all')
+        search = request.args.get('search') or ''
+        status = request.args.get('status') or 'all'
+        source = request.args.get('source') or 'all'
 
         result = mailbox_service.list_mailboxes(
             page=page,
             page_size=page_size,
-            search=search if search else None,
-            status=status if status != 'all' else None,
-            source=source if source != 'all' else None
+            search=search,
+            status=status if status != 'all' else '',
+            source=source if source != 'all' else ''
         )
 
         return jsonify({
@@ -87,12 +111,12 @@ def get_mailbox(mailbox_id):
     auth_ok, error_msg = check_admin_auth()
     if not auth_ok:
         return jsonify({'success': False, 'error': error_msg or '未授权'}), 401
-    
+
     try:
         mailbox = mailbox_service.get_mailbox_detail(mailbox_id)
         if not mailbox:
             return jsonify({'success': False, 'error': '邮箱不存在'}), 404
-        
+
         return jsonify({
             'success': True,
             'data': mailbox
@@ -108,22 +132,34 @@ def create_mailbox():
         return jsonify({'success': False, 'error': error_msg or '未授权'}), 401
 
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
+        # 仅接受 JSON 对象，避免数组等合法 JSON 值进入字段读取逻辑后触发 500。
+        if not isinstance(data, dict):
+            return jsonify({
+                'success': False,
+                'error': '无效的请求体格式，必须为 JSON 对象'
+            }), 400
+
         address = data.get('address')
-        retention_days = data.get('retention_days')
+        retention_days_raw = data.get('retention_days')
         sender_whitelist = data.get('sender_whitelist', [])
         allowed_domains = data.get('allowed_domains', [])
+
+        retention_days: int
+        if retention_days_raw is None:
+            retention_days = int(getattr(config, 'MAILBOX_RETENTION_DAYS', 30))
+        else:
+            try:
+                retention_days = int(retention_days_raw)
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'error': '保留天数必须是有效的数字'}), 400
 
         if not address:
             return jsonify({'success': False, 'error': '邮箱地址不能为空'}), 400
 
-        # 用户名规则：仅英文和数字，长度3-20
-        if '@' not in address:
-            return jsonify({'success': False, 'error': '邮箱地址格式不正确'}), 400
-
-        username = address.split('@', 1)[0]
-        if not re.match(r'^[a-zA-Z0-9]{3,20}$', username):
-            return jsonify({'success': False, 'error': '用户名必须是3-20位英文或数字'}), 400
+        local_ok, local_err = validate_local_part(address)
+        if not local_ok:
+            return jsonify({'success': False, 'error': local_err or '用户名不符合规则'}), 400
 
         success, message, mailbox = mailbox_service.create_mailbox(
             address=address,
@@ -134,6 +170,9 @@ def create_mailbox():
         )
 
         if success and allowed_domains:
+            if not mailbox:
+                return jsonify({'success': False, 'error': '创建邮箱失败（返回数据缺失）'}), 500
+
             # 更新允许的域名
             import json
             with db_manager.get_connection() as conn:
@@ -141,6 +180,8 @@ def create_mailbox():
                     UPDATE mailboxes SET allowed_domains = ? WHERE id = ?
                 ''', (json.dumps(allowed_domains), mailbox['id']))
                 conn.commit()
+            # 数据库写入后同步响应对象，避免客户端拿到缺失或过期的域名列表。
+            mailbox['allowed_domains'] = allowed_domains
 
         if success:
             return jsonify({
@@ -160,7 +201,7 @@ def update_mailbox(mailbox_id):
     auth_ok, error_msg = check_admin_auth()
     if not auth_ok:
         return jsonify({'success': False, 'error': error_msg or '未授权'}), 401
-    
+
     try:
         data = request.get_json()
         updates = {}
@@ -182,7 +223,7 @@ def update_mailbox(mailbox_id):
             admin_user='admin',
             ip_address=get_client_ip()
         )
-        
+
         if success:
             return jsonify({
                 'success': True,
@@ -190,7 +231,7 @@ def update_mailbox(mailbox_id):
             })
         else:
             return jsonify({'success': False, 'error': message}), 400
-            
+
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -200,17 +241,17 @@ def delete_mailbox(mailbox_id):
     auth_ok, error_msg = check_admin_auth()
     if not auth_ok:
         return jsonify({'success': False, 'error': error_msg or '未授权'}), 401
-    
+
     try:
         soft_delete = request.args.get('soft', 'true').lower() == 'true'
-        
+
         success, message = mailbox_service.delete_mailbox(
             mailbox_id=mailbox_id,
             soft_delete=soft_delete,
             admin_user='admin',
             ip_address=get_client_ip()
         )
-        
+
         if success:
             return jsonify({
                 'success': True,
@@ -218,7 +259,7 @@ def delete_mailbox(mailbox_id):
             })
         else:
             return jsonify({'success': False, 'error': message}), 400
-            
+
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -228,11 +269,11 @@ def get_mailbox_audit_logs(mailbox_id):
     auth_ok, error_msg = check_admin_auth()
     if not auth_ok:
         return jsonify({'success': False, 'error': error_msg or '未授权'}), 401
-    
+
     try:
         limit = int(request.args.get('limit', 50))
         logs = mailbox_service.get_audit_logs(mailbox_id=mailbox_id, limit=limit)
-        
+
         return jsonify({
             'success': True,
             'data': logs
@@ -246,11 +287,11 @@ def get_all_audit_logs():
     auth_ok, error_msg = check_admin_auth()
     if not auth_ok:
         return jsonify({'success': False, 'error': error_msg or '未授权'}), 401
-    
+
     try:
         limit = int(request.args.get('limit', 100))
         logs = mailbox_service.get_audit_logs(limit=limit)
-        
+
         return jsonify({
             'success': True,
             'data': logs
@@ -264,37 +305,37 @@ def get_stats():
     auth_ok, error_msg = check_admin_auth()
     if not auth_ok:
         return jsonify({'success': False, 'error': error_msg or '未授权'}), 401
-    
+
     try:
         with db_manager.get_connection() as conn:
             # 总邮箱数
             total_mailboxes = conn.execute('SELECT COUNT(*) as count FROM mailboxes').fetchone()['count']
-            
+
             # 活跃邮箱数
             active_mailboxes = conn.execute(
                 'SELECT COUNT(*) as count FROM mailboxes WHERE is_active = 1 AND expires_at > ?',
                 (int(__import__('time').time()),)
             ).fetchone()['count']
-            
+
             # 过期邮箱数
             expired_mailboxes = conn.execute(
                 'SELECT COUNT(*) as count FROM mailboxes WHERE expires_at <= ?',
                 (int(__import__('time').time()),)
             ).fetchone()['count']
-            
+
             # 禁用邮箱数
             disabled_mailboxes = conn.execute(
                 'SELECT COUNT(*) as count FROM mailboxes WHERE is_active = 0'
             ).fetchone()['count']
-            
+
             # 总邮件数
             total_emails = conn.execute('SELECT COUNT(*) as count FROM emails').fetchone()['count']
-            
+
             # 未读邮件数
             unread_emails = conn.execute(
                 'SELECT COUNT(*) as count FROM emails WHERE is_read = 0'
             ).fetchone()['count']
-            
+
             return jsonify({
                 'success': True,
                 'data': {

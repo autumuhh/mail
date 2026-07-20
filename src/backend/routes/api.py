@@ -1,5 +1,4 @@
-from flask import Blueprint, request, jsonify, render_template
-from werkzeug.security import check_password_hash, generate_password_hash
+from flask import Blueprint, request, jsonify
 import config
 
 # 根据配置选择使用数据库还是JSON文件
@@ -21,131 +20,75 @@ except ImportError as e:
 import re
 import random
 import string
-import os
-import time
+import hmac
 
 bp = Blueprint('api', __name__)
 
-# 邮箱登录页面路由
-@bp.route('/login')
-def mailbox_login():
-    """邮箱登录页面"""
-    return render_template('mailbox_login.html')
 
-# 邮箱管理页面路由
-@bp.route('/mailbox')
-def mailbox_manager():
-    """邮箱管理页面"""
-    return render_template('mailbox_manager.html')
+def _get_bearer_token():
+    """只接受 Bearer 令牌，避免访问令牌再次出现在 URL 和日志中。"""
+    authorization = request.headers.get('Authorization', '').strip()
+    scheme, separator, token = authorization.partition(' ')
+    if separator and scheme.lower() == 'bearer' and token.strip():
+        return token.strip()
+    return None
 
-# 演示页面路由
-@bp.route('/mailbox/demo')
-def mailbox_demo():
-    """邮箱演示页面"""
-    return render_template('mailbox_manager.html')
 
-# API测试页面路由
-@bp.route('/api-test')
-def api_test():
-    """API测试页面"""
-    return render_template('api_test.html')
+def _authenticate_mailbox(address=None):
+    """统一验证邮箱令牌、状态以及可选的地址归属。"""
+    if not config.USE_DATABASE:
+        return None, (jsonify({
+            'error': 'Database storage not enabled',
+            'message': 'Mailbox authentication requires database storage',
+        }), 400)
 
-# 演示数据API
-@bp.route('/demo/get_token', methods=['POST'])
-def demo_get_token():
-    """演示模式获取令牌"""
-    return jsonify({
-        "success": True,
-        "address": "demo@localhost",
-        "access_token": "demo-token-12345",
-        "mailbox_id": "demo-mailbox-id",
-        "expires_at": int(time.time()) + 86400,  # 24小时后过期
-        "message": "演示模式访问令牌"
-    }), 200
+    access_token = _get_bearer_token()
+    if not access_token:
+        return None, (jsonify({
+            'error': 'Authentication required',
+            'message': 'Provide an access token using the Authorization: Bearer header',
+        }), 401)
 
-@bp.route('/demo/mailbox_info', methods=['GET'])
-def demo_mailbox_info():
-    """演示模式邮箱信息"""
-    return jsonify({
-        "success": True,
-        "mailbox": {
-            "id": "demo-mailbox-id",
-            "address": "demo@localhost",
-            "created_at": int(time.time()) - 3600,  # 1小时前创建
-            "expires_at": int(time.time()) + 86400,  # 24小时后过期
-            "retention_days": 7,
-            "sender_whitelist": ["@gmail.com", "@outlook.com"],
-            "whitelist_enabled": False,  # 演示模式默认关闭白名单
-            "is_active": True,  # 演示模式默认开启邮箱
-            "email_count": 5,
-            "unread_count": 2,
-            "last_email_time": int(time.time()) - 300  # 5分钟前
-        }
-    }), 200
+    from database import db_manager
+    mailbox = db_manager.get_mailbox_by_token(access_token)
+    if not mailbox:
+        return None, (jsonify({
+            'error': 'Invalid access token',
+            'message': 'The provided access token is invalid',
+        }), 401)
+    if db_manager.is_mailbox_expired(mailbox):
+        return None, (jsonify({
+            'error': 'Mailbox expired',
+            'message': 'This mailbox has expired',
+        }), 410)
+    if not mailbox.get('is_active', True):
+        return None, (jsonify({
+            'error': 'Mailbox disabled',
+            'message': 'This mailbox has been disabled',
+        }), 423)
+    if address is not None and mailbox['address'] != address:
+        return None, (jsonify({
+            'error': 'Permission denied',
+            'message': 'The access token does not belong to the requested mailbox',
+        }), 403)
+    return mailbox, None
 
-@bp.route('/demo/emails', methods=['GET'])
-def demo_emails():
-    """演示模式邮件列表"""
-    current_time = int(time.time())
-    demo_emails = [
-        {
-            "id": "demo-email-1",
-            "From": "welcome@example.com",
-            "To": "demo@localhost",
-            "Subject": "欢迎使用临时邮箱服务！",
-            "Body": "感谢您使用我们的临时邮箱服务。这是一个演示邮件，展示了邮箱的基本功能。\n\n您可以：\n- 接收邮件\n- 查看邮件详情\n- 管理邮箱设置\n- 设置发件人白名单\n\n祝您使用愉快！",
-            "ContentType": "text/plain",
-            "Timestamp": current_time - 3600,
-            "Sent": "1小时前",
-            "is_read": False
-        },
-        {
-            "id": "demo-email-2",
-            "From": "noreply@github.com",
-            "To": "demo@localhost",
-            "Subject": "GitHub 通知：新的提交",
-            "Body": "您关注的仓库有新的提交：\n\n提交者：开发者\n提交信息：修复邮件显示问题\n\n点击查看详情：https://github.com/example/repo",
-            "ContentType": "text/plain",
-            "Timestamp": current_time - 1800,
-            "Sent": "30分钟前",
-            "is_read": True
-        },
-        {
-            "id": "demo-email-3",
-            "From": "support@service.com",
-            "To": "demo@localhost",
-            "Subject": "账户安全提醒",
-            "Body": "我们检测到您的账户有异常登录活动。\n\n如果这是您本人的操作，请忽略此邮件。\n如果不是，请立即更改密码。\n\n登录时间：2025-09-27 18:00\n登录地点：北京",
-            "ContentType": "text/plain",
-            "Timestamp": current_time - 900,
-            "Sent": "15分钟前",
-            "is_read": False
-        },
-        {
-            "id": "demo-email-4",
-            "From": "newsletter@tech.com",
-            "To": "demo@localhost",
-            "Subject": "技术周刊 #42",
-            "Body": "本周技术要闻：\n\n1. 新的JavaScript框架发布\n2. AI技术最新进展\n3. 云计算趋势分析\n4. 开源项目推荐\n\n阅读全文：https://tech.com/newsletter/42",
-            "ContentType": "text/plain",
-            "Timestamp": current_time - 7200,
-            "Sent": "2小时前",
-            "is_read": True
-        },
-        {
-            "id": "demo-email-5",
-            "From": "admin@localhost",
-            "To": "demo@localhost",
-            "Subject": "系统维护通知",
-            "Body": "尊敬的用户：\n\n我们将在今晚23:00-01:00进行系统维护，期间服务可能暂时中断。\n\n维护内容：\n- 数据库优化\n- 安全更新\n- 性能提升\n\n感谢您的理解与支持！",
-            "ContentType": "text/plain",
-            "Timestamp": current_time - 10800,
-            "Sent": "3小时前",
-            "is_read": True
-        }
-    ]
 
-    return jsonify(demo_emails), 200
+def _get_owned_email(mailbox, email_id):
+    """先验证邮件归属再执行读取或写入，防止跨邮箱 ID 操作。"""
+    from database import db_manager
+    email = db_manager.get_email_by_id(email_id)
+    if not email:
+        return None, (jsonify({
+            'error': 'Email not found',
+            'message': 'The requested email does not exist',
+        }), 404)
+    if email['mailbox_id'] != mailbox['id']:
+        return None, (jsonify({
+            'error': 'Permission denied',
+            'message': 'The email does not belong to the authenticated mailbox',
+        }), 403)
+    return email, None
 
 # Make a random email containing 16 characters
 @bp.route('/get_random_address')
@@ -164,156 +107,55 @@ def get_random_address():
         "available_domains": config.DOMAINS
     }), 200
 
-# 新增：创建数据库邮箱接口（支持时间参数和UUID）
-# 已禁用：防止接口被滥用，只保留管理员注册接口
-# @bp.route('/create_mailbox_v2', methods=['POST'])
-# def create_mailbox_v2():
-#     """
-#     创建邮箱 V2 版本 - 支持数据库存储、自定义时间和UUID
-#     """
-#     # Check IP whitelist
-#     client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
-#     if not inbox_handler.is_ip_whitelisted(client_ip):
-#         return jsonify({"error": "Access denied - IP not whitelisted"}), 403
-#
-#     data = request.get_json()
-#     if not data:
-#         return jsonify({"error": "No data provided"}), 400
-#
-#     # Get parameters
-#     custom_address = data.get('address', '')
-#     sender_whitelist = data.get('sender_whitelist', [])
-#     retention_days = data.get('retention_days', config.MAILBOX_RETENTION_DAYS)
-#     custom_created_time = data.get('created_at')  # 自定义创建时间
-#
-#     # Generate address if not provided
-#     if not custom_address:
-#         random_string = ''.join(random.choices(string.ascii_lowercase + string.digits, k=16))
-#         # 从多个域名中随机选择一个
-#         random_domain = random.choice(config.DOMAINS)
-#         address = f"{random_string}@{random_domain}"
-#     else:
-#         # Validate custom address
-#         if '@' not in custom_address:
-#             # 如果没有指定域名，使用默认域名
-#             address = f"{custom_address}@{config.DOMAIN}"
-#         else:
-#             address = custom_address
-#
-#     # Validate parameters
-#     if not isinstance(sender_whitelist, list):
-#         return jsonify({"error": "sender_whitelist must be an array"}), 400
-#
-#     if retention_days <= 0:
-#         return jsonify({"error": "retention_days must be positive"}), 400
-#
-#     # Validate custom created time
-#     if custom_created_time is not None:
-#         if not isinstance(custom_created_time, int) or custom_created_time <= 0:
-#             return jsonify({"error": "created_at must be a positive integer timestamp"}), 400
-#
-#     try:
-#         if config.USE_DATABASE:
-#             # 使用数据库
-#             # 检查邮箱是否已存在
-#             existing_mailbox = inbox_handler.get_mailbox_info(address)
-#             if existing_mailbox and not existing_mailbox['is_expired']:
-#                 return jsonify({
-#                     "error": "Mailbox already exists",
-#                     "existing_mailbox": {
-#                         "address": existing_mailbox['address'],
-#                         "mailbox_id": existing_mailbox['id'],
-#                         "created_at": existing_mailbox['created_at'],
-#                         "expires_at": existing_mailbox['expires_at']
-#                     }
-#                 }), 409
-#
-#             # 创建邮箱
-#             mailbox = inbox_handler.create_or_get_mailbox(
-#                 address=address,
-#                 retention_days=retention_days,
-#                 sender_whitelist=sender_whitelist,
-#                 created_by_ip=client_ip,
-#                 created_source="api_v2"
-#             )
-#
-#             # 如果指定了自定义创建时间，更新它
-#             if custom_created_time is not None:
-#                 expires_at = custom_created_time + (retention_days * 24 * 60 * 60)
-#                 from database import db_manager
-#                 with db_manager.get_connection() as conn:
-#                     conn.execute('''
-#                         UPDATE mailboxes
-#                         SET created_at = ?, expires_at = ?
-#                         WHERE id = ?
-#                     ''', (custom_created_time, expires_at, mailbox['id']))
-#                     conn.commit()
-#                 mailbox['created_at'] = custom_created_time
-#                 mailbox['expires_at'] = expires_at
-#
-#             return jsonify({
-#                 "success": True,
-#                 "address": address,
-#                 "mailbox_id": mailbox['id'],
-#                 "mailbox_key": mailbox['mailbox_key'],  # 返回邮箱密钥
-#                 "created_at": mailbox['created_at'],
-#                 "expires_at": mailbox['expires_at'],
-#                 "sender_whitelist": sender_whitelist,
-#                 "retention_days": retention_days,
-#                 "available_domains": config.DOMAINS,
-#                 "storage_type": "database",
-#                 "message": "Mailbox created successfully. Please save your mailbox key securely."
-#             }), 201
-#
-#         else:
-#             return jsonify({
-#                 "error": "Database storage not enabled. Use /create_mailbox for JSON storage."
-#             }), 400
-#
-#     except Exception as e:
-#         return jsonify({"error": f"Failed to create mailbox: {str(e)}"}), 500
-
-# 新增：通过邮箱密钥获取访问令牌
 @bp.route('/get_mailbox_token', methods=['POST'])
 def get_mailbox_token():
-    """
-    获取邮箱访问令牌 - 用户通过邮箱地址和密钥获取访问令牌
-    """
-    # Check IP whitelist
+    """使用邮箱地址和密钥换取仅在请求头中使用的访问令牌。"""
     client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
     if not inbox_handler.is_ip_whitelisted(client_ip):
-        return jsonify({"error": "Access denied - IP not whitelisted"}), 403
+        return jsonify({
+            "error": "Access denied - IP not whitelisted",
+            "message": "Your IP address is not allowed",
+        }), 403
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "No data provided"}), 400
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or not data:
+        return jsonify({"error": "No data provided", "message": "Request JSON is required"}), 400
 
-    address = data.get('address', '').strip()
-    mailbox_key = data.get('mailbox_key', '').strip()
+    # 在调用 strip 前限定字符串类型，避免畸形 JSON 把认证失败放大为 500。
+    address_raw = data.get('address', '')
+    mailbox_key_raw = data.get('mailbox_key', '')
+    if not isinstance(address_raw, str) or not isinstance(mailbox_key_raw, str):
+        return jsonify({
+            "error": "Invalid credential types",
+            "message": "Mailbox address and key must be strings",
+        }), 400
+
+    address = address_raw.strip()
+    mailbox_key = mailbox_key_raw.strip()
 
     if not address:
-        return jsonify({"error": "Address is required"}), 400
+        return jsonify({"error": "Address is required", "message": "Mailbox address is required"}), 400
 
     if not mailbox_key:
-        return jsonify({"error": "Mailbox key is required"}), 400
+        return jsonify({"error": "Mailbox key is required", "message": "Mailbox key is required"}), 400
 
     # 验证邮箱地址格式
     if '@' not in address:
-        return jsonify({"error": "Invalid email address format"}), 400
+        return jsonify({"error": "Invalid email address format", "message": "Mailbox address is invalid"}), 400
 
     try:
         if config.USE_DATABASE:
-            # 获取邮箱信息
             mailbox_info = inbox_handler.get_mailbox_info(address)
             if not mailbox_info:
-                return jsonify({"error": "Mailbox not found"}), 404
+                return jsonify({"error": "Mailbox not found", "message": "Mailbox does not exist"}), 404
 
+            stored_key = mailbox_info.get('mailbox_key') or ''
+            if not hmac.compare_digest(stored_key, mailbox_key):
+                return jsonify({"error": "Invalid mailbox key", "message": "Mailbox key is incorrect"}), 401
             if mailbox_info['is_expired']:
-                return jsonify({"error": "Mailbox has expired"}), 410
-
-            # 验证邮箱密钥
-            if mailbox_info['mailbox_key'] != mailbox_key:
-                return jsonify({"error": "Invalid mailbox key"}), 401
+                return jsonify({"error": "Mailbox has expired", "message": "This mailbox has expired"}), 410
+            if not mailbox_info.get('is_active', True):
+                return jsonify({"error": "Mailbox disabled", "message": "This mailbox has been disabled"}), 423
 
             return jsonify({
                 "success": True,
@@ -325,99 +167,13 @@ def get_mailbox_token():
             }), 200
         else:
             return jsonify({
-                "error": "Database storage not enabled. This endpoint requires database storage."
+                "error": "Database storage not enabled",
+                "message": "This endpoint requires database storage",
             }), 400
 
     except Exception as e:
-        return jsonify({"error": f"Failed to get access token: {str(e)}"}), 500
-
-# 新增：用户密码登录接口
-@bp.route('/user_login', methods=['POST'])
-def user_login():
-    """
-    用户密码登录接口 - 用户通过用户名和密码登录，获取邮箱列表
-    """
-    # Check IP whitelist
-    client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
-    if not inbox_handler.is_ip_whitelisted(client_ip):
-        return jsonify({"error": "Access denied - IP not whitelisted"}), 403
-
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "No data provided"}), 400
-
-    username = data.get('username', '').strip()
-    password = data.get('password', '')
-
-    if not username or not password:
-        return jsonify({"error": "Username and password are required"}), 400
-
-    try:
-        if config.USE_DATABASE:
-            # 导入数据库管理器
-            from database import db_manager
-
-            # 获取用户信息
-            user = db_manager.get_user_by_username(username)
-            if not user:
-                return jsonify({"error": "Invalid username or password"}), 401
-
-            # 验证密码 - 使用安全的密码哈希验证
-            if not check_password_hash(user['password_hash'], password):
-                return jsonify({"error": "Invalid username or password"}), 401
-
-            # 更新最后登录时间
-            current_time = int(time.time())
-            with db_manager.get_connection() as conn:
-                conn.execute('''
-                    UPDATE users SET last_login = ? WHERE id = ?
-                ''', (current_time, user['id']))
-                conn.commit()
-
-            # 获取用户的所有邮箱
-            mailboxes = db_manager.get_user_mailboxes(user['id'])
-
-            # 过滤掉过期和非活跃的邮箱
-            active_mailboxes = []
-            for mailbox in mailboxes:
-                if not db_manager.is_mailbox_expired(mailbox) and mailbox.get('is_active', True):
-                    # 获取邮箱统计信息
-                    stats = db_manager.get_mailbox_stats(mailbox['id'])
-                    mailbox_info = {
-                        'id': mailbox['id'],
-                        'address': mailbox['address'],
-                        'access_token': mailbox['access_token'],
-                        'created_at': mailbox['created_at'],
-                        'expires_at': mailbox['expires_at'],
-                        'retention_days': mailbox['retention_days'],
-                        'sender_whitelist': mailbox['sender_whitelist'],
-                        'whitelist_enabled': mailbox.get('whitelist_enabled', False),
-                        'is_active': mailbox.get('is_active', True),
-                        'email_count': stats['total_emails'],
-                        'unread_count': stats['unread_emails'],
-                        'last_email_time': stats['last_email_time']
-                    }
-                    active_mailboxes.append(mailbox_info)
-
-            return jsonify({
-                "success": True,
-                "user": {
-                    "id": user['id'],
-                    "username": user['username'],
-                    "email": user['email'],
-                    "created_at": user['created_at'],
-                    "last_login": current_time
-                },
-                "mailboxes": active_mailboxes,
-                "message": f"Login successful. You have {len(active_mailboxes)} active mailboxes."
-            }), 200
-        else:
-            return jsonify({
-                "error": "Database storage not enabled. User login requires database storage."
-            }), 400
-
-    except Exception as e:
-        return jsonify({"error": f"Login failed: {str(e)}"}), 500
+        print(f"[ERROR] 获取邮箱访问令牌失败: {e}")
+        return jsonify({"error": "Failed to get access token", "message": "Unable to authenticate mailbox"}), 500
 
 # 使用子管理员token创建邮箱
 @bp.route('/register_with_token', methods=['POST'])
@@ -477,12 +233,15 @@ def register_with_token():
     if not inbox_handler.is_ip_whitelisted(client_ip):
         return jsonify({"error": "Access denied - IP not whitelisted"}), 403
 
-    data = request.get_json()
-    if not data:
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or not data:
         return jsonify({"error": "No data provided"}), 400
 
     # Get parameters
-    email_input = data.get('email', '').strip()
+    email_input_raw = data.get('email', '')
+    if not isinstance(email_input_raw, str):
+        return jsonify({"error": "Email address or prefix must be a string"}), 400
+    email_input = email_input_raw.strip()
     retention_days = data.get('retention_days', config.MAILBOX_RETENTION_DAYS)
 
     # Validate required fields
@@ -494,12 +253,13 @@ def register_with_token():
         # User provided full email address
         email = email_input
 
-        # Validate email format
-        if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email):
+        local_part, email_domain = email.rsplit('@', 1) if email.count('@') == 1 else ('', '')
+        # 子管理员输入会在主管理后台展示，严格字符集可从源头阻断存储型 XSS。
+        if (not re.fullmatch(r'[a-zA-Z0-9_]{3,20}', local_part)
+                or not re.fullmatch(r'[a-zA-Z0-9.-]+', email_domain)):
             return jsonify({"error": "Invalid email address format"}), 400
 
         # 验证域名是否在允许的范围内
-        email_domain = email.split('@')[1]
         if email_domain not in allowed_domains:
             return jsonify({
                 "error": "Domain not allowed",
@@ -510,7 +270,7 @@ def register_with_token():
         email_prefix = email_input
 
         # Validate email prefix format
-        if not re.match(r'^[a-zA-Z0-9_]{3,20}$', email_prefix):
+        if not re.fullmatch(r'[a-zA-Z0-9_]{3,20}', email_prefix):
             return jsonify({"error": "Email prefix must be 3-20 characters, letters, numbers, and underscores only"}), 400
 
         # Generate full email address with random domain from allowed domains
@@ -555,6 +315,7 @@ def register_with_token():
             "mailbox_created": True,
             "mailbox_address": email,
             "access_token": mailbox['access_token'],
+            "mailbox_key": mailbox['mailbox_key'],
             "created_at": mailbox['created_at'],
             "expires_at": mailbox['expires_at'],
             "retention_days": retention_days,
@@ -587,6 +348,8 @@ def register():
 
     # Check Authorization header (admin password required for registration)
     admin_password = request.headers.get("Authorization", None)
+    if not config.PASSWORD:
+        return jsonify({"error": "Admin password is not configured"}), 503
     if not admin_password:
         ip_blocker.record_failed_attempt(client_ip)
         return jsonify({
@@ -594,7 +357,7 @@ def register():
             "message": "Registration requires admin password in Authorization header"
         }), 401
 
-    if admin_password != config.PASSWORD:
+    if not hmac.compare_digest(admin_password, config.PASSWORD):
         is_blocked = ip_blocker.record_failed_attempt(client_ip)
         if is_blocked:
             return jsonify({
@@ -607,172 +370,85 @@ def register():
     if not inbox_handler.is_ip_whitelisted(client_ip):
         return jsonify({"error": "Access denied - IP not whitelisted"}), 403
 
-    data = request.get_json()
-    if not data:
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or not data:
         return jsonify({"error": "No data provided"}), 400
 
     # Get parameters
-    email_input = data.get('email', '').strip()
+    email_input_raw = data.get('email', '')
+    if not isinstance(email_input_raw, str):
+        return jsonify({"error": "Email address or prefix must be a string"}), 400
+    email_input = email_input_raw.strip()
     retention_days = data.get('retention_days', config.MAILBOX_RETENTION_DAYS)
-    count = data.get('count', 1)
-
-    # 尽量将前端传入参数转换为整数
-    try:
-        retention_days = int(retention_days)
-    except (TypeError, ValueError):
-        pass
-
-    try:
-        count = int(count)
-    except (TypeError, ValueError):
-        pass
 
     # Validate required fields
     if not email_input:
         return jsonify({"error": "Email address or prefix is required"}), 400
 
+    # Check if user provided full email or just prefix
+    if '@' in email_input:
+        # User provided full email address
+        email = email_input
+
+        local_part, email_domain = email.rsplit('@', 1) if email.count('@') == 1 else ('', '')
+        # 即使调用者是管理员，也要保证落库地址可安全显示且可被 SMTP 域名处理。
+        if (not re.fullmatch(r'[a-zA-Z0-9_]{3,20}', local_part)
+                or not re.fullmatch(r'[a-zA-Z0-9.-]+', email_domain)):
+            return jsonify({"error": "Invalid email address format"}), 400
+    else:
+        # User provided only prefix, add random domain
+        email_prefix = email_input
+
+        # Validate email prefix format (only if it's not a full email)
+        if not re.fullmatch(r'[a-zA-Z0-9_]{3,20}', email_prefix):
+            return jsonify({"error": "Email prefix must be 3-20 characters, letters, numbers, and underscores only"}), 400
+
+        # Generate full email address with random domain
+        random_domain = random.choice(config.DOMAINS)
+        email = f"{email_prefix}@{random_domain}"
+
     # Validate retention days
     if not isinstance(retention_days, int) or retention_days < 1 or retention_days > 365:
         return jsonify({"error": "Retention days must be between 1 and 365"}), 400
 
-    # Validate count
-    if not isinstance(count, int) or count < 1 or count > 100:
-        return jsonify({"error": "Count must be between 1 and 100"}), 400
-
-    def _is_valid_username(username: str) -> bool:
-        """用户名规则：仅英文和数字，长度3-20"""
-        return bool(re.match(r'^[a-zA-Z0-9]{3,20}$', username))
-
-    def _build_single_email(raw_input: str):
-        """构建单个邮箱地址，支持完整邮箱或前缀"""
-        if '@' in raw_input:
-            if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', raw_input):
-                return None, "Invalid email address format"
-
-            local_part = raw_input.split('@', 1)[0]
-            if not _is_valid_username(local_part):
-                return None, "Username must be 3-20 characters, letters and numbers only"
-
-            return raw_input, None
-
-        email_prefix = raw_input
-        if not _is_valid_username(email_prefix):
-            return None, "Email prefix must be 3-20 characters, letters and numbers only"
-
-        random_domain = random.choice(config.DOMAINS)
-        return f"{email_prefix}@{random_domain}", None
-
-    def _build_batch_emails(prefix: str, batch_count: int):
-        """批量构建邮箱地址，格式：prefix + 序号"""
-        if '@' in prefix:
-            return None, "Batch creation only supports username prefix, not full email"
-
-        if not bool(re.match(r'^[a-zA-Z0-9]+$', prefix)):
-            return None, "Username prefix must contain only letters and numbers"
-
-        suffix_len = max(2, len(str(batch_count)))
-        max_prefix_len = 20 - suffix_len
-        if max_prefix_len < 1:
-            return None, "Batch count is too large for username length constraint"
-
-        if len(prefix) < 1 or len(prefix) > max_prefix_len:
-            return None, f"Prefix length must be 1-{max_prefix_len} for count={batch_count}"
-
-        emails = []
-        for index in range(1, batch_count + 1):
-            username = f"{prefix}{index:0{suffix_len}d}"
-            if not _is_valid_username(username):
-                return None, f"Generated username invalid: {username}"
-            random_domain = random.choice(config.DOMAINS)
-            emails.append(f"{username}@{random_domain}")
-
-        return emails, None
-
-    # 生成待创建邮箱列表
-    if count == 1:
-        email, email_error = _build_single_email(email_input)
-        if email_error:
-            return jsonify({"error": email_error}), 400
-        if not email:
-            return jsonify({"error": "Invalid email input"}), 400
-        target_emails = [email]
-    else:
-        target_emails, batch_error = _build_batch_emails(email_input, count)
-        if batch_error:
-            return jsonify({"error": batch_error}), 400
-        if not target_emails:
-            return jsonify({"error": "No emails generated"}), 400
-
     try:
         if config.USE_DATABASE:
-            created_mailboxes = []
-            failed_mailboxes = []
+            # 导入数据库管理器
+            from database import db_manager
 
-            for target_email in target_emails:
-                # 检查邮箱是否已存在
-                existing_mailbox = inbox_handler.get_mailbox_info(target_email)
-                if existing_mailbox and not existing_mailbox['is_expired']:
-                    failed_mailboxes.append({
-                        "address": target_email,
-                        "error": "Mailbox already exists"
-                    })
-                    continue
-
-                try:
-                    mailbox = inbox_handler.create_or_get_mailbox(
-                        address=target_email,
-                        retention_days=retention_days,
-                        sender_whitelist=[],
-                        created_by_ip=client_ip,
-                        created_source="register"
-                    )
-
-                    created_mailboxes.append({
-                        "mailbox_address": target_email,
-                        "access_token": mailbox['access_token'],
-                        "created_at": mailbox['created_at'],
-                        "expires_at": mailbox['expires_at'],
-                        "retention_days": retention_days
-                    })
-                except Exception as create_error:
-                    failed_mailboxes.append({
-                        "address": target_email,
-                        "error": f"Failed to create mailbox: {str(create_error)}"
-                    })
-
-            if not created_mailboxes:
+            # 检查邮箱是否已存在
+            existing_mailbox = inbox_handler.get_mailbox_info(email)
+            if existing_mailbox and not existing_mailbox['is_expired']:
                 return jsonify({
-                    "success": False,
-                    "mailbox_created": False,
-                    "total": count,
-                    "created_count": 0,
-                    "failed_count": len(failed_mailboxes),
-                    "created": [],
-                    "failed": failed_mailboxes,
-                    "error": "No mailbox created"
+                    "error": "Mailbox already exists",
+                    "existing_mailbox": {
+                        "address": existing_mailbox['address'],
+                        "mailbox_id": existing_mailbox['id'],
+                        "created_at": existing_mailbox['created_at'],
+                        "expires_at": existing_mailbox['expires_at']
+                    }
                 }), 409
+
+            # 创建邮箱
+            mailbox = inbox_handler.create_or_get_mailbox(
+                address=email,
+                retention_days=retention_days,
+                sender_whitelist=[],
+                created_by_ip=client_ip,
+                created_source="register"
+            )
 
             result_data = {
                 "success": True,
                 "mailbox_created": True,
-                "total": count,
-                "created_count": len(created_mailboxes),
-                "failed_count": len(failed_mailboxes),
-                "created": created_mailboxes,
-                "failed": failed_mailboxes,
-                "message": "Temporary mailboxes created successfully"
+                "mailbox_address": email,
+                "access_token": mailbox['access_token'],
+                "mailbox_key": mailbox['mailbox_key'],
+                "created_at": mailbox['created_at'],
+                "expires_at": mailbox['expires_at'],
+                "retention_days": retention_days,
+                "message": "Temporary mailbox created successfully"
             }
-
-            # 兼容单个邮箱创建的旧前端字段
-            if len(created_mailboxes) == 1:
-                first_mailbox = created_mailboxes[0]
-                result_data.update({
-                    "mailbox_address": first_mailbox['mailbox_address'],
-                    "access_token": first_mailbox['access_token'],
-                    "created_at": first_mailbox['created_at'],
-                    "expires_at": first_mailbox['expires_at'],
-                    "retention_days": first_mailbox['retention_days']
-                })
 
             return jsonify(result_data), 201
 
@@ -787,149 +463,48 @@ def register():
 # 新增：通过访问令牌获取邮箱信息
 @bp.route('/mailbox_info_v2')
 def get_mailbox_info_v2():
-    """
-    通过访问令牌获取邮箱信息 V2 版本
-    """
-    access_token = request.args.get("token", "")
-    address = request.args.get("address", "")
-
-    if not access_token and not address:
-        return jsonify({"error": "Either token or address is required"}), 400
-
-    # Check IP whitelist
+    """返回当前 Bearer 令牌对应的邮箱公开信息，不回传任何秘密。"""
     client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
     if not inbox_handler.is_ip_whitelisted(client_ip):
-        return jsonify({"error": "Access denied - IP not whitelisted"}), 403
+        return jsonify({
+            "error": "Access denied - IP not whitelisted",
+            "message": "Your IP address is not allowed",
+        }), 403
 
     try:
-        if config.USE_DATABASE:
-            if access_token:
-                # 通过令牌获取
-                from database import db_manager
-                mailbox = db_manager.get_mailbox_by_token(access_token)
-            else:
-                # 通过地址获取
-                mailbox_info = inbox_handler.get_mailbox_info(address)
-                if mailbox_info:
-                    mailbox = {
-                        'id': mailbox_info['id'],
-                        'address': mailbox_info['address'],
-                        'created_at': mailbox_info['created_at'],
-                        'expires_at': mailbox_info['expires_at'],
-                        'retention_days': mailbox_info['retention_days'],
-                        'sender_whitelist': mailbox_info['sender_whitelist'],
-                        'whitelist_enabled': mailbox_info.get('whitelist_enabled', False),
-                        'access_token': mailbox_info['access_token'],
-                        'is_active': mailbox_info.get('is_active', True)
-                    }
-                else:
-                    mailbox = None
+        mailbox, auth_error = _authenticate_mailbox()
+        if auth_error:
+            return auth_error
 
-            if not mailbox:
-                return jsonify({"error": "Mailbox not found"}), 404
-
-            # 检查是否过期
-            from database import db_manager
-            is_expired = db_manager.is_mailbox_expired(mailbox)
-
-            # 获取统计信息
-            stats = db_manager.get_mailbox_stats(mailbox['id'])
-
-            return jsonify({
-                "success": True,
-                "mailbox": {
-                    "id": mailbox['id'],
-                    "address": mailbox['address'],
-                    "access_token": mailbox['access_token'],
-                    "created_at": mailbox['created_at'],
-                    "expires_at": mailbox['expires_at'],
-                    "retention_days": mailbox['retention_days'],
-                    "sender_whitelist": mailbox['sender_whitelist'],
-                    "is_expired": is_expired,
-                    "email_count": stats['total_emails'],
-                    "unread_count": stats['unread_emails'],
-                    "last_email_time": stats['last_email_time']
-                },
-                "storage_type": "database"
-            }), 200
-
-        else:
-            return jsonify({
-                "error": "Database storage not enabled. Use /mailbox_info for JSON storage."
-            }), 400
-
-    except Exception as e:
-        return jsonify({"error": f"Failed to get mailbox info: {str(e)}"}), 500
-
-# 新增：数据迁移接口
-@bp.route('/migrate_to_database', methods=['POST'])
-def migrate_to_database():
-    """
-    将JSON文件数据迁移到数据库
-    """
-    # Check IP whitelist
-    client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
-    if not inbox_handler.is_ip_whitelisted(client_ip):
-        return jsonify({"error": "Access denied - IP not whitelisted"}), 403
-
-    data = request.get_json() or {}
-    json_file_path = data.get('json_file_path', config.INBOX_FILE_NAME)
-
-    try:
-        if not config.USE_DATABASE:
-            return jsonify({
-                "error": "Database storage not enabled. Set USE_DATABASE=true in config."
-            }), 400
-
-        # 执行迁移
-        result = inbox_handler.migrate_from_json_file(json_file_path)
-
+        from database import db_manager
+        stats = db_manager.get_mailbox_stats(mailbox['id'])
         return jsonify({
             "success": True,
-            "migration_result": result,
-            "message": f"Migrated {result['migrated_mailboxes']} mailboxes and {result['migrated_emails']} emails"
+            "mailbox": {
+                "id": mailbox['id'],
+                "address": mailbox['address'],
+                "created_at": mailbox['created_at'],
+                "expires_at": mailbox['expires_at'],
+                "retention_days": mailbox['retention_days'],
+                "sender_whitelist": mailbox['sender_whitelist'],
+                "whitelist_enabled": mailbox.get('whitelist_enabled', False),
+                "is_active": mailbox.get('is_active', True),
+                "is_expired": False,
+                "email_count": stats['total_emails'],
+                "unread_count": stats['unread_emails'],
+                "last_email_time": stats['last_email_time'],
+                "storage_used": stats.get('storage_used', 0),
+                "storage_limit": stats.get('storage_limit', 0),
+            },
+            "storage_type": "database",
         }), 200
 
     except Exception as e:
-        return jsonify({"error": f"Migration failed: {str(e)}"}), 500
-
-# 新增：数据导出接口
-@bp.route('/export_from_database', methods=['POST'])
-def export_from_database():
-    """
-    将数据库数据导出到JSON文件
-    """
-    # Check IP whitelist
-    client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
-    if not inbox_handler.is_ip_whitelisted(client_ip):
-        return jsonify({"error": "Access denied - IP not whitelisted"}), 403
-
-    data = request.get_json() or {}
-    output_file_path = data.get('output_file_path')
-
-    try:
-        if not config.USE_DATABASE:
-            return jsonify({
-                "error": "Database storage not enabled."
-            }), 400
-
-        # 执行导出
-        result = inbox_handler.export_to_json_file(output_file_path)
-
-        if result['success']:
-            return jsonify({
-                "success": True,
-                "export_result": result,
-                "message": f"Exported {result['exported_mailboxes']} mailboxes"
-            }), 200
-        else:
-            return jsonify({
-                "success": False,
-                "error": result['error']
-            }), 500
-
-    except Exception as e:
-        return jsonify({"error": f"Export failed: {str(e)}"}), 500
+        print(f"[ERROR] 获取邮箱信息失败: {e}")
+        return jsonify({
+            "error": "Failed to get mailbox info",
+            "message": "Unable to load mailbox information",
+        }), 500
 
 # Get an email domain
 @bp.route('/get_domain')
@@ -941,217 +516,117 @@ def get_domain():
 
     return jsonify({"domain": config.DOMAIN}), 200
 
-# The main route that serves the website - 支持双重认证机制
 @bp.route('/get_inbox')
 def get_inbox():
-    """
-    获取邮箱邮件列表 - 支持双重认证机制
-    认证方式：
-    1. Token认证：通过access_token参数验证（用户登录后使用）
-    2. 管理员密码认证：通过Authorization头验证（API访问使用）
-    """
-    # Check IP whitelist
+    """获取 Bearer 令牌所属邮箱的邮件列表。"""
     client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
     if not inbox_handler.is_ip_whitelisted(client_ip):
-        return jsonify({"error": "Access denied - IP not whitelisted"}), 403
+        return jsonify({
+            "error": "Access denied - IP not whitelisted",
+            "message": "Your IP address is not allowed",
+        }), 403
 
     addr = request.args.get("address", "")
-    access_token = request.args.get("token", "")  # 新增：支持token认证
-    admin_password = request.headers.get("Authorization", None)
-
-    # 认证逻辑：优先使用token认证，如果没有token则要求管理员密码
-    if not access_token:
-        # API访问模式：要求管理员密码
-        if not admin_password:
-            return jsonify({
-                "error": "Authentication required",
-                "message": "API access requires admin password. Use Authorization header or provide access_token parameter for user login."
-            }), 401
-
-        if admin_password != config.PASSWORD:
-            return jsonify({"error": "Invalid admin password"}), 401
-    else:
-        # Token认证模式：验证访问令牌
-        if config.USE_DATABASE:
-            try:
-                from database import db_manager
-                mailbox = db_manager.get_mailbox_by_token(access_token)
-                if not mailbox:
-                    return jsonify({
-                        "error": "Invalid access token",
-                        "message": "The provided access token is invalid or expired"
-                    }), 401
-
-                # 验证token对应的邮箱地址是否匹配
-                if mailbox['address'] != addr:
-                    return jsonify({
-                        "error": "Token mismatch",
-                        "message": "Access token does not match the requested email address"
-                    }), 401
-
-                # 检查邮箱是否过期
-                if db_manager.is_mailbox_expired(mailbox):
-                    return jsonify({"error": "Mailbox expired"}), 410
-
-            except Exception as e:
-                return jsonify({
-                    "error": "Token validation failed",
-                    "message": f"Failed to validate access token: {str(e)}"
-                }), 500
-        else:
-            return jsonify({
-                "error": "Token authentication requires database storage",
-                "message": "Access token authentication is only available in database mode"
-            }), 400
+    if not addr:
+        return jsonify({
+            "error": "Address is required",
+            "message": "Mailbox address is required",
+        }), 400
 
     try:
-        if config.USE_DATABASE:
-            # 数据库模式 - 支持双重认证
-            if access_token:
-                # Token认证模式：直接使用token获取的邮箱信息
-                from database import db_manager
-                mailbox = db_manager.get_mailbox_by_token(access_token)
-                if not mailbox:
-                    return jsonify({"error": "Invalid access token"}), 401
-            else:
-                # 管理员密码认证模式：通过地址获取邮箱信息
-                mailbox_info = inbox_handler.get_mailbox_info(addr)
-                if not mailbox_info:
-                    return jsonify([]), 200  # Return empty array if mailbox not found
+        mailbox, auth_error = _authenticate_mailbox(addr)
+        if auth_error:
+            return auth_error
 
-                if mailbox_info['is_expired']:
-                    return jsonify({"error": "Mailbox expired"}), 410
-
-                mailbox = {
-                    'id': mailbox_info['id'],
-                    'address': mailbox_info['address'],
-                    'created_at': mailbox_info['created_at'],
-                    'expires_at': mailbox_info['expires_at'],
-                    'retention_days': mailbox_info['retention_days'],
-                    'sender_whitelist': mailbox_info['sender_whitelist'],
-                    'whitelist_enabled': mailbox_info.get('whitelist_enabled', False),
-                    'access_token': mailbox_info['access_token'],
-                    'is_active': mailbox_info.get('is_active', True)
-                }
-
-            # 获取邮件列表
-            emails = inbox_handler.get_emails_by_mailbox(mailbox['id'])
-            return jsonify(emails), 200
-        else:
-            # JSON文件模式（原有逻辑）
-            # inbox = inbox_handler.read_inbox()  # 注释掉这行，因为数据库模式不需要
-
-            # Clean expired emails and mailboxes before returning
-            inbox = inbox_handler.clean_expired_emails(inbox)
-            inbox = inbox_handler.clean_expired_mailboxes(inbox)
-            inbox_handler.write_inbox(inbox)
-
-            # Get mailbox data
-            mailbox_data = inbox.get(addr, {})
-            print(f"[DEBUG] Getting inbox for {addr}, found: {type(mailbox_data)}")
-
-            if not mailbox_data:
-                print(f"[DEBUG] Mailbox {addr} not found")
-                return jsonify([]), 200  # Return empty array instead of error
-
-            if isinstance(mailbox_data, list):  # Old format compatibility
-                print(f"[DEBUG] Old format mailbox with {len(mailbox_data)} emails")
-                address_inbox = mailbox_data
-            else:  # New format
-                if inbox_handler.is_mailbox_expired(mailbox_data):
-                    print(f"[DEBUG] Mailbox {addr} expired")
-                    return jsonify({"error": "Mailbox expired"}), 410
-                address_inbox = mailbox_data.get("emails", [])
-                print(f"[DEBUG] New format mailbox with {len(address_inbox)} emails")
-
-            return jsonify(address_inbox), 200
+        from database import db_manager
+        db_manager.update_mailbox_access(mailbox['id'])
+        emails = inbox_handler.get_emails_by_mailbox(mailbox['id'])
+        return jsonify(emails), 200
     except Exception as e:
-        print(f"[ERROR] Failed to get inbox for {addr}: {str(e)}")
-        return jsonify({"error": "Failed to get inbox"}), 500
+        print(f"[ERROR] 获取邮箱邮件列表失败: {e}")
+        return jsonify({
+            "error": "Failed to get inbox",
+            "message": "Unable to load mailbox messages",
+        }), 500
 
 # Get single email details by ID
 @bp.route('/get_email')
 def get_email():
-    # Check IP whitelist
+    """读取邮箱内的单封邮件，并在返回前验证邮件归属。"""
     client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
     if not inbox_handler.is_ip_whitelisted(client_ip):
-        return jsonify({"error": "Access denied - IP not whitelisted"}), 403
+        return jsonify({
+            "error": "Access denied - IP not whitelisted",
+            "message": "Your IP address is not allowed",
+        }), 403
 
     addr = request.args.get("address", "")
     email_id = request.args.get("id", "")
-    password = request.headers.get("Authorization", None)
 
     if not addr or not email_id:
-        return jsonify({"error": "Missing address or email ID"}), 400
+        return jsonify({
+            "error": "Missing address or email ID",
+            "message": "Mailbox address and email ID are required",
+        }), 400
 
-    if re.match(config.PROTECTED_ADDRESSES, addr) and password != config.PASSWORD:
-        return jsonify({"error": "Unauthorized"}), 401
+    try:
+        mailbox, auth_error = _authenticate_mailbox(addr)
+        if auth_error:
+            return auth_error
+        email, email_error = _get_owned_email(mailbox, email_id)
+        if email_error:
+            return email_error
 
-    inbox = inbox_handler.read_inbox()
-    mailbox_data = inbox.get(addr, {})
-
-    if not mailbox_data:
-        return jsonify({"error": "Mailbox not found"}), 404
-
-    # Get emails list
-    if isinstance(mailbox_data, list):  # Old format
-        emails = mailbox_data
-    else:  # New format
-        if inbox_handler.is_mailbox_expired(mailbox_data):
-            return jsonify({"error": "Mailbox expired"}), 410
-        emails = mailbox_data.get("emails", [])
-
-    # Find email by ID
-    for email in emails:
-        if email.get("id") == email_id:
-            return jsonify(email), 200
-
-    # 如果没有找到匹配的ID，尝试按索引查找（备用方案）
-    if email_id.startswith("email-") and "-" in email_id:
-        try:
-            parts = email_id.split("-")
-            if len(parts) >= 2:
-                index = int(parts[1])
-                if 0 <= index < len(emails):
-                    email = emails[index]
-                    # 确保邮件有ID
-                    if not email.get("id"):
-                        email["id"] = email_id
-                    return jsonify(email), 200
-        except (ValueError, IndexError):
-            pass
-
-    return jsonify({"error": "Email not found"}), 404
+        inbox_handler.mark_email_as_read(email_id)
+        email['is_read'] = True
+        return jsonify(email), 200
+    except Exception as e:
+        print(f"[ERROR] 获取邮件详情失败: {e}")
+        return jsonify({
+            "error": "Failed to get email",
+            "message": "Unable to load the requested email",
+        }), 500
 
 # Admin login endpoint
 @bp.route('/admin_login', methods=['POST'])
 def admin_login():
-    try:
-        data = request.get_json()
-        password = data.get('password', '')
-        client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
+    """验证管理密码，并复用统一 IP 封禁器限制暴力尝试。"""
+    from ip_blocker import ip_blocker
 
-        # Check IP whitelist
-        if not inbox_handler.is_ip_whitelisted(client_ip):
-            return jsonify({"success": False, "message": "IP not whitelisted"}), 403
+    client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
+    if ip_blocker.is_blocked(client_ip):
+        remaining = ip_blocker.get_remaining_block_time(client_ip)
+        return jsonify({
+            "success": False,
+            "message": f"IP已被临时封禁，剩余 {remaining} 秒",
+        }), 403
+    if not inbox_handler.is_ip_whitelisted(client_ip):
+        return jsonify({"success": False, "message": "IP not whitelisted"}), 403
+    if not config.PASSWORD:
+        return jsonify({"success": False, "message": "Admin password is not configured"}), 503
 
-        # Check admin password
-        if password != config.PASSWORD:
-            return jsonify({"success": False, "message": "Invalid password"}), 401
+    data = request.get_json(silent=True)
+    password = data.get('password', '') if isinstance(data, dict) else ''
+    if not isinstance(password, str) or not hmac.compare_digest(password, config.PASSWORD):
+        blocked = ip_blocker.record_failed_attempt(client_ip)
+        status = 403 if blocked else 401
+        message = (
+            f"认证失败次数过多，IP已被封禁 {ip_blocker.block_duration} 秒"
+            if blocked else "Invalid password"
+        )
+        return jsonify({"success": False, "message": message}), status
 
-        return jsonify({"success": True, "message": "Login successful"})
-    except Exception as e:
-        return jsonify({"success": False, "message": "Server error"}), 500
+    return jsonify({"success": True, "message": "Login successful"})
 
 # 邮件管理API接口
 @bp.route('/mark_email_read', methods=['POST'])
 def mark_email_read():
-    """标记邮件为已读/未读"""
+    """标记当前邮箱内的邮件为已读或未读。"""
     client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
     if not inbox_handler.is_ip_whitelisted(client_ip):
         return jsonify({"error": "Access denied - IP not whitelisted"}), 403
 
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     if not data:
         return jsonify({"error": "No data provided"}), 400
 
@@ -1163,6 +638,13 @@ def mark_email_read():
 
     try:
         if config.USE_DATABASE:
+            mailbox, auth_error = _authenticate_mailbox()
+            if auth_error:
+                return auth_error
+            _, email_error = _get_owned_email(mailbox, email_id)
+            if email_error:
+                return email_error
+
             if is_read:
                 inbox_handler.mark_email_as_read(email_id)
             else:
@@ -1175,17 +657,12 @@ def mark_email_read():
 
 @bp.route('/delete_email', methods=['POST'])
 def delete_email():
-    """删除单个邮件"""
+    """删除当前邮箱内的单封邮件。"""
     client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
     if not inbox_handler.is_ip_whitelisted(client_ip):
         return jsonify({"error": "Access denied - IP not whitelisted"}), 403
 
-    # 验证访问令牌
-    access_token = request.args.get('token')
-    if not access_token:
-        return jsonify({"error": "Access token is required"}), 401
-
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     if not data:
         return jsonify({"error": "No data provided"}), 400
 
@@ -1196,23 +673,12 @@ def delete_email():
 
     try:
         if config.USE_DATABASE:
-            from database import db_manager
-
-            # 验证token并获取邮箱
-            mailbox = db_manager.get_mailbox_by_token(access_token)
-            if not mailbox:
-                return jsonify({"error": "Invalid access token"}), 401
-
-            # 验证邮件是否属于该邮箱
-            email = db_manager.get_email_by_id(email_id)
-            if not email:
-                return jsonify({"error": "Email not found", "email_id": email_id}), 404
-
-            if email['mailbox_id'] != mailbox['id']:
-                return jsonify({
-                    "error": "Permission denied",
-                    "detail": f"Email mailbox_id ({email['mailbox_id']}) does not match user mailbox_id ({mailbox['id']})"
-                }), 403
+            mailbox, auth_error = _authenticate_mailbox()
+            if auth_error:
+                return auth_error
+            _, email_error = _get_owned_email(mailbox, email_id)
+            if email_error:
+                return email_error
 
             # 删除邮件
             deleted_count = inbox_handler.delete_email(email_id)
@@ -1227,17 +693,12 @@ def delete_email():
 
 @bp.route('/delete_emails_batch', methods=['POST'])
 def delete_emails_batch():
-    """批量删除邮件"""
+    """批量删除当前邮箱内的邮件。"""
     client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
     if not inbox_handler.is_ip_whitelisted(client_ip):
         return jsonify({"error": "Access denied - IP not whitelisted"}), 403
 
-    # 验证访问令牌
-    access_token = request.args.get('token')
-    if not access_token:
-        return jsonify({"error": "Access token is required"}), 401
-
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     if not data:
         return jsonify({"error": "No data provided"}), 400
 
@@ -1248,37 +709,21 @@ def delete_emails_batch():
 
     try:
         if config.USE_DATABASE:
-            from database import db_manager
+            mailbox, auth_error = _authenticate_mailbox()
+            if auth_error:
+                return auth_error
 
-            # 验证token并获取邮箱
-            mailbox = db_manager.get_mailbox_by_token(access_token)
-            if not mailbox:
-                return jsonify({"error": "Invalid access token"}), 401
-
-            # 批量删除邮件（只删除属于该邮箱的邮件）
-            deleted_count = 0
-            failed_emails = []
+            # 先验证整批归属，避免部分删除后才发现越权 ID。
             for email_id in email_ids:
-                email = db_manager.get_email_by_id(email_id)
-                if not email:
-                    failed_emails.append(f"{email_id}: not found")
-                    continue
+                _, email_error = _get_owned_email(mailbox, email_id)
+                if email_error:
+                    return email_error
 
-                if email['mailbox_id'] != mailbox['id']:
-                    failed_emails.append(f"{email_id}: permission denied (mailbox_id mismatch: {email['mailbox_id']} != {mailbox['id']})")
-                    continue
-
-                result = inbox_handler.delete_email(email_id)
-                if result > 0:
-                    deleted_count += result
-                else:
-                    failed_emails.append(f"{email_id}: delete failed")
-
-            response = {"success": True, "message": f"Deleted {deleted_count} emails"}
-            if failed_emails:
-                response["failed"] = failed_emails
-
-            return jsonify(response), 200
+            deleted_count = sum(inbox_handler.delete_email(email_id) for email_id in email_ids)
+            return jsonify({
+                "success": True,
+                "message": f"Deleted {deleted_count} emails",
+            }), 200
         else:
             return jsonify({"error": "Database storage not enabled"}), 400
     except Exception as e:
@@ -1286,12 +731,12 @@ def delete_emails_batch():
 
 @bp.route('/mark_all_read', methods=['POST'])
 def mark_all_read():
-    """标记所有邮件为已读"""
+    """标记当前邮箱的所有邮件为已读。"""
     client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
     if not inbox_handler.is_ip_whitelisted(client_ip):
         return jsonify({"error": "Access denied - IP not whitelisted"}), 403
 
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     if not data:
         return jsonify({"error": "No data provided"}), 400
 
@@ -1302,11 +747,11 @@ def mark_all_read():
 
     try:
         if config.USE_DATABASE:
-            mailbox_info = inbox_handler.get_mailbox_info(address)
-            if not mailbox_info:
-                return jsonify({"error": "Mailbox not found"}), 404
+            mailbox, auth_error = _authenticate_mailbox(address)
+            if auth_error:
+                return auth_error
 
-            updated_count = inbox_handler.mark_all_emails_read(mailbox_info['id'])
+            updated_count = inbox_handler.mark_all_emails_read(mailbox['id'])
             return jsonify({"success": True, "message": f"Marked {updated_count} emails as read"}), 200
         else:
             return jsonify({"error": "Database storage not enabled"}), 400
@@ -1315,12 +760,12 @@ def mark_all_read():
 
 @bp.route('/add_sender_whitelist', methods=['POST'])
 def add_sender_whitelist():
-    """添加发件人白名单"""
+    """向当前邮箱的发件人白名单添加规则。"""
     client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
     if not inbox_handler.is_ip_whitelisted(client_ip):
         return jsonify({"error": "Access denied - IP not whitelisted"}), 403
 
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     if not data:
         return jsonify({"error": "No data provided"}), 400
 
@@ -1332,6 +777,9 @@ def add_sender_whitelist():
 
     try:
         if config.USE_DATABASE:
+            _, auth_error = _authenticate_mailbox(address)
+            if auth_error:
+                return auth_error
             success = inbox_handler.add_sender_to_whitelist(address, sender)
             if success:
                 return jsonify({"success": True, "message": "Sender added to whitelist"}), 200
@@ -1344,12 +792,12 @@ def add_sender_whitelist():
 
 @bp.route('/remove_sender_whitelist', methods=['POST'])
 def remove_sender_whitelist():
-    """移除发件人白名单"""
+    """从当前邮箱的发件人白名单移除规则。"""
     client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
     if not inbox_handler.is_ip_whitelisted(client_ip):
         return jsonify({"error": "Access denied - IP not whitelisted"}), 403
 
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     if not data:
         return jsonify({"error": "No data provided"}), 400
 
@@ -1361,6 +809,9 @@ def remove_sender_whitelist():
 
     try:
         if config.USE_DATABASE:
+            _, auth_error = _authenticate_mailbox(address)
+            if auth_error:
+                return auth_error
             success = inbox_handler.remove_sender_from_whitelist(address, sender)
             if success:
                 return jsonify({"success": True, "message": "Sender removed from whitelist"}), 200
@@ -1373,12 +824,12 @@ def remove_sender_whitelist():
 
 @bp.route('/update_retention', methods=['POST'])
 def update_retention():
-    """更新邮箱保留时间"""
+    """更新当前邮箱的保留天数。"""
     client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
     if not inbox_handler.is_ip_whitelisted(client_ip):
         return jsonify({"error": "Access denied - IP not whitelisted"}), 403
 
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     if not data:
         return jsonify({"error": "No data provided"}), 400
 
@@ -1393,6 +844,9 @@ def update_retention():
 
     try:
         if config.USE_DATABASE:
+            _, auth_error = _authenticate_mailbox(address)
+            if auth_error:
+                return auth_error
             success = inbox_handler.update_mailbox_retention(address, retention_days)
             if success:
                 return jsonify({"success": True, "message": "Retention period updated"}), 200
@@ -1405,12 +859,12 @@ def update_retention():
 
 @bp.route('/regenerate_mailbox_key', methods=['POST'])
 def regenerate_mailbox_key():
-    """重新生成邮箱密钥"""
+    """重新生成当前邮箱密钥。"""
     client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
     if not inbox_handler.is_ip_whitelisted(client_ip):
         return jsonify({"error": "Access denied - IP not whitelisted"}), 403
 
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     if not data:
         return jsonify({"error": "No data provided"}), 400
 
@@ -1422,6 +876,9 @@ def regenerate_mailbox_key():
 
     try:
         if config.USE_DATABASE:
+            _, auth_error = _authenticate_mailbox(address)
+            if auth_error:
+                return auth_error
             new_key = inbox_handler.regenerate_mailbox_key(address, current_key)
             if new_key:
                 return jsonify({"success": True, "new_key": new_key, "message": "Mailbox key regenerated"}), 200
@@ -1434,12 +891,12 @@ def regenerate_mailbox_key():
 
 @bp.route('/toggle_mailbox_status', methods=['POST'])
 def toggle_mailbox_status():
-    """切换邮箱开启/关闭状态"""
+    """切换当前邮箱的启用状态。"""
     client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
     if not inbox_handler.is_ip_whitelisted(client_ip):
         return jsonify({"error": "Access denied - IP not whitelisted"}), 403
 
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     if not data:
         return jsonify({"error": "No data provided"}), 400
 
@@ -1450,13 +907,12 @@ def toggle_mailbox_status():
 
     try:
         if config.USE_DATABASE:
-            # 获取当前邮箱状态
-            mailbox_info = inbox_handler.get_mailbox_info(address)
-            if not mailbox_info:
-                return jsonify({"error": "Mailbox not found"}), 404
+            mailbox, auth_error = _authenticate_mailbox(address)
+            if auth_error:
+                return auth_error
 
             # 切换状态
-            new_status = not mailbox_info.get('is_active', True)
+            new_status = not mailbox.get('is_active', True)
             success = inbox_handler.update_mailbox_status(address, new_status)
 
             if success:
@@ -1474,12 +930,12 @@ def toggle_mailbox_status():
 
 @bp.route('/toggle_whitelist', methods=['POST'])
 def toggle_whitelist():
-    """切换白名单启用/禁用状态"""
+    """切换当前邮箱的白名单启用状态。"""
     client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
     if not inbox_handler.is_ip_whitelisted(client_ip):
         return jsonify({"error": "Access denied - IP not whitelisted"}), 403
 
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     if not data:
         return jsonify({"error": "No data provided"}), 400
 
@@ -1491,10 +947,9 @@ def toggle_whitelist():
 
     try:
         if config.USE_DATABASE:
-            # 获取当前邮箱信息
-            mailbox_info = inbox_handler.get_mailbox_info(address)
-            if not mailbox_info:
-                return jsonify({"error": "Mailbox not found"}), 404
+            mailbox, auth_error = _authenticate_mailbox(address)
+            if auth_error:
+                return auth_error
 
             # 更新白名单启用状态
             success = inbox_handler.update_whitelist_status(address, enabled)
@@ -1503,7 +958,7 @@ def toggle_whitelist():
                 return jsonify({
                     "success": True,
                     "whitelist_enabled": enabled,
-                    "whitelist": mailbox_info.get('sender_whitelist', []),
+                    "whitelist": mailbox.get('sender_whitelist', []),
                     "message": f"Whitelist {'enabled' if enabled else 'disabled'} successfully"
                 }), 200
             else:
@@ -1512,177 +967,3 @@ def toggle_whitelist():
             return jsonify({"error": "Database storage not enabled"}), 400
     except Exception as e:
         return jsonify({"error": f"Failed to toggle whitelist: {str(e)}"}), 500
-
-# Admin authentication check
-def check_admin_auth():
-    password = request.headers.get("Authorization", None)
-    client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
-
-    # Check IP whitelist
-    if not inbox_handler.is_ip_whitelisted(client_ip):
-        return False, "IP not whitelisted"
-
-    # Check admin password
-    if password != config.PASSWORD:
-        return False, "Invalid password"
-
-    return True, "OK"
-
-# Get current whitelist settings
-@bp.route('/admin/whitelist', methods=['GET'])
-def get_whitelist():
-    is_auth, msg = check_admin_auth()
-    if not is_auth:
-        return jsonify({"error": msg}), 401
-
-    # Convert comma-separated to line-separated format
-    whitelist_lines = config.IP_WHITELIST.replace(',', '\n').strip()
-
-    return jsonify({
-        "enabled": config.ENABLE_IP_WHITELIST,
-        "whitelist": whitelist_lines,
-        "current_ip": request.environ.get('REMOTE_ADDR', 'unknown')
-    }), 200
-
-# Update whitelist settings
-@bp.route('/admin/whitelist', methods=['POST'])
-def update_whitelist():
-    is_auth, msg = check_admin_auth()
-    if not is_auth:
-        return jsonify({"error": msg}), 401
-
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "No data provided"}), 400
-
-    try:
-        # Convert line-separated format to comma-separated for storage
-        whitelist_input = data.get("whitelist", "")
-        whitelist_lines = [line.strip() for line in whitelist_input.split('\n') if line.strip()]
-        whitelist_comma_separated = ','.join(whitelist_lines)
-
-        # Update .env file
-        env_path = '.env'
-        if os.path.exists(env_path):
-            # Always read .env as UTF-8; fallback to system encoding
-            try:
-                with open(env_path, 'r', encoding='utf-8') as f:
-                    lines = f.readlines()
-            except UnicodeDecodeError:
-                with open(env_path, 'r', encoding='utf-8-sig') as f:
-                    lines = f.readlines()
-
-            # Update the lines
-            for i, line in enumerate(lines):
-                if line.startswith('ENABLE_IP_WHITELIST'):
-                    lines[i] = f'ENABLE_IP_WHITELIST = {str(data.get("enabled", True)).lower()}\n'
-                elif line.startswith('IP_WHITELIST'):
-                    lines[i] = f'IP_WHITELIST = "{whitelist_comma_separated}"\n'
-
-            # Ensure keys exist in case they were missing
-            if not any(l.startswith('ENABLE_IP_WHITELIST') for l in lines):
-                lines.append(f'ENABLE_IP_WHITELIST = {str(data.get("enabled", True)).lower()}\n')
-            if not any(l.startswith('IP_WHITELIST') for l in lines):
-                lines.append(f'IP_WHITELIST = "{whitelist_comma_separated}"\n')
-
-            # Write back using UTF-8 to preserve non-ASCII comments
-            with open(env_path, 'w', encoding='utf-8') as f:
-                f.writelines(lines)
-
-            # Update config in memory (requires restart to fully take effect)
-            config.ENABLE_IP_WHITELIST = data.get("enabled", True)
-            config.IP_WHITELIST = whitelist_comma_separated
-
-            return jsonify({"success": True, "message": "Settings updated. Restart required for full effect."}), 200
-        else:
-            return jsonify({"error": ".env file not found"}), 500
-
-    except Exception as e:
-        return jsonify({"error": f"Failed to update settings: {str(e)}"}), 500
-
-# Test IP whitelist
-@bp.route('/admin/test_ip', methods=['POST'])
-def test_ip():
-    is_auth, msg = check_admin_auth()
-    if not is_auth:
-        return jsonify({"error": msg}), 401
-
-    data = request.get_json()
-    test_ip = data.get('ip', '') if data else ''
-
-    if not test_ip:
-        return jsonify({"error": "No IP provided"}), 400
-
-    try:
-        # Temporarily update config for testing
-        original_whitelist = config.IP_WHITELIST
-        original_enabled = config.ENABLE_IP_WHITELIST
-
-        # Convert line-separated format to comma-separated for testing
-        whitelist_input = data.get('whitelist', config.IP_WHITELIST)
-        whitelist_lines = [line.strip() for line in whitelist_input.split('\n') if line.strip()]
-        whitelist_comma_separated = ','.join(whitelist_lines)
-
-        config.IP_WHITELIST = whitelist_comma_separated
-        config.ENABLE_IP_WHITELIST = data.get('enabled', config.ENABLE_IP_WHITELIST)
-
-        is_allowed = inbox_handler.is_ip_whitelisted(test_ip)
-
-        # Restore original config
-        config.IP_WHITELIST = original_whitelist
-        config.ENABLE_IP_WHITELIST = original_enabled
-
-        return jsonify({
-            "ip": test_ip,
-            "allowed": is_allowed,
-            "message": "IP is allowed" if is_allowed else "IP is blocked"
-        }), 200
-
-    except Exception as e:
-        return jsonify({"error": f"Test failed: {str(e)}"}), 500
-
-# Send test email via API
-@bp.route('/send_test_email', methods=['POST'])
-def send_test_email():
-    # Check IP whitelist
-    client_ip = request.environ.get('REMOTE_ADDR', 'unknown')
-    if not inbox_handler.is_ip_whitelisted(client_ip):
-        return jsonify({"error": "Access denied - IP not whitelisted"}), 403
-
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "No data provided"}), 400
-
-    to_email = data.get('to', '').strip()
-    from_email = data.get('from', '').strip()
-    subject = data.get('subject', '').strip()
-    body = data.get('body', '').strip()
-
-    if not all([to_email, from_email, subject]):
-        return jsonify({"error": "Missing required fields: to, from, subject"}), 400
-
-    try:
-        import smtplib
-        from email.mime.text import MIMEText
-
-        # 连接到本地SMTP服务器
-        print(f"[DEBUG] Connecting to SMTP server at localhost:{config.SMTP_PORT}")
-        smtp_server = smtplib.SMTP('localhost', config.SMTP_PORT)
-        print(f"[DEBUG] Connected to SMTP server successfully")
-
-        # 创建邮件
-        msg = MIMEText(body, 'plain', 'utf-8')
-        msg['Subject'] = subject
-        msg['From'] = from_email
-        msg['To'] = to_email
-
-        # 发送邮件
-        print(f"[DEBUG] Sending email from {from_email} to {to_email}")
-        smtp_server.send_message(msg)
-        smtp_server.quit()
-        print(f"[DEBUG] Email sent successfully")
-
-        return jsonify({"message": "Email sent successfully"}), 200
-
-    except Exception as e:
-        return jsonify({"error": f"Failed to send email: {str(e)}"}), 500

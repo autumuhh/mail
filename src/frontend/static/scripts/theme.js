@@ -1,151 +1,135 @@
-// 主题切换功能
-(function() {
+// 全站主题只保存视觉偏好；邮箱地址、密钥和 API 凭据不经过本模块。
+(function () {
     'use strict';
-    
-    // 主题管理类
+
+    const STORAGE_KEY = 'maildrop_theme';
+    const THEMES = Object.freeze(['auto', 'light', 'dark']);
+    const LABELS = Object.freeze({
+        auto: '跟随系统',
+        light: '浅色',
+        dark: '深色'
+    });
+
     class ThemeManager {
         constructor() {
-            this.currentTheme = this.getStoredTheme() || 'light';
-            this.themeToggle = null;
-            this.init();
+            this.currentTheme = this.readTheme();
+            this.applyTheme(this.currentTheme, false);
+            this.bindWhenReady();
+            this.bindSystemPreference();
         }
 
-        init() {
-            // 设置初始主题
-            this.applyTheme(this.currentTheme);
+        readTheme() {
+            try {
+                const saved = sessionStorage.getItem(STORAGE_KEY);
+                return THEMES.includes(saved) ? saved : 'auto';
+            } catch (error) {
+                console.warn('无法读取主题偏好，将跟随系统主题。');
+                return 'auto';
+            }
+        }
 
-            // 等待DOM加载完成后绑定事件
+        storeTheme(theme) {
+            try {
+                sessionStorage.setItem(STORAGE_KEY, theme);
+            } catch (error) {
+                console.warn('无法保存主题偏好，本次会话仍可继续使用。');
+            }
+        }
+
+        bindWhenReady() {
             if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', () => this.bindEvents());
+                document.addEventListener('DOMContentLoaded', () => this.bindEvents(), { once: true });
             } else {
                 this.bindEvents();
             }
         }
 
         bindEvents() {
-            // 不在这里绑定点击事件，因为HTML中使用了onclick
-            // 只添加键盘快捷键支持
-            document.addEventListener('keydown', (e) => {
-                if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'T') {
-                    e.preventDefault();
+            document.querySelectorAll('#theme-toggle, [data-theme-toggle]').forEach((button) => {
+                // 兼容后台现有内联调用，避免同一次点击被切换两次。
+                if (!String(button.getAttribute('onclick') || '').includes('toggleTheme')) {
+                    button.addEventListener('click', () => this.toggleTheme());
+                }
+                this.updateButton(button);
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 't') {
+                    event.preventDefault();
                     this.toggleTheme();
                 }
             });
         }
-        
-        getStoredTheme() {
-            try {
-                return localStorage.getItem('theme');
-            } catch (e) {
-                console.warn('无法访问localStorage，使用默认主题');
-                return null;
+
+        bindSystemPreference() {
+            if (!window.matchMedia) {
+                return;
             }
+            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            mediaQuery.addEventListener('change', () => {
+                if (this.currentTheme === 'auto') {
+                    this.dispatchThemeChange();
+                }
+            });
         }
-        
-        storeTheme(theme) {
-            try {
-                localStorage.setItem('theme', theme);
-            } catch (e) {
-                console.warn('无法保存主题设置到localStorage');
+
+        applyTheme(theme, persist = true) {
+            const safeTheme = THEMES.includes(theme) ? theme : 'auto';
+            document.documentElement.dataset.theme = safeTheme;
+            this.currentTheme = safeTheme;
+            if (persist) {
+                this.storeTheme(safeTheme);
             }
+            document.querySelectorAll('#theme-toggle, [data-theme-toggle]').forEach((button) => this.updateButton(button));
+            this.dispatchThemeChange();
         }
-        
-        applyTheme(theme) {
-            const html = document.documentElement;
 
-            console.log('应用主题:', theme);
-
-            if (theme === 'dark') {
-                html.setAttribute('data-theme', 'dark');
-            } else {
-                html.removeAttribute('data-theme');
+        resolvedTheme() {
+            if (this.currentTheme !== 'auto') {
+                return this.currentTheme;
             }
+            return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
 
-            this.currentTheme = theme;
-            this.storeTheme(theme);
-
-            console.log('当前HTML data-theme属性:', html.getAttribute('data-theme'));
-
-            // 触发主题变更事件
-            this.dispatchThemeChangeEvent(theme);
+        updateButton(button) {
+            if (!(button instanceof HTMLElement)) {
+                return;
+            }
+            const label = LABELS[this.currentTheme];
+            button.setAttribute('aria-label', `主题：${label}`);
+            button.title = `当前主题：${label}，点击切换`;
+            button.dataset.themeValue = this.currentTheme;
         }
 
         toggleTheme() {
-            console.log('切换主题，当前主题:', this.currentTheme);
-            const newTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
-            console.log('新主题:', newTheme);
-            this.applyTheme(newTheme);
+            const index = THEMES.indexOf(this.currentTheme);
+            const next = THEMES[(index + 1) % THEMES.length];
+            this.applyTheme(next);
+            return next;
+        }
 
-            // 添加切换动画效果
-            this.addToggleAnimation();
-        }
-        
-        addToggleAnimation() {
-            const themeToggle = document.getElementById('theme-toggle');
-            if (themeToggle) {
-                themeToggle.style.transform = 'scale(0.95)';
-                setTimeout(() => {
-                    themeToggle.style.transform = 'scale(1)';
-                }, 150);
-            }
-        }
-        
-        dispatchThemeChangeEvent(theme) {
-            const event = new CustomEvent('themechange', {
-                detail: { theme: theme }
-            });
-            document.dispatchEvent(event);
-        }
-        
-        // 获取当前主题
-        getCurrentTheme() {
-            return this.currentTheme;
-        }
-        
-        // 设置特定主题
         setTheme(theme) {
-            if (theme === 'light' || theme === 'dark') {
-                this.applyTheme(theme);
+            if (!THEMES.includes(theme)) {
+                return false;
             }
+            this.applyTheme(theme);
+            return true;
+        }
+
+        dispatchThemeChange() {
+            document.dispatchEvent(new CustomEvent('themechange', {
+                detail: {
+                    theme: this.currentTheme,
+                    resolvedTheme: this.resolvedTheme()
+                }
+            }));
         }
     }
-    
-    // 创建全局主题管理器实例
-    window.themeManager = new ThemeManager();
-    
-    // 监听系统主题变化（可选功能）
-    if (window.matchMedia) {
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        mediaQuery.addEventListener('change', (e) => {
-            // 只有在用户没有手动设置主题时才跟随系统
-            if (!localStorage.getItem('theme')) {
-                const systemTheme = e.matches ? 'dark' : 'light';
-                window.themeManager.setTheme(systemTheme);
-            }
-        });
-    }
-    
-    // 导出主题管理器到全局作用域
+
+    const manager = new ThemeManager();
+    window.themeManager = manager;
     window.ThemeManager = ThemeManager;
+    window.toggleTheme = () => manager.toggleTheme();
+    window.setTheme = (theme) => manager.setTheme(theme);
+    window.getCurrentTheme = () => manager.currentTheme;
 })();
-
-// 主题切换工具函数
-window.toggleTheme = function() {
-    console.log('toggleTheme被调用');
-    if (window.themeManager) {
-        console.log('themeManager存在，调用toggleTheme');
-        window.themeManager.toggleTheme();
-    } else {
-        console.error('themeManager不存在！');
-    }
-};
-
-window.setTheme = function(theme) {
-    if (window.themeManager) {
-        window.themeManager.setTheme(theme);
-    }
-};
-
-window.getCurrentTheme = function() {
-    return window.themeManager ? window.themeManager.getCurrentTheme() : 'dark';
-};

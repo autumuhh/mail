@@ -1,12 +1,17 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="auto">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <meta name="robots" content="noindex,nofollow">
+    <meta name="referrer" content="no-referrer">
+    <!-- 管理入口不参与索引，但仍向辅助技术说明页面用途。 -->
+    <meta name="description" content="Maildrop 管理后台，用于维护邮箱、审计记录与服务配置。">
     <title>邮箱管理 - TempMail Admin</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>📧</text></svg>">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='icons/favicon.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/ui_foundation.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/admin_mailbox.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="admin-container">
@@ -14,52 +19,52 @@
         <aside class="sidebar">
             <div class="sidebar-header">
                 <div class="logo">
-                    <i class="fas fa-shield-alt"></i>
+                    <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#shield"></use></svg>
                     <span>TempMail Admin</span>
                 </div>
             </div>
             
             <nav class="sidebar-nav">
                 <ul>
-                    <li class="nav-item active" data-view="dashboard">
-                        <i class="fas fa-chart-line"></i>
+                    <li class="nav-item active" data-view="dashboard" role="button" tabindex="0">
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#dashboard"></use></svg>
                         <span>仪表板</span>
                     </li>
-                    <li class="nav-item" data-view="mailboxes">
-                        <i class="fas fa-inbox"></i>
+                    <li class="nav-item" data-view="mailboxes" role="button" tabindex="0">
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#inbox"></use></svg>
                         <span>邮箱管理</span>
                     </li>
-                    <li class="nav-item" data-view="audit">
-                        <i class="fas fa-history"></i>
+                    <li class="nav-item" data-view="audit" role="button" tabindex="0">
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#audit"></use></svg>
                         <span>审计日志</span>
                     </li>
-                    <li class="nav-item" data-view="security">
-                        <i class="fas fa-shield-alt"></i>
+                    <li class="nav-item" data-view="security" role="button" tabindex="0">
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#shield"></use></svg>
                         <span>安全监控</span>
                     </li>
-                    <li class="nav-item" data-view="register">
-                        <i class="fas fa-user-plus"></i>
-                        <span>用户注册</span>
+                    <li class="nav-item" data-view="register" role="button" tabindex="0">
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#user-plus"></use></svg>
+                        <span>邮箱创建</span>
                     </li>
-                    <li class="nav-item" data-view="sub-admins">
-                        <i class="fas fa-users-cog"></i>
+                    <li class="nav-item" data-view="sub-admins" role="button" tabindex="0">
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#users"></use></svg>
                         <span>子管理员</span>
                     </li>
-                    <li class="nav-item" data-view="settings">
-                        <i class="fas fa-cog"></i>
+                    <li class="nav-item" data-view="settings" role="button" tabindex="0">
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#settings"></use></svg>
                         <span>系统设置</span>
                     </li>
                 </ul>
             </nav>
             
             <div class="sidebar-footer">
-                <button class="btn btn-theme-toggle" onclick="toggleTheme()" title="切换主题">
-                    <span class="icon sun-icon">☀️</span>
-                    <span class="icon moon-icon">🌙</span>
+                <button class="btn btn-theme-toggle" onclick="toggleTheme()" title="切换主题" aria-label="切换主题">
+                    <span class="theme-icon sun-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="/static/icons/maildrop-icons.svg#sun"></use></svg></span>
+                    <span class="theme-icon moon-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="/static/icons/maildrop-icons.svg#theme"></use></svg></span>
                     <span class="theme-text">切换主题</span>
                 </button>
                 <button class="btn btn-logout" onclick="logout()">
-                    <i class="fas fa-sign-out-alt"></i>
+                    <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#logout"></use></svg>
                     <span>退出登录</span>
                 </button>
             </div>
@@ -72,200 +77,200 @@
                 <div class="login-container">
                     <div class="login-card">
                         <div class="login-header">
-                            <i class="fas fa-shield-alt"></i>
+                            <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#shield"></use></svg>
                             <h2>管理员登录</h2>
                             <p>TempMail 临时邮箱管理系统</p>
                         </div>
                         <form id="login-form">
                             <div class="form-group">
                                 <label for="admin-password">
-                                    <i class="fas fa-lock"></i>
+                                    <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#lock"></use></svg>
                                     管理员密码
                                 </label>
                                 <input type="password" id="admin-password" placeholder="请输入管理员密码" required autocomplete="current-password">
                             </div>
                             <button type="submit" class="btn btn-primary btn-block">
-                                <i class="fas fa-sign-in-alt"></i>
+                                <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#arrow-right"></use></svg>
                                 <span>登录</span>
                             </button>
                         </form>
                         <div id="login-error" class="error-message"></div>
                         <div class="login-footer">
-                            <p><i class="fas fa-info-circle"></i> 请使用管理员密码登录系统</p>
+                            <p><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#info"></use></svg> 请使用管理员密码登录系统</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 仪表板视图 -->
+                <!-- 仪表板视图 -->
             <div class="view dashboard-view" id="dashboard-view" style="display: none;">
-                <!-- 欢迎横幅 -->
-                <div class="welcome-banner">
-                    <div class="welcome-content">
-                        <h1><i class="fas fa-hand-sparkles"></i> 欢迎回来，管理员！</h1>
-                        <p>这是您的 TempMail 管理控制台，您可以在这里管理所有临时邮箱</p>
+                <div class="dashboard-content-scroll">
+                    <!-- 欢迎横幅 -->
+                    <div class="welcome-banner">
+                        <div class="welcome-content">
+                            <h1><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#activity"></use></svg> 欢迎回来</h1>
+                            <p>TempMail 管理控制台</p>
+                        </div>
+                        <div class="welcome-time">
+                            <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#clock"></use></svg>
+                            <span id="current-time"></span>
+                        </div>
                     </div>
-                    <div class="welcome-time">
-                        <i class="fas fa-clock"></i>
-                        <span id="current-time"></span>
-                    </div>
-                </div>
 
-                <div class="view-header">
-                    <h2><i class="fas fa-chart-line"></i> 系统概览</h2>
-                </div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#inbox"></use></svg>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="stat-total-mailboxes">0</div>
+                                <div class="stat-label">总邮箱数</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);">
+                                <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#check-circle"></use></svg>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="stat-active-mailboxes">0</div>
+                                <div class="stat-label">活跃邮箱</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);">
+                                <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#clock"></use></svg>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="stat-expired-mailboxes">0</div>
+                                <div class="stat-label">过期邮箱</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);">
+                                <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#alert-circle"></use></svg>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="stat-disabled-mailboxes">0</div>
+                                <div class="stat-label">禁用邮箱</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);">
+                                <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#mail"></use></svg>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="stat-total-emails">0</div>
+                                <div class="stat-label">总邮件数</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%);">
+                                <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#mail"></use></svg>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="stat-unread-emails">0</div>
+                                <div class="stat-label">未读邮件</div>
+                            </div>
+                        </div>
+                    </div>
 
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                            <i class="fas fa-inbox"></i>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-value" id="stat-total-mailboxes">0</div>
-                            <div class="stat-label">总邮箱数</div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);">
-                            <i class="fas fa-check-circle"></i>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-value" id="stat-active-mailboxes">0</div>
-                            <div class="stat-label">活跃邮箱</div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-value" id="stat-expired-mailboxes">0</div>
-                            <div class="stat-label">过期邮箱</div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);">
-                            <i class="fas fa-ban"></i>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-value" id="stat-disabled-mailboxes">0</div>
-                            <div class="stat-label">禁用邮箱</div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);">
-                            <i class="fas fa-envelope"></i>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-value" id="stat-total-emails">0</div>
-                            <div class="stat-label">总邮件数</div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%);">
-                            <i class="fas fa-envelope-open"></i>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-value" id="stat-unread-emails">0</div>
-                            <div class="stat-label">未读邮件</div>
-                        </div>
-                    </div>
-                </div>
+                    <div class="dashboard-panels">
+                        <!-- 快速操作 -->
+                        <div class="quick-actions-section" style="margin-bottom: 0;">
+                            <h3><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#activity"></use></svg> 快速操作</h3>
+                            <div class="quick-actions-grid" style="grid-template-columns: repeat(2, 1fr);">
+                                <button class="quick-action-card" onclick="document.querySelector('[data-view=register]').click()">
+                                    <div class="quick-action-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#plus"></use></svg>
+                                    </div>
+                                    <div class="quick-action-content">
+                                        <h4>创建邮箱</h4>
+                                        <p>新临时邮箱</p>
+                                    </div>
+                                </button>
 
-                <!-- 快速操作 -->
-                <div class="quick-actions-section">
-                    <h3><i class="fas fa-bolt"></i> 快速操作</h3>
-                    <div class="quick-actions-grid">
-                        <button class="quick-action-card" onclick="document.querySelector('[data-view=register]').click()">
-                            <div class="quick-action-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                                <i class="fas fa-plus-circle"></i>
-                            </div>
-                            <div class="quick-action-content">
-                                <h4>创建邮箱</h4>
-                                <p>快速创建新的临时邮箱</p>
-                            </div>
-                        </button>
+                                <button class="quick-action-card" onclick="document.querySelector('[data-view=mailboxes]').click()">
+                                    <div class="quick-action-icon" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);">
+                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#list"></use></svg>
+                                    </div>
+                                    <div class="quick-action-content">
+                                        <h4>邮箱列表</h4>
+                                        <p>管理所有邮箱</p>
+                                    </div>
+                                </button>
 
-                        <button class="quick-action-card" onclick="document.querySelector('[data-view=mailboxes]').click()">
-                            <div class="quick-action-icon" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);">
-                                <i class="fas fa-list"></i>
-                            </div>
-                            <div class="quick-action-content">
-                                <h4>邮箱列表</h4>
-                                <p>查看和管理所有邮箱</p>
-                            </div>
-                        </button>
+                                <button class="quick-action-card" onclick="document.querySelector('[data-view=audit]').click()">
+                                    <div class="quick-action-icon" style="background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);">
+                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#audit"></use></svg>
+                                    </div>
+                                    <div class="quick-action-content">
+                                        <h4>审计日志</h4>
+                                        <p>系统操作记录</p>
+                                    </div>
+                                </button>
 
-                        <button class="quick-action-card" onclick="document.querySelector('[data-view=audit]').click()">
-                            <div class="quick-action-icon" style="background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);">
-                                <i class="fas fa-history"></i>
+                                <button class="quick-action-card" onclick="document.querySelector('[data-view=settings]').click()">
+                                    <div class="quick-action-icon" style="background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);">
+                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#settings"></use></svg>
+                                    </div>
+                                    <div class="quick-action-content">
+                                        <h4>系统设置</h4>
+                                        <p>配置参数</p>
+                                    </div>
+                                </button>
                             </div>
-                            <div class="quick-action-content">
-                                <h4>审计日志</h4>
-                                <p>查看系统操作记录</p>
-                            </div>
-                        </button>
+                        </div>
 
-                        <button class="quick-action-card" onclick="document.querySelector('[data-view=settings]').click()">
-                            <div class="quick-action-icon" style="background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);">
-                                <i class="fas fa-cog"></i>
-                            </div>
-                            <div class="quick-action-content">
-                                <h4>系统设置</h4>
-                                <p>配置系统参数</p>
-                            </div>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 系统信息 -->
-                <div class="system-info-section">
-                    <h3><i class="fas fa-info-circle"></i> 系统信息</h3>
-                    <div class="info-cards-grid">
-                        <div class="info-card">
-                            <div class="info-icon">
-                                <i class="fas fa-server"></i>
-                            </div>
-                            <div class="info-content">
-                                <div class="info-label">系统状态</div>
-                                <div class="info-value">
-                                    <span class="status-badge active">运行中</span>
+                        <!-- 系统信息 -->
+                        <div class="system-info-section" style="margin-bottom: 0;">
+                            <h3><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#info"></use></svg> 系统信息</h3>
+                            <div class="info-cards-grid" style="grid-template-columns: 1fr;">
+                                <div class="info-card">
+                                    <div class="info-icon">
+                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#server"></use></svg>
+                                    </div>
+                                    <div class="info-content">
+                                        <div class="info-label">系统状态</div>
+                                        <div class="info-value">
+                                            <span class="status-badge active" style="padding: 2px 8px; font-size: 12px;">运行中</span>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
 
-                        <div class="info-card">
-                            <div class="info-icon">
-                                <i class="fas fa-database"></i>
-                            </div>
-                            <div class="info-content">
-                                <div class="info-label">数据库</div>
-                                <div class="info-value">SQLite</div>
-                            </div>
-                        </div>
+                                <div class="info-card">
+                                    <div class="info-icon">
+                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#database"></use></svg>
+                                    </div>
+                                    <div class="info-content">
+                                        <div class="info-label">数据库</div>
+                                        <div class="info-value" style="font-size: 14px;">SQLite</div>
+                                    </div>
+                                </div>
 
-                        <div class="info-card">
-                            <div class="info-icon">
-                                <i class="fas fa-code-branch"></i>
-                            </div>
-                            <div class="info-content">
-                                <div class="info-label">版本</div>
-                                <div class="info-value">v1.0.0</div>
-                            </div>
-                        </div>
+                                <div class="info-card">
+                                    <div class="info-icon">
+                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#layers"></use></svg>
+                                    </div>
+                                    <div class="info-content">
+                                        <div class="info-label">版本</div>
+                                        <div class="info-value" style="font-size: 14px;">v1.0.0</div>
+                                    </div>
+                                </div>
 
-                        <div class="info-card">
-                            <div class="info-icon">
-                                <i class="fas fa-calendar-alt"></i>
-                            </div>
-                            <div class="info-content">
-                                <div class="info-label">运行时间</div>
-                                <div class="info-value" id="uptime">计算中...</div>
+                                <div class="info-card">
+                                    <div class="info-icon">
+                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#calendar"></use></svg>
+                                    </div>
+                                    <div class="info-content">
+                                        <div class="info-label">运行时间</div>
+                                        <div class="info-value" id="uptime" style="font-size: 14px;">计算中...</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -275,14 +280,14 @@
             <!-- 邮箱管理视图 -->
             <div class="view mailboxes-view" id="mailboxes-view" style="display: none;">
                 <div class="view-header">
-                    <h2><i class="fas fa-inbox"></i> 邮箱管理</h2>
+                    <h2><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#inbox"></use></svg> 邮箱管理</h2>
                     <div class="view-actions">
                         <button class="btn btn-danger" id="batch-delete-btn" onclick="batchDeleteMailboxes()" style="display: none;">
-                            <i class="fas fa-trash"></i>
+                            <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#trash"></use></svg>
                             批量删除 (<span id="selected-count">0</span>)
                         </button>
                         <button class="btn btn-primary" onclick="document.querySelector('[data-view=register]').click()">
-                            <i class="fas fa-plus"></i>
+                            <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#plus"></use></svg>
                             创建邮箱
                         </button>
                     </div>
@@ -291,7 +296,7 @@
                 <!-- 搜索和筛选 -->
                 <div class="filter-bar">
                     <div class="search-box">
-                        <i class="fas fa-search"></i>
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#search"></use></svg>
                         <input type="text" id="search-input" placeholder="搜索邮箱地址或ID...">
                     </div>
                     <div class="filter-buttons">
@@ -302,20 +307,20 @@
                     </div>
                     <div class="source-filter">
                         <label for="source-filter-select">
-                            <i class="fas fa-filter"></i>
+                            <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#filter"></use></svg>
                             来源：
                         </label>
                         <select id="source-filter-select" onchange="changeSourceFilter(this.value)">
                             <option value="all">全部</option>
                             <option value="admin">管理员</option>
-                            <option value="register">注册</option>
+                            <option value="register">自助创建</option>
                             <option value="api_v2">API</option>
                             <option value="unknown">未知</option>
                         </select>
                     </div>
                     <div class="page-size-selector">
                         <label for="page-size-select">
-                            <i class="fas fa-list"></i>
+                            <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#list"></use></svg>
                             每页显示：
                         </label>
                         <select id="page-size-select" onchange="changePageSize(this.value)">
@@ -326,7 +331,7 @@
                         </select>
                     </div>
                     <button class="btn btn-secondary" onclick="refreshMailboxList()">
-                        <i class="fas fa-sync-alt"></i>
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#refresh"></use></svg>
                         刷新
                     </button>
                 </div>
@@ -352,7 +357,7 @@
                         <tbody id="mailbox-list">
                             <tr>
                                 <td colspan="9" class="loading-row">
-                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <svg class="icon is-spinning" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#spinner"></use></svg>
                                     加载中...
                                 </td>
                             </tr>
@@ -369,9 +374,9 @@
             <!-- 审计日志视图 -->
             <div class="view audit-view" id="audit-view" style="display: none;">
                 <div class="view-header">
-                    <h2><i class="fas fa-history"></i> 审计日志</h2>
+                    <h2><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#audit"></use></svg> 审计日志</h2>
                     <button class="btn btn-secondary" onclick="refreshAuditLogs()">
-                        <i class="fas fa-sync-alt"></i>
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#refresh"></use></svg>
                         刷新
                     </button>
                 </div>
@@ -391,7 +396,7 @@
                         <tbody id="audit-log-list">
                             <tr>
                                 <td colspan="6" class="loading-row">
-                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <svg class="icon is-spinning" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#spinner"></use></svg>
                                     加载中...
                                 </td>
                             </tr>
@@ -403,16 +408,16 @@
             <!-- 安全监控视图 -->
             <div class="view security-view" id="security-view" style="display: none;">
                 <div class="view-header">
-                    <h2><i class="fas fa-shield-alt"></i> 安全监控</h2>
+                    <h2><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#shield"></use></svg> 安全监控</h2>
                     <button class="btn btn-secondary" onclick="refreshSecurityInfo()">
-                        <i class="fas fa-sync-alt"></i>
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#refresh"></use></svg>
                         刷新
                     </button>
                 </div>
 
                 <!-- 被封禁的IP -->
                 <div class="security-section">
-                    <h3><i class="fas fa-ban"></i> 被封禁的IP地址</h3>
+                    <h3><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#alert-circle"></use></svg> 被封禁的IP地址</h3>
                     <div class="blocked-ips-container">
                         <table class="security-table">
                             <thead>
@@ -425,7 +430,7 @@
                             <tbody id="blocked-ips-list">
                                 <tr>
                                     <td colspan="3" class="loading-row">
-                                        <i class="fas fa-spinner fa-spin"></i>
+                                        <svg class="icon is-spinning" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#spinner"></use></svg>
                                         加载中...
                                     </td>
                                 </tr>
@@ -436,11 +441,11 @@
 
                 <!-- 创建来源统计 -->
                 <div class="security-section">
-                    <h3><i class="fas fa-chart-pie"></i> 邮箱创建来源统计</h3>
+                    <h3><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#dashboard"></use></svg> 邮箱创建来源统计</h3>
                     <div class="source-stats-container">
                         <div class="stats-grid" id="source-stats-grid">
                             <div class="stat-card">
-                                <div class="stat-icon"><i class="fas fa-spinner fa-spin"></i></div>
+                                <div class="stat-icon"><svg class="icon is-spinning" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#spinner"></use></svg></div>
                                 <div class="stat-info">
                                     <div class="stat-label">加载中...</div>
                                     <div class="stat-value">-</div>
@@ -452,12 +457,12 @@
 
                 <!-- 封禁配置 -->
                 <div class="security-section">
-                    <h3><i class="fas fa-cog"></i> 封禁配置</h3>
+                    <h3><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#settings"></use></svg> 封禁配置</h3>
                     <div class="config-form">
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="config-block-duration">
-                                    <i class="fas fa-clock"></i>
+                                    <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#clock"></use></svg>
                                     封禁时长（秒）
                                 </label>
                                 <input type="number" id="config-block-duration" min="60" max="86400" step="60" value="300">
@@ -465,7 +470,7 @@
                             </div>
                             <div class="form-group">
                                 <label for="config-max-attempts">
-                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#alert-triangle"></use></svg>
                                     最大失败次数
                                 </label>
                                 <input type="number" id="config-max-attempts" min="1" max="10" value="3">
@@ -473,7 +478,7 @@
                             </div>
                             <div class="form-group">
                                 <label for="config-attempt-window">
-                                    <i class="fas fa-hourglass-half"></i>
+                                    <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#hourglass"></use></svg>
                                     尝试窗口时间（秒）
                                 </label>
                                 <input type="number" id="config-attempt-window" min="30" max="600" step="30" value="60">
@@ -481,16 +486,16 @@
                             </div>
                         </div>
                         <div class="config-note">
-                            <i class="fas fa-info-circle"></i>
+                            <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#info"></use></svg>
                             在窗口时间内失败次数超过最大值将被封禁指定时长
                         </div>
                         <div class="config-actions">
                             <button class="btn btn-primary" onclick="saveSecurityConfig()">
-                                <i class="fas fa-save"></i>
+                                <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#save"></use></svg>
                                 保存配置
                             </button>
                             <button class="btn btn-secondary" onclick="loadSecurityConfig()">
-                                <i class="fas fa-undo"></i>
+                                <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#refresh"></use></svg>
                                 重置
                             </button>
                         </div>
@@ -498,49 +503,72 @@
                 </div>
             </div>
 
-            <!-- 用户注册视图 -->
+            <!-- 邮箱创建视图：沿用 register 内部标识，避免破坏既有路由与统计契约。 -->
             <div class="view register-view" id="register-view" style="display: none;">
                 <div class="view-header">
-                    <h2><i class="fas fa-user-plus"></i> 用户注册</h2>
+                    <h2><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#user-plus"></use></svg> 邮箱创建</h2>
                 </div>
 
                 <div class="register-content">
                     <div class="register-card">
                         <form id="admin-register-form">
                             <div class="form-group">
-                                <label>创建模式</label>
-                                <div class="register-mode-switch" id="register-mode-switch">
-                                    <button type="button" class="mode-btn active" id="reg-mode-single" data-mode="single">
-                                        <i class="fas fa-user"></i>
-                                        单个创建
-                                    </button>
-                                    <button type="button" class="mode-btn" id="reg-mode-batch" data-mode="batch">
-                                        <i class="fas fa-users"></i>
-                                        批量创建
-                                    </button>
+                                <label>创建模式 *</label>
+                                <div class="register-mode-toggle">
+                                    <label class="mode-option">
+                                        <input type="radio" name="reg-create-mode" value="single" checked>
+                                        <span>单个创建</span>
+                                    </label>
+                                    <label class="mode-option">
+                                        <input type="radio" name="reg-create-mode" value="batch">
+                                        <span>批量创建</span>
+                                    </label>
                                 </div>
-                                <small>批量模式会自动按“前缀 + 序号”生成用户名</small>
+                                <small>批量创建默认生成不同的英文姓名用户名，并在可用域名间随机轮转</small>
                             </div>
 
-                            <div class="form-group">
-                                <label>用户名前缀 *</label>
+                            <div class="form-group" id="reg-batch-strategy-group" hidden>
+                                <label>批量用户名规则 *</label>
+                                <div class="register-mode-toggle batch-strategy-toggle">
+                                    <label class="mode-option">
+                                        <input type="radio" name="reg-batch-strategy" value="random" checked>
+                                        <span>随机姓名与域名</span>
+                                    </label>
+                                    <label class="mode-option">
+                                        <input type="radio" name="reg-batch-strategy" value="sequence">
+                                        <span>前缀 + 序号</span>
+                                    </label>
+                                </div>
+                                <small id="reg-batch-strategy-help">随机姓名模式会从全部可用域名中去重、洗牌后轮转分配</small>
+                            </div>
+
+                            <div class="form-group" id="reg-email-address-group">
+                                <label id="reg-email-address-label">邮箱地址 *</label>
                                 <div class="email-input-group">
-                                    <input type="text" id="reg-email-prefix" required placeholder="abc123" class="email-prefix-input">
+                                    <input type="text" id="reg-email-prefix" required placeholder="username" class="email-prefix-input">
                                     <span class="at-symbol">@</span>
                                     <select id="reg-email-domain" required class="email-domain-select">
                                         <option value="">选择域名...</option>
                                     </select>
-                                    <button type="button" class="btn btn-icon btn-random" id="reg-random-btn" title="随机生成">
-                                        <i class="fas fa-random"></i>
+                                    <button type="button" class="btn btn-icon btn-random" id="reg-random-btn" title="随机生成" aria-label="随机生成邮箱用户名">
+                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#swap"></use></svg>
                                     </button>
                                 </div>
-                                <small>用户名仅支持英文和数字（3-20位）</small>
+                                <small>用户名仅允许英文/数字，长度 3–20；随机生成会生成“英文名+英文姓+4位数字”</small>
                             </div>
 
-                            <div class="form-group" id="reg-batch-options" style="display: none;">
-                                <label for="reg-batch-count">批量数量 *</label>
-                                <input type="number" id="reg-batch-count" min="2" max="100" value="10" placeholder="输入创建数量">
-                                <small>支持2-100个。示例：前缀 abc + 数量 3，将生成 abc01、abc02、abc03</small>
+                            <div class="form-group" id="reg-batch-count-group" style="display: none;">
+                                <label for="reg-batch-count">创建数量 *</label>
+                                <input type="number" id="reg-batch-count" min="2" max="100" value="2" required>
+                                <small>一次可创建 2–100 个邮箱</small>
+                            </div>
+
+                            <div class="form-group batch-preview" id="reg-batch-preview-group" hidden>
+                                <div class="batch-preview-header">
+                                    <label>创建预览</label>
+                                    <small>展示即将创建的前 3 个邮箱</small>
+                                </div>
+                                <ol class="batch-preview-list" id="reg-batch-preview-list" aria-live="polite"></ol>
                             </div>
 
                             <div class="form-group">
@@ -578,8 +606,16 @@
                                 </label>
                             </div>
 
+                            <div class="batch-progress" id="reg-batch-progress" hidden aria-live="polite">
+                                <div class="batch-progress-copy">
+                                    <span>批量创建进度</span>
+                                    <strong id="reg-batch-progress-text">已完成 0/0</strong>
+                                </div>
+                                <progress id="reg-batch-progress-bar" value="0" max="1">0%</progress>
+                            </div>
+
                             <button type="submit" class="btn btn-primary btn-block">
-                                <i class="fas fa-plus"></i>
+                                <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#plus"></use></svg>
                                 创建邮箱
                             </button>
                         </form>
@@ -594,9 +630,9 @@
             <!-- 子管理员管理视图 -->
             <div class="view sub-admins-view" id="sub-admins-view" style="display: none;">
                 <div class="view-header">
-                    <h2><i class="fas fa-users-cog"></i> 子管理员管理</h2>
+                    <h2><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#users"></use></svg> 子管理员管理</h2>
                     <button class="btn btn-primary" onclick="showCreateSubAdminModal()">
-                        <i class="fas fa-plus"></i>
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#plus"></use></svg>
                         添加子管理员
                     </button>
                 </div>
@@ -619,7 +655,7 @@
                             <tbody id="sub-admins-tbody">
                                 <tr>
                                     <td colspan="8" class="loading-cell">
-                                        <i class="fas fa-spinner fa-spin"></i> 加载中...
+                                        <svg class="icon is-spinning" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#spinner"></use></svg> 加载中...
                                     </td>
                                 </tr>
                             </tbody>
@@ -631,7 +667,7 @@
             <!-- 系统设置视图 -->
             <div class="view settings-view" id="settings-view" style="display: none;">
                 <div class="view-header">
-                    <h2><i class="fas fa-cog"></i> 系统设置</h2>
+                    <h2><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#settings"></use></svg> 系统设置</h2>
                 </div>
 
                 <div class="settings-content">
@@ -639,7 +675,7 @@
                         <h3>IP白名单设置</h3>
                         <p class="setting-description">管理允许访问系统的IP地址</p>
                         <a href="/admin" class="btn btn-primary">
-                            <i class="fas fa-network-wired"></i>
+                            <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#globe"></use></svg>
                             配置IP白名单
                         </a>
                     </div>
@@ -648,7 +684,7 @@
                         <h3>API测试</h3>
                         <p class="setting-description">测试系统API功能</p>
                         <a href="/api-test" class="btn btn-primary">
-                            <i class="fas fa-vial"></i>
+                            <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#code"></use></svg>
                             API测试页面
                         </a>
                     </div>
@@ -659,10 +695,10 @@
 
     <!-- 创建/编辑子管理员模态框 -->
     <div class="modal" id="sub-admin-modal">
-        <div class="modal-content">
+        <div class="modal-content modal-content--medium">
             <div class="modal-header">
                 <h3 id="sub-admin-modal-title">添加子管理员</h3>
-                <button class="modal-close" onclick="closeSubAdminModal()">&times;</button>
+                <button class="modal-close" onclick="closeSubAdminModal()" title="关闭子管理员对话框" aria-label="关闭子管理员对话框">&times;</button>
             </div>
             <form id="sub-admin-form">
                 <input type="hidden" id="sub-admin-id">
@@ -708,7 +744,7 @@
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeSubAdminModal()">取消</button>
                     <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i>
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#save"></use></svg>
                         保存
                     </button>
                 </div>
@@ -720,7 +756,7 @@
     <div class="toast-container" id="toast-container"></div>
 
     <script src="{{ url_for('static', filename='scripts/theme.js') }}?v=3"></script>
+    <script src="{{ url_for('static', filename='scripts/ui_components.js') }}"></script>
     <script src="{{ url_for('static', filename='scripts/admin_mailbox.js') }}"></script>
 </body>
 </html>
-

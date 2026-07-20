@@ -1,163 +1,81 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
+<!doctype html>
+<html lang="zh-CN" data-theme="auto" data-icon-sprite="{{ url_for('static', filename='icons/maildrop-icons.svg') }}">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>邮箱登录 - TempMail</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>📧</text></svg>">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <meta name="referrer" content="no-referrer">
+    <!-- 为搜索摘要与辅助技术明确公开入口用途。 -->
+    <meta name="description" content="Maildrop 临时邮箱只读访问入口，使用邮箱地址与密钥安全查看收件箱。">
+    <title>访问邮箱 · Maildrop</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='icons/favicon.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/ui_foundation.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/mailbox_login.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <div class="login-container">
-        <!-- 背景装饰 -->
-        <div class="background-decoration">
-            <div class="circle circle-1"></div>
-            <div class="circle circle-2"></div>
-            <div class="circle circle-3"></div>
-        </div>
-        
-        <!-- 登录卡片 -->
-        <div class="login-card">
-            <!-- 头部 -->
-            <div class="login-header">
-                <div class="logo">
-                    <i class="fas fa-envelope"></i>
-                    <h1>TempMail</h1>
-                </div>
-                <p class="subtitle">访问您的临时邮箱</p>
+    <main class="login-shell">
+        <section class="intro-panel" aria-labelledby="page-title">
+            <div class="brand-mark" aria-hidden="true">
+                <svg class="icon"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#mail"></use></svg>
             </div>
-            
-            <!-- 登录方式选择 -->
-            <div class="login-mode-selector">
-                <div class="mode-buttons">
-                    <button type="button" class="mode-btn active" data-mode="mailbox">
-                        <i class="fas fa-envelope"></i>
-                        邮箱密钥登录
-                    </button>
-                    <button type="button" class="mode-btn" data-mode="user">
-                        <i class="fas fa-user"></i>
-                        
-                    </button>
+            <p class="eyebrow">MAILBOX ACCESS</p>
+            <h1 id="page-title">安静地，查看你的临时邮箱</h1>
+            <p class="intro-copy">输入邮箱地址和创建时生成的密钥，即可进入只收信的邮箱空间。</p>
+            <div class="privacy-note">
+                <svg class="icon"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#shield"></use></svg>
+                <div>
+                    <strong>凭据不会写入本地存储</strong>
+                    <span>访问地址本身包含邮箱与密钥，请勿在公共设备上保存或分享。</span>
                 </div>
             </div>
+        </section>
 
-            <!-- 登录表单 -->
-            <form class="login-form" id="login-form">
-                <!-- 邮箱密钥登录模式 -->
-                <div class="login-mode mailbox-mode active">
-                    <div class="form-group">
-                        <label for="mailbox-address">
-                            <i class="fas fa-at"></i>
-                            邮箱地址
-                        </label>
-                        <input
-                            type="email"
-                            id="mailbox-address"
-                            name="address"
-                            placeholder="输入您的邮箱地址"
-                            autocomplete="email"
-                        >
-                    </div>
+        <section class="login-card" aria-labelledby="login-title">
+            <div class="card-heading">
+                <div>
+                    <p class="eyebrow">WELCOME BACK</p>
+                    <h2 id="login-title">访问邮箱</h2>
+                </div>
+                <button class="icon-button" id="theme-toggle" type="button" aria-label="主题：跟随系统" title="切换主题">
+                    <svg class="icon"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#theme"></use></svg>
+                </button>
+            </div>
 
-                    <div class="form-group">
-                        <label for="mailbox-key">
-                            <i class="fas fa-key"></i>
-                            邮箱密钥
-                        </label>
-                        <input
-                            type="password"
-                            id="mailbox-key"
-                            name="key"
-                            placeholder="输入您的邮箱密钥"
-                            autocomplete="current-password"
-                        >
-                        <button type="button" class="toggle-password" onclick="togglePasswordVisibility('mailbox-key')">
-                            <i class="fas fa-eye" id="mailbox-password-toggle-icon"></i>
-                        </button>
+            <form id="login-form" novalidate>
+                <div class="field-group">
+                    <label for="mailbox-address">邮箱地址</label>
+                    <div class="input-shell">
+                        <svg class="icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#mail"></use></svg>
+                        <input id="mailbox-address" name="address" type="email" inputmode="email" autocomplete="email" spellcheck="false" placeholder="name@example.com" required aria-describedby="address-error">
                     </div>
+                    <p class="field-error" id="address-error" role="alert"></p>
                 </div>
 
-                <!-- 用户密码登录模式 -->
-                <div class="login-mode user-mode">
-                    <div class="form-group">
-                        <label for="username">
-                            <i class="fas fa-user"></i>
-                            用户名
-                        </label>
-                        <input
-                            type="text"
-                            id="username"
-                            name="username"
-                            placeholder="输入您的用户名"
-                            autocomplete="username"
-                        >
-                    </div>
-
-                    <div class="form-group">
-                        <label for="user-password">
-                            <i class="fas fa-lock"></i>
-                            密码
-                        </label>
-                        <input
-                            type="password"
-                            id="user-password"
-                            name="password"
-                            placeholder="输入您的密码"
-                            autocomplete="current-password"
-                        >
-                        <button type="button" class="toggle-password" onclick="togglePasswordVisibility('user-password')">
-                            <i class="fas fa-eye" id="user-password-toggle-icon"></i>
+                <div class="field-group">
+                    <label for="mailbox-key">邮箱密钥</label>
+                    <div class="input-shell">
+                        <svg class="icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#key"></use></svg>
+                        <input id="mailbox-key" name="mailbox_key" type="password" autocomplete="off" minlength="6" maxlength="128" pattern="[A-Za-z0-9._~\-]{6,128}" title="仅支持字母、数字及 . _ ~ -，长度 6–128" placeholder="输入邮箱密钥" required aria-describedby="key-error">
+                        <button class="password-toggle" id="password-toggle" type="button" aria-label="显示密钥" aria-pressed="false">
+                            <svg class="icon"><use id="password-icon" href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#eye"></use></svg>
                         </button>
                     </div>
+                    <p class="field-error" id="key-error" role="alert"></p>
                 </div>
-                
-                <button type="submit" class="login-btn" id="login-btn">
-                    <i class="fas fa-sign-in-alt"></i>
-                    <span>访问邮箱</span>
-                    <div class="loading-spinner" style="display: none;">
-                        <i class="fas fa-spinner fa-spin"></i>
-                    </div>
+
+                <button class="primary-button" id="login-button" type="submit">
+                    <span>进入收件箱</span>
+                    <svg class="icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#arrow-right"></use></svg>
                 </button>
             </form>
-            
-            <!-- 帮助信息 -->
-            <div class="help-section">
-                <div class="help-item">
-                    <i class="fas fa-question-circle"></i>
-                    <div class="help-content">
-                        <h4>如何获取邮箱密钥？</h4>
-                        <p>邮箱密钥在创建邮箱时生成，请妥善保存。</p>
-                    </div>
-                </div>
-                
-                <div class="help-item">
-                    <i class="fas fa-shield-alt"></i>
-                    <div class="help-content">
-                        <h4>安全提示</h4>
-                        <p>请不要在公共设备上保存您的邮箱密钥。</p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- 底部链接 -->
-            <div class="login-footer">
-                <a href="/" class="back-link">
-                    <i class="fas fa-arrow-left"></i>
-                    返回首页
-                </a>
-                
-                <a href="/api/mailbox/demo" class="demo-link">
-                    <i class="fas fa-play"></i>
-                    查看演示
-                </a>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Toast 通知容器 -->
-    <div class="toast-container" id="toast-container"></div>
-    
+
+            <p class="keyboard-tip">按 <kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>Enter</kbd> 快速进入</p>
+        </section>
+    </main>
+
+    <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+    <script src="{{ url_for('static', filename='scripts/theme.js') }}"></script>
+    <script src="{{ url_for('static', filename='scripts/ui_components.js') }}"></script>
     <script src="{{ url_for('static', filename='scripts/mailbox_login.js') }}"></script>
 </body>
 </html>

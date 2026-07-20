@@ -1,208 +1,250 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
+<!doctype html>
+<html lang="zh-CN" data-theme="auto">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>创建临时邮箱 - TempMail</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>📧</text></svg>">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <meta name="referrer" content="no-referrer">
+    <!-- 为搜索摘要与辅助技术明确邮箱创建页用途。 -->
+    <meta name="description" content="通过 Maildrop 管理授权创建临时邮箱并生成专属只读访问链接。">
+    <title>创建临时邮箱 · Maildrop</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='icons/favicon.svg') }}">
+    <!-- 基础设计令牌必须先于页面样式加载，便于页面只覆盖自身布局。 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/ui_foundation.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/register.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body>
-    <div class="register-container">
-        <!-- 背景装饰 -->
-        <div class="background-decoration">
-            <div class="circle circle-1"></div>
-            <div class="circle circle-2"></div>
-            <div class="circle circle-3"></div>
-        </div>
+<body class="register-page">
+    <a class="skip-link" href="#main-content">跳到主要内容</a>
 
-        <!-- 管理员登录验证 -->
-        <div id="admin-login-section" class="admin-login-section">
-            <div class="admin-login-card">
-                <div class="admin-login-header">
-                    <i class="fas fa-user-shield"></i>
-                    <h2>管理员验证</h2>
-                    <p>注册功能需要管理员权限</p>
+    <header class="page-topbar" aria-label="页面导航">
+        <a class="brand-link" href="/" aria-label="返回 Maildrop 首页">
+            <svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#mail"></use></svg>
+            <span>Maildrop</span>
+        </a>
+        <nav class="topbar-actions" aria-label="快捷入口">
+            <a class="soft-button soft-button-quiet" href="/admin">
+                <svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#shield"></use></svg>
+                <span>管理后台</span>
+            </a>
+            <button class="icon-button" id="theme-toggle" type="button" aria-label="切换明暗主题" title="切换主题">
+                <svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#sun"></use></svg>
+            </button>
+        </nav>
+    </header>
+
+    <main class="register-container" id="main-content">
+        <!-- 登录与注册共用同一舞台，验证成功后只切换可见区域，避免凭据进入 URL。 -->
+        <section id="admin-login-section" class="admin-login-section" aria-labelledby="admin-login-title">
+            <div class="admin-login-card soft-panel">
+                <div class="panel-icon" aria-hidden="true">
+                    <svg class="ui-icon"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#shield"></use></svg>
                 </div>
+                <p class="eyebrow">ADMIN GATE</p>
+                <h1 id="admin-login-title">管理员验证</h1>
+                <p class="panel-copy">创建邮箱属于管理操作。密码仅用于本次页面会话，不会写入地址栏。</p>
 
                 <div class="form-group">
-                    <label for="admin-password">管理员密码:</label>
-                    <input type="password" id="admin-password" placeholder="请输入管理员密码">
+                    <label for="admin-password">管理员密码</label>
+                    <div class="input-shell">
+                        <svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#key"></use></svg>
+                        <input type="password" id="admin-password" autocomplete="current-password" placeholder="输入管理员密码" required>
+                    </div>
                 </div>
 
-                <button id="admin-login-btn" class="btn btn-primary">
-                    <i class="fas fa-sign-in-alt"></i>
-                    验证管理员身份
+                <button id="admin-login-btn" class="soft-button soft-button-primary full-width" type="button">
+                    <svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#lock"></use></svg>
+                    <span data-role="label">验证管理员身份</span>
+                    <span class="button-spinner" aria-hidden="true"></span>
                 </button>
 
-                <div id="admin-login-error" class="error-message"></div>
-
-                <div class="admin-login-footer">
-                    <a href="/" class="back-link">
-                        <i class="fas fa-arrow-left"></i>
-                        返回首页
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- 注册卡片 -->
-        <div id="register-card" class="register-card">
-            <!-- 头部 -->
-            <div class="register-header">
-                <div class="logo">
-                    <i class="fas fa-envelope"></i>
-                    <h1>创建临时邮箱</h1>
-                </div>
-                <p class="subtitle">输入完整邮箱地址或前缀，灵活选择域名</p>
-            </div>
-
-            <!-- 注册表单 -->
-            <form class="register-form" id="register-form">
-                <div class="form-group">
-                    <label for="email-input">
-                        <i class="fas fa-envelope"></i>
-                        用户名前缀 / 完整邮箱
-                    </label>
-                    <input
-                        type="text"
-                        id="email-input"
-                        name="email"
-                        placeholder="输入邮箱地址（如：abc123@example.com）或前缀（如：abc123）"
-                        autocomplete="email"
-                        required
-                    >
-                    <small class="form-hint">用户名仅支持英文和数字。单个创建可输入完整邮箱或前缀，批量创建时请输入前缀。</small>
-                </div>
-
-                <div class="form-group">
-                    <label for="batch-count">
-                        <i class="fas fa-layer-group"></i>
-                        创建数量
-                    </label>
-                    <input
-                        type="number"
-                        id="batch-count"
-                        name="count"
-                        min="1"
-                        max="100"
-                        value="1"
-                        required
-                    >
-                    <small class="form-hint">支持一次创建 1-100 个邮箱。数量大于 1 时，将按“前缀 + 序号”批量生成。</small>
-                </div>
-
-                <div class="form-group">
-                    <label>
-                        <i class="fas fa-globe"></i>
-                        可用域名
-                    </label>
-                    <div class="domains-display" id="domains-display">
-                        <small>加载中...</small>
-                    </div>
-                    <small class="form-hint">点击域名标签快速选择，系统会自动拼接到邮箱输入框中</small>
-                </div>
-
-                <div class="form-group">
-                    <label for="retention-days">
-                        <i class="fas fa-calendar-alt"></i>
-                        保留天数
-                    </label>
-                    <select id="retention-days" name="retention_days" class="form-select">
-                        <option value="1">1天</option>
-                        <option value="3">3天</option>
-                        <option value="7" selected>7天（推荐）</option>
-                        <option value="14">14天</option>
-                        <option value="30">30天</option>
-                    </select>
-                    <small class="form-hint">选择邮箱地址保留多长时间</small>
-                </div>
-
-                <div class="form-group checkbox-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="agree-terms" name="agree-terms" required>
-                        <span class="checkmark"></span>
-                        我同意 <a href="#" class="terms-link">服务条款</a> 和 <a href="#" class="terms-link">隐私政策</a>
-                    </label>
-                </div>
-
-                <button type="submit" class="register-btn" id="register-btn">
-                    <i class="fas fa-envelope"></i>
-                    <span>创建邮箱</span>
-                    <div class="loading-spinner" style="display: none;">
-                        <i class="fas fa-spinner fa-spin"></i>
-                    </div>
-                </button>
-            </form>
-
-            <!-- 注册进度 -->
-            <div class="register-progress" id="register-progress" style="display: none;">
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progress-fill"></div>
-                </div>
-                <p class="progress-text" id="progress-text">正在创建邮箱...</p>
-            </div>
-
-            <div class="batch-result" id="batch-result" style="display: none;">
-                <h3>创建结果</h3>
-                <p id="batch-result-summary"></p>
-                <div class="batch-result-list" id="batch-result-list"></div>
-            </div>
-
-            <!-- 帮助信息 -->
-            <div class="help-section">
-                <div class="help-item">
-                    <i class="fas fa-info-circle"></i>
-                    <div class="help-content">
-                        <h4>灵活输入</h4>
-                        <p>输入完整邮箱地址（如：myemail@example.com）或仅前缀（如：myemail）。如果只输入前缀，系统会自动分配域名。</p>
-                    </div>
-                </div>
-
-                <div class="help-item">
-                    <i class="fas fa-mouse-pointer"></i>
-                    <div class="help-content">
-                        <h4>域名选择</h4>
-                        <p>点击上方的域名标签，可以快速选择并自动拼接到邮箱输入框中，方便快捷。</p>
-                    </div>
-                </div>
-
-                <div class="help-item">
-                    <i class="fas fa-calendar-alt"></i>
-                    <div class="help-content">
-                        <h4>灵活保留</h4>
-                        <p>可选择1-30天的保留时间，过期后邮箱将自动清理。建议根据使用需求选择合适的保留时间。</p>
-                    </div>
-                </div>
-
-                <div class="help-item">
-                    <i class="fas fa-shield-alt"></i>
-                    <div class="help-content">
-                        <h4>隐私保护</h4>
-                        <p>您的邮箱地址经过加密保护，仅用于提供临时邮箱服务，支持接收全球邮件。</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 底部链接 -->
-            <div class="register-footer">
-                <button id="admin-logout-btn" class="btn btn-secondary">
-                    <i class="fas fa-sign-out-alt"></i>
-                    退出管理员
-                </button>
+                <p id="admin-login-error" class="error-message" role="alert" aria-live="assertive" hidden></p>
 
                 <a href="/" class="back-link">
-                    <i class="fas fa-arrow-left"></i>
-                    返回首页
+                    <svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#arrow-left"></use></svg>
+                    返回公开入口
                 </a>
             </div>
+        </section>
+
+        <section id="register-card" class="register-card" aria-labelledby="register-title" hidden>
+            <header class="register-header soft-panel">
+                <div>
+                    <p class="eyebrow">MAILBOX CREATOR</p>
+                    <h1 id="register-title">创建临时邮箱</h1>
+                    <p class="subtitle">填写地址与保留期限，创建后立即获得邮箱密钥和固定访问链接。</p>
+                </div>
+                <div class="header-badge" aria-label="当前状态：管理员已验证">
+                    <span class="status-dot" aria-hidden="true"></span>
+                    管理员已验证
+                </div>
+            </header>
+
+            <div class="register-grid">
+                <section class="form-card soft-panel" aria-labelledby="form-title">
+                    <div class="section-heading">
+                        <span class="step-index">01</span>
+                        <div>
+                            <p class="eyebrow">CREATE</p>
+                            <h2 id="form-title">邮箱参数</h2>
+                        </div>
+                    </div>
+
+                    <form class="register-form" id="register-form" novalidate>
+                        <div class="form-group">
+                            <label for="email-input">邮箱地址 / 前缀</label>
+                            <div class="input-shell">
+                                <svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#mail"></use></svg>
+                                <input
+                                    type="text"
+                                    id="email-input"
+                                    name="email"
+                                    placeholder="myemail@example.com 或 myemail"
+                                    autocomplete="email"
+                                    aria-describedby="email-hint"
+                                    required
+                                >
+                            </div>
+                            <small class="form-hint" id="email-hint">可输入完整地址，或输入 3–20 位字母、数字、下划线前缀。</small>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="label-row">
+                                <span class="field-label">可用域名</span>
+                                <span class="field-meta">点击即可拼接</span>
+                            </div>
+                            <div class="domains-display" id="domains-display" aria-live="polite" aria-busy="true">
+                                <span class="skeleton-line">正在读取域名…</span>
+                            </div>
+                            <small class="form-hint">若已输入完整邮箱，选择域名会替换其域名部分。</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="retention-days">保留天数</label>
+                            <div class="input-shell">
+                                <svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#calendar"></use></svg>
+                                <select id="retention-days" name="retention_days" class="form-select">
+                                    <option value="1">1 天</option>
+                                    <option value="3">3 天</option>
+                                    <option value="7" selected>7 天（推荐）</option>
+                                    <option value="14">14 天</option>
+                                    <option value="30">30 天</option>
+                                </select>
+                            </div>
+                            <small class="form-hint">到期后邮箱与邮件将按服务端策略自动清理。</small>
+                        </div>
+
+                        <div class="form-group checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="agree-terms" name="agree-terms" required>
+                                <span>我已阅读并同意</span>
+                                <button class="inline-link" type="button" data-dialog-open="policy-dialog">服务条款与隐私说明</button>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="soft-button soft-button-primary full-width register-btn" id="register-btn">
+                            <svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#plus"></use></svg>
+                            <span data-role="label">创建邮箱</span>
+                            <span class="loading-spinner button-spinner" aria-hidden="true"></span>
+                        </button>
+                    </form>
+
+                    <div class="register-progress" id="register-progress" role="status" aria-live="polite" hidden>
+                        <div class="progress-meta">
+                            <p class="progress-text" id="progress-text">正在创建邮箱…</p>
+                            <span id="progress-value">0%</span>
+                        </div>
+                        <div class="progress-bar" aria-hidden="true">
+                            <div class="progress-fill" id="progress-fill"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <aside class="guide-grid" aria-label="创建说明">
+                    <article class="guide-card soft-panel guide-card-featured">
+                        <svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#globe"></use></svg>
+                        <p class="eyebrow">FLEXIBLE</p>
+                        <h2>灵活地址</h2>
+                        <p>完整邮箱与简短前缀都可使用；域名标签帮助快速完成输入。</p>
+                    </article>
+                    <article class="guide-card soft-panel">
+                        <svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#clock"></use></svg>
+                        <h2>按需保留</h2>
+                        <p>在 1–30 天之间选择合适期限，减少不必要的数据残留。</p>
+                    </article>
+                    <article class="guide-card soft-panel">
+                        <svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#shield"></use></svg>
+                        <h2>密钥访问</h2>
+                        <p>创建完成后请妥善保存密钥；固定访问链接本身属于敏感凭据。</p>
+                    </article>
+                </aside>
+            </div>
+
+            <footer class="register-footer soft-panel">
+                <button id="admin-logout-btn" class="soft-button soft-button-secondary" type="button">
+                    <svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#logout"></use></svg>
+                    退出管理员
+                </button>
+                <a href="/" class="back-link">
+                    <svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#arrow-left"></use></svg>
+                    返回公开入口
+                </a>
+            </footer>
+        </section>
+    </main>
+
+    <dialog class="app-dialog ui-dialog ui-dialog--medium success-dialog" id="success-dialog" aria-labelledby="success-title">
+        <div class="dialog-card">
+            <button class="dialog-close icon-button" type="button" data-dialog-close="success-dialog" aria-label="关闭创建结果">
+                <svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#close"></use></svg>
+            </button>
+            <div class="success-mark" aria-hidden="true">
+                <svg class="ui-icon"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#check"></use></svg>
+            </div>
+            <p class="eyebrow">MAILBOX READY</p>
+            <h2 id="success-title">邮箱创建成功</h2>
+            <p class="dialog-copy">请立即保存邮箱密钥或完整访问链接。</p>
+            <dl class="credential-list">
+                <div><dt>邮箱地址</dt><dd id="created-address">—</dd></div>
+                <div><dt>邮箱密钥</dt><dd><code id="created-key">—</code></dd></div>
+                <div><dt>保留期限</dt><dd id="created-retention">—</dd></div>
+            </dl>
+            <a class="credential-link" id="created-link" href="#" target="_blank" rel="noopener noreferrer">—</a>
+            <div class="dialog-actions">
+                <button class="soft-button soft-button-secondary" id="copy-created-link" type="button">
+                    <svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#copy"></use></svg>
+                    复制链接
+                </button>
+                <button class="soft-button soft-button-primary" id="open-created-mailbox" type="button">
+                    <svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#external-link"></use></svg>
+                    打开邮箱
+                </button>
+            </div>
         </div>
-    </div>
+    </dialog>
 
-    <!-- Toast 通知容器 -->
-    <div class="toast-container" id="toast-container"></div>
+    <dialog class="app-dialog ui-dialog ui-dialog--medium policy-dialog" id="policy-dialog" aria-labelledby="policy-title">
+        <div class="dialog-card">
+            <button class="dialog-close icon-button" type="button" data-dialog-close="policy-dialog" aria-label="关闭说明">
+                <svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#close"></use></svg>
+            </button>
+            <p class="eyebrow">BEFORE CREATE</p>
+            <h2 id="policy-title">服务条款与隐私说明</h2>
+            <div class="policy-copy">
+                <p>临时邮箱用于接收邮件，请勿用于违法、欺诈或侵害他人权益的活动。</p>
+                <p>访问链接包含邮箱密钥。任何获得完整链接的人都可能读取对应邮箱，请勿公开分享。</p>
+                <p>邮箱及邮件会按照所选期限和服务端清理策略删除，请自行保存重要内容。</p>
+            </div>
+            <div class="dialog-actions">
+                <button class="soft-button soft-button-primary" type="button" data-dialog-close="policy-dialog">我知道了</button>
+            </div>
+        </div>
+    </dialog>
 
+    <!-- 保留原容器 ID 供兼容与无脚本降级；共享组件负责实际 Toast 呈现。 -->
+    <div class="toast-container" id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+    <script src="{{ url_for('static', filename='scripts/theme.js') }}"></script>
+    <script src="{{ url_for('static', filename='scripts/ui_components.js') }}"></script>
     <script src="{{ url_for('static', filename='scripts/register.js') }}"></script>
 </body>
 </html>

@@ -1,12 +1,35 @@
-import sqlite3
 import json
-import time
-import uuid
 import os
 import secrets
+import sqlite3
+import string
+import time
+import uuid
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
+
 import config
+
+
+_MAILBOX_KEY_LENGTH = 10
+
+
+def _generate_mailbox_key() -> str:
+    """生成固定长度且包含三类字符的安全邮箱密钥。"""
+    # 先放入每类必需字符，避免纯随机结果偶尔缺少某一类而降低可读规则的稳定性。
+    characters = [
+        secrets.choice(string.ascii_uppercase),
+        secrets.choice(string.ascii_lowercase),
+        secrets.choice(string.digits),
+    ]
+    alphabet = string.ascii_letters + string.digits
+    characters.extend(
+        secrets.choice(alphabet)
+        for _ in range(_MAILBOX_KEY_LENGTH - len(characters))
+    )
+    secrets.SystemRandom().shuffle(characters)
+    return ''.join(characters)
+
 
 class DatabaseManager:
     def __init__(self, db_path: str = None):
@@ -81,6 +104,19 @@ class DatabaseManager:
             except sqlite3.OperationalError:
                 # 字段已存在，忽略错误
                 pass
+
+            # 为升级前创建的邮箱补齐新密钥，确保唯一的 /web 凭据入口可用。
+            missing_key_rows = conn.execute('''
+                SELECT id FROM mailboxes
+                WHERE mailbox_key IS NULL OR TRIM(mailbox_key) = ''
+            ''').fetchall()
+            if missing_key_rows:
+                conn.executemany('''
+                    UPDATE mailboxes SET mailbox_key = ? WHERE id = ?
+                ''', [
+                    (_generate_mailbox_key(), row['id'])
+                    for row in missing_key_rows
+                ])
 
             # 检查并添加白名单启用字段（如果不存在）
             try:
@@ -289,8 +325,8 @@ class DatabaseManager:
                       created_source: str = "unknown") -> Dict:
         """创建新邮箱"""
         mailbox_id = str(uuid.uuid4())
-        access_token = secrets.token_urlsafe(32)  # 使用加密安全的token生成
-        mailbox_key = secrets.token_urlsafe(32)  # 使用加密安全的密钥生成
+        access_token = secrets.token_urlsafe(32)
+        mailbox_key = _generate_mailbox_key()
         current_time = int(time.time())
         expires_at = current_time + (retention_days * 24 * 60 * 60)
 
@@ -333,7 +369,7 @@ class DatabaseManager:
                 SELECT id, address, created_at, expires_at, retention_days, is_active,
                        sender_whitelist, whitelist_enabled, created_by_ip, access_token,
                        mailbox_key, last_accessed, storage_used, storage_limit
-                FROM mailboxes WHERE address = ? AND is_active = 1
+                FROM mailboxes WHERE address = ?
             ''', (address,))
             row = cursor.fetchone()
             
@@ -347,9 +383,12 @@ class DatabaseManager:
                     'sender_whitelist': json.loads(row['sender_whitelist'] or '[]'),
                     'whitelist_enabled': bool(row['whitelist_enabled']),
                     'access_token': row['access_token'],
+                    'mailbox_key': row['mailbox_key'],
                     'is_active': bool(row['is_active']),
                     'created_by_ip': row['created_by_ip'],
-                    'last_accessed': row['last_accessed']
+                    'last_accessed': row['last_accessed'],
+                    'storage_used': row['storage_used'] or 0,
+                    'storage_limit': row['storage_limit'] or config.MAX_MAILBOX_SIZE_BYTES
                 }
             return None
     
@@ -360,7 +399,7 @@ class DatabaseManager:
                 SELECT id, address, created_at, expires_at, retention_days, is_active,
                        sender_whitelist, whitelist_enabled, created_by_ip, access_token,
                        mailbox_key, last_accessed, storage_used, storage_limit
-                FROM mailboxes WHERE access_token = ? AND is_active = 1
+                FROM mailboxes WHERE access_token = ?
             ''', (access_token,))
             row = cursor.fetchone()
             
@@ -374,9 +413,12 @@ class DatabaseManager:
                     'sender_whitelist': json.loads(row['sender_whitelist'] or '[]'),
                     'whitelist_enabled': bool(row['whitelist_enabled']),
                     'access_token': row['access_token'],
+                    'mailbox_key': row['mailbox_key'],
                     'is_active': bool(row['is_active']),
                     'created_by_ip': row['created_by_ip'],
-                    'last_accessed': row['last_accessed']
+                    'last_accessed': row['last_accessed'],
+                    'storage_used': row['storage_used'] or 0,
+                    'storage_limit': row['storage_limit'] or config.MAX_MAILBOX_SIZE_BYTES
                 }
             return None
     
@@ -410,6 +452,7 @@ class DatabaseManager:
                     'sender_whitelist': json.loads(row['sender_whitelist'] or '[]'),
                     'whitelist_enabled': bool(row['whitelist_enabled']),
                     'access_token': row['access_token'],
+                    'mailbox_key': row['mailbox_key'],
                     'is_active': bool(row['is_active']),
                     'created_by_ip': row['created_by_ip'],
                     'last_accessed': row['last_accessed'],
@@ -870,8 +913,8 @@ class DatabaseManager:
             if not mailbox or mailbox.get('mailbox_key') != current_key:
                 return None
 
-            # 生成新密钥 - 使用加密安全的方式
-            new_key = secrets.token_urlsafe(32)
+            # 复用统一生成器，确保新建、迁移与轮换后的密钥规则完全一致。
+            new_key = _generate_mailbox_key()
 
             with sqlite3.connect(self.db_path) as conn:
                 conn.execute('''
@@ -989,6 +1032,7 @@ class DatabaseManager:
                     'sender_whitelist': json.loads(row['sender_whitelist'] or '[]'),
                     'whitelist_enabled': bool(row.get('whitelist_enabled', 0)),
                     'access_token': row['access_token'],
+                    'mailbox_key': row['mailbox_key'],
                     'is_active': bool(row['is_active'])
                 })
 

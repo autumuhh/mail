@@ -1,0 +1,13 @@
+# 防止密钥、持久化数据和本地工具文件进入镜像层或构建上下文。
+.env
+.env.*
+.git
+.gitignore
+.sanshu-memory
+data/
+*.db
+__pycache__/
+*.py[cod]
+.pytest_cache/
+tests/
+docs/

@@ -3,11 +3,11 @@
     Maildrop
 </h1>
 
-Maildrop is a self hostable and easy to use disposable email service that allows you to receive emails on a random email address on your domain.  
+Maildrop is a self hostable and easy to use disposable email service that allows you to receive emails on a random email address on your domain.
 
 **Now with V2 Features:**
 *   **Database Storage:** Robust SQLite support for better performance and data integrity.
-*   **Dual Authentication:** Secure access via Token (for users) and Admin Password (for API).
+*   **Credential Access:** Mailbox key exchange followed by Bearer-token API access, with a separate admin password.
 *   **Enhanced API:** Comprehensive RESTful API V2 for integration and management.
 *   **Flexible Retention:** Support for custom email retention periods (up to permanent storage).
 
@@ -26,7 +26,7 @@ Maildrop is a self hostable and easy to use disposable email service that allows
 
 - [x] **Random email generation**
 - [x] **Use custom emails**
-- [x] **Password protected inboxes (Dual Auth)**
+- [x] **Mailbox-key protected inboxes with Bearer API access**
 - [x] **SQLite Database Support** (New in V2)
 - [x] **Multi-domain support**
 - [x] **Clean UI**
@@ -78,7 +78,7 @@ Maildrop is a self hostable and easy to use disposable email service that allows
 
 **The application must be run as root for the SMTP server to work**
 
-### Connecting to your domain  
+### Connecting to your domain
 
 1. Ensure port 25 is open as this is the port the email server uses. Some ISPs block this so you may need to use a tunnel or host maildrop in the cloud.
 2. Edit your domains dns settings and create an `A` record pointing to your public IP.
@@ -96,7 +96,8 @@ sudo docker run \
   -p 5000:5000 \
   -p 25:25 \
   -e DOMAIN="yourdomain.com" \
-  autumuhh/mail:latest  
+  -e PASSWORD="replace-with-a-strong-admin-password" \
+  autumuhh/mail:latest
 ```
 Or if you prefer docker compose, Add this to your compose.yml file:
 ```
@@ -111,8 +112,12 @@ services:
     environment:
       - DOMAIN=yourdomain.com
       - USE_DATABASE=true
+      - PASSWORD=replace-with-a-strong-admin-password
 ```
 and then start it: `sudo docker compose up -d`
+
+Set a strong `PASSWORD` in `.env` or the container environment before using `/admin`.
+If it is omitted, the management API intentionally stays locked instead of accepting a default password.
 
 ## Documentation
 

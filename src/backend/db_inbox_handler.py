@@ -166,8 +166,8 @@ def get_email_by_id(address: str, email_id: str) -> Optional[Dict]:
     # 获取邮件
     email = db_manager.get_email_by_id(email_id)
     
-    # 验证邮件属于该邮箱
-    if email and email['To'] == address:
+    # 使用数据库外键验证归属，避免 To 头格式差异导致合法邮件无法读取。
+    if email and email['mailbox_id'] == mailbox['id']:
         # 标记为已读
         db_manager.mark_email_as_read(email_id)
         return email
@@ -184,15 +184,26 @@ def get_mailbox_info(address: str) -> Optional[Dict]:
     # 获取统计信息
     stats = db_manager.get_mailbox_stats(mailbox['id'])
 
+    sender_whitelist = mailbox.get('sender_whitelist', [])
+    if isinstance(sender_whitelist, str):
+        # 兼容返回 SQLite 原始 JSON 字符串的适配器，保证调用方始终收到列表。
+        try:
+            sender_whitelist = json.loads(sender_whitelist or '[]')
+        except (json.JSONDecodeError, TypeError):
+            sender_whitelist = []
+    if not isinstance(sender_whitelist, list):
+        sender_whitelist = []
+
     return {
         'id': mailbox['id'],
         'address': mailbox['address'],
         'created_at': mailbox['created_at'],
         'expires_at': mailbox['expires_at'],
         'retention_days': mailbox['retention_days'],
-        'sender_whitelist': mailbox['sender_whitelist'],
+        'sender_whitelist': sender_whitelist,
         'whitelist_enabled': mailbox.get('whitelist_enabled', False),
         'access_token': mailbox['access_token'],
+        'mailbox_key': mailbox.get('mailbox_key'),
         'is_active': mailbox.get('is_active', True),
         'is_expired': db_manager.is_mailbox_expired(mailbox),
         'email_count': stats['total_emails'],
