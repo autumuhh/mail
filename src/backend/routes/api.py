@@ -34,7 +34,7 @@ def _get_bearer_token():
     return None
 
 
-def _authenticate_mailbox(address=None):
+def _authenticate_mailbox(address=None, allow_disabled=False):
     """统一验证邮箱令牌、状态以及可选的地址归属。"""
     if not config.USE_DATABASE:
         return None, (jsonify({
@@ -61,7 +61,7 @@ def _authenticate_mailbox(address=None):
             'error': 'Mailbox expired',
             'message': 'This mailbox has expired',
         }), 410)
-    if not mailbox.get('is_active', True):
+    if not allow_disabled and not mailbox.get('is_active', True):
         return None, (jsonify({
             'error': 'Mailbox disabled',
             'message': 'This mailbox has been disabled',
@@ -907,7 +907,8 @@ def toggle_mailbox_status():
 
     try:
         if config.USE_DATABASE:
-            mailbox, auth_error = _authenticate_mailbox(address)
+            # 该端点必须允许已禁用邮箱用原令牌重新启用；其他端点仍拒绝禁用邮箱。
+            mailbox, auth_error = _authenticate_mailbox(address, allow_disabled=True)
             if auth_error:
                 return auth_error
 

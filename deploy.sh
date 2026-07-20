@@ -41,7 +41,7 @@ check_docker() {
 check_config() {
     if [ ! -f ".env" ]; then
         log_warn ".env文件不存在，从模板创建..."
-        cp .env.production .env
+        cp .env.example .env
         log_warn "请编辑 .env 文件配置你的域名和密码！"
         return 1
     fi

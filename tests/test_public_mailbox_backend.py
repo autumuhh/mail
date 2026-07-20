@@ -520,6 +520,39 @@ class PublicMailboxBackendTest(unittest.TestCase):
         self.assertEqual(updated.status_code, 200)
         self.assertTrue(db_manager.get_email_by_id(own_email)['is_read'])
 
+    def test_disabled_mailbox_can_only_reenable_through_status_toggle(self):
+        mailbox = self.create_mailbox('toggle-status')
+        headers = self.bearer(mailbox)
+        payload = {'address': mailbox['address']}
+
+        disabled = self.client.post(
+            '/api/toggle_mailbox_status',
+            json=payload,
+            headers=headers,
+        )
+        self.assertEqual(disabled.status_code, 200, disabled.get_data(as_text=True))
+        self.assertFalse(disabled.get_json()['is_active'])
+
+        blocked_read = self.client.get(
+            f"/api/get_inbox?address={quote(mailbox['address'])}",
+            headers=headers,
+        )
+        self.assertEqual(blocked_read.status_code, 423, blocked_read.get_data(as_text=True))
+
+        enabled = self.client.post(
+            '/api/toggle_mailbox_status',
+            json=payload,
+            headers=headers,
+        )
+        self.assertEqual(enabled.status_code, 200, enabled.get_data(as_text=True))
+        self.assertTrue(enabled.get_json()['is_active'])
+
+        restored_read = self.client.get(
+            f"/api/get_inbox?address={quote(mailbox['address'])}",
+            headers=headers,
+        )
+        self.assertEqual(restored_read.status_code, 200, restored_read.get_data(as_text=True))
+
 
 if __name__ == '__main__':
     unittest.main()
