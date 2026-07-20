@@ -445,6 +445,59 @@ body {
     font-size: 0.875rem;
 }
 
+/* 批量创建结果 */
+.batch-result {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--border-radius);
+}
+
+.batch-result h3 {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.batch-result p {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+}
+
+.batch-result-list {
+    max-height: 260px;
+    overflow-y: auto;
+    display: grid;
+    gap: 0.5rem;
+}
+
+.batch-result-item {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 0.65rem 0.75rem;
+}
+
+.batch-result-item .address {
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    margin-bottom: 0.3rem;
+    word-break: break-all;
+}
+
+.batch-result-item .access-link {
+    font-size: 0.8rem;
+    color: var(--info-color);
+    text-decoration: none;
+    word-break: break-all;
+}
+
+.batch-result-item .access-link:hover {
+    text-decoration: underline;
+}
+
 /* 帮助区域 */
 .help-section {
     margin-bottom: 1.5rem;
@@ -668,6 +721,10 @@ body {
         min-width: 70px;
         padding: 0.3rem 0.6rem;
         font-size: 0.75rem;
+    }
+
+    .batch-result-list {
+        max-height: 220px;
     }
 }
 

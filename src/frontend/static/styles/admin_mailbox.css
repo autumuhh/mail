@@ -1277,6 +1277,38 @@ body {
     box-shadow: var(--shadow-sm);
 }
 
+.register-mode-switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.mode-btn {
+    border: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.mode-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--primary-color);
+}
+
+.mode-btn.active {
+    background: var(--primary-color);
+    color: #fff;
+    border-color: var(--primary-color);
+}
+
 .email-input-group {
     display: flex;
     align-items: center;
@@ -1384,6 +1416,60 @@ body {
     display: flex;
     gap: 12px;
     justify-content: center;
+}
+
+.batch-create-result {
+    margin-top: 18px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+    border-radius: 10px;
+    padding: 14px;
+}
+
+.batch-create-summary {
+    margin-bottom: 10px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.batch-create-list {
+    max-height: 280px;
+    overflow-y: auto;
+    display: grid;
+    gap: 8px;
+}
+
+.batch-create-item {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px;
+    background: var(--bg-secondary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.batch-create-item.failed {
+    border-color: rgba(245, 101, 101, 0.5);
+}
+
+.batch-create-item .item-text {
+    font-size: 13px;
+    color: var(--text-primary);
+    word-break: break-all;
+}
+
+.batch-create-item .item-link {
+    font-size: 12px;
+    color: var(--primary-color);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.batch-create-item .item-link:hover {
+    text-decoration: underline;
 }
 
 /* 设置页面 */

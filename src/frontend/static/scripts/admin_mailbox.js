@@ -9,6 +9,7 @@ class AdminMailboxManager {
         this.currentStatus = 'all';
         this.currentSource = 'all';
         this.searchQuery = '';
+        this.registerMode = 'single';
         this.init();
     }
     
@@ -112,16 +113,26 @@ class AdminMailboxManager {
                 this.generateRandomEmailPrefix();
             });
         }
+
+        // 注册模式切换
+        document.querySelectorAll('#register-mode-switch .mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const mode = btn.dataset.mode;
+                this.setRegisterMode(mode);
+            });
+        });
     }
 
     async generateRandomEmailPrefix() {
-        // 生成随机字符串（8-12位）
-        const length = Math.floor(Math.random() * 5) + 8; // 8-12
-        const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-        let result = '';
-        for (let i = 0; i < length; i++) {
-            result += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
+        // 生成可读用户名：英文名 + 数字
+        const namePool = [
+            'alex', 'emma', 'luna', 'oliver', 'mia',
+            'liam', 'sophia', 'james', 'ava', 'henry',
+            'grace', 'david', 'ella', 'lucas', 'nora'
+        ];
+        const selectedWord = namePool[Math.floor(Math.random() * namePool.length)];
+        const numberPart = Math.floor(1000 + Math.random() * 9000); // 1000-9999
+        const result = `${selectedWord}${numberPart}`;
 
         // 设置到输入框
         const prefixInput = document.getElementById('reg-email-prefix');
@@ -170,6 +181,53 @@ class AdminMailboxManager {
             console.error('获取域名失败:', error);
             return [];
         }
+    }
+
+    setRegisterMode(mode) {
+        this.registerMode = mode === 'batch' ? 'batch' : 'single';
+
+        document.querySelectorAll('#register-mode-switch .mode-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === this.registerMode);
+        });
+
+        const batchOptions = document.getElementById('reg-batch-options');
+        if (batchOptions) {
+            batchOptions.style.display = this.registerMode === 'batch' ? 'block' : 'none';
+        }
+    }
+
+    isValidUsername(username) {
+        return /^[a-zA-Z0-9]{3,20}$/.test(username);
+    }
+
+    buildBatchAddresses(prefix, domain, count) {
+        const suffixLen = Math.max(2, String(count).length);
+        const maxPrefixLen = 20 - suffixLen;
+
+        if (!/^[a-zA-Z0-9]+$/.test(prefix)) {
+            throw new Error('批量前缀只能包含英文和数字');
+        }
+
+        if (prefix.length < 1 || prefix.length > maxPrefixLen) {
+            throw new Error(`当前数量下，前缀长度需为1-${maxPrefixLen}`);
+        }
+
+        const addresses = [];
+        for (let index = 1; index <= count; index++) {
+            const username = `${prefix}${index.toString().padStart(suffixLen, '0')}`;
+            if (!this.isValidUsername(username)) {
+                throw new Error(`生成的用户名不合法: ${username}`);
+            }
+            addresses.push(`${username}@${domain}`);
+        }
+
+        return addresses;
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
     
     async login() {
@@ -256,12 +314,17 @@ class AdminMailboxManager {
             if (form) {
                 form.reset();
                 form.style.display = 'block';
+                this.setRegisterMode('single');
                 // 清空邮箱输入
                 const prefixInput = document.getElementById('reg-email-prefix');
                 const domainSelect = document.getElementById('reg-email-domain');
+                const batchCountInput = document.getElementById('reg-batch-count');
                 if (prefixInput) prefixInput.value = '';
                 if (domainSelect) {
                     domainSelect.innerHTML = '<option value="">选择域名...</option>';
+                }
+                if (batchCountInput) {
+                    batchCountInput.value = '10';
                 }
             }
             const result = document.getElementById('register-result');
@@ -274,20 +337,18 @@ class AdminMailboxManager {
     }
 
     async handleRegister() {
-        const emailPrefix = document.getElementById('reg-email-prefix').value;
+        const emailPrefix = document.getElementById('reg-email-prefix').value.trim();
         const emailDomain = document.getElementById('reg-email-domain').value;
-        const retentionDays = parseInt(document.getElementById('reg-retention-days').value);
+        const retentionDays = parseInt(document.getElementById('reg-retention-days').value, 10);
+        const batchCount = parseInt(document.getElementById('reg-batch-count').value, 10) || 1;
         const whitelistText = document.getElementById('reg-sender-whitelist').value;
         const allowedDomainsText = document.getElementById('reg-allowed-domains').value;
         const whitelistEnabled = document.getElementById('reg-whitelist-enabled').checked;
 
         if (!emailPrefix || !emailDomain) {
-            this.showToast('error', '请输入完整的邮箱地址');
+            this.showToast('error', '请输入用户名和域名');
             return;
         }
-
-        // 组合邮箱地址
-        const address = `${emailPrefix}@${emailDomain}`;
 
         // 解析白名单
         const senderWhitelist = whitelistText
@@ -301,82 +362,112 @@ class AdminMailboxManager {
             .map(line => line.trim())
             .filter(line => line.length > 0);
 
+        let targetAddresses = [];
         try {
-            const requestData = {
-                address,
-                retention_days: retentionDays,
-                sender_whitelist: senderWhitelist
-            };
+            if (this.registerMode === 'batch') {
+                if (batchCount < 2 || batchCount > 100) {
+                    this.showToast('error', '批量数量必须在2-100之间');
+                    return;
+                }
 
-            // 如果有允许的域名，添加到请求中
-            if (allowedDomains.length > 0) {
-                requestData.allowed_domains = allowedDomains;
+                targetAddresses = this.buildBatchAddresses(emailPrefix, emailDomain, batchCount);
+            } else {
+                if (!this.isValidUsername(emailPrefix)) {
+                    this.showToast('error', '用户名必须是3-20位英文或数字');
+                    return;
+                }
+                targetAddresses = [`${emailPrefix}@${emailDomain}`];
+            }
+        } catch (validationError) {
+            this.showToast('error', validationError.message || '输入不合法');
+            return;
+        }
+
+        const submitBtn = document.querySelector('#admin-register-form button[type="submit"]');
+        const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 创建中...';
+        }
+
+        try {
+            const successItems = [];
+            const failedItems = [];
+
+            for (const address of targetAddresses) {
+                try {
+                    const requestData = {
+                        address,
+                        retention_days: retentionDays,
+                        sender_whitelist: senderWhitelist
+                    };
+
+                    if (allowedDomains.length > 0) {
+                        requestData.allowed_domains = allowedDomains;
+                    }
+
+                    const response = await this.apiRequest('/api/admin/mailboxes', {
+                        method: 'POST',
+                        body: JSON.stringify(requestData)
+                    });
+
+                    if (whitelistEnabled && senderWhitelist.length > 0) {
+                        await this.apiRequest(`/api/admin/mailboxes/${response.data.id}`, {
+                            method: 'PUT',
+                            body: JSON.stringify({ whitelist_enabled: true })
+                        });
+                    }
+
+                    successItems.push(response.data);
+                } catch (singleError) {
+                    failedItems.push({
+                        address,
+                        error: singleError.message || '创建失败'
+                    });
+                }
             }
 
-            const response = await this.apiRequest('/api/admin/mailboxes', {
-                method: 'POST',
-                body: JSON.stringify(requestData)
-            });
-
-            // 如果启用白名单，更新状态
-            if (whitelistEnabled && senderWhitelist.length > 0) {
-                await this.apiRequest(`/api/admin/mailboxes/${response.data.id}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({
-                        whitelist_enabled: true
-                    })
-                });
+            if (successItems.length === 0) {
+                throw new Error(failedItems[0]?.error || '创建失败');
             }
 
-            this.showToast('success', '邮箱创建成功');
-
-            // 显示结果
             const form = document.getElementById('admin-register-form');
             const result = document.getElementById('register-result');
-
             form.style.display = 'none';
             result.style.display = 'block';
+
+            const summaryText = `共请求 ${targetAddresses.length} 个，成功 ${successItems.length} 个，失败 ${failedItems.length} 个`;
+            const batchItemHtml = successItems.map((mailbox) => {
+                const accessUrl = `${window.location.origin}/mailbox?address=${encodeURIComponent(mailbox.address)}&token=${encodeURIComponent(mailbox.access_token)}`;
+                return `
+                    <div class="batch-create-item">
+                        <div class="item-text">${this.escapeHtml(mailbox.address)}</div>
+                        <a class="item-link" href="${accessUrl}" target="_blank" rel="noopener noreferrer">打开邮箱</a>
+                    </div>
+                `;
+            }).join('');
+
+            const failedItemHtml = failedItems.map((item) => `
+                <div class="batch-create-item failed">
+                    <div class="item-text">${this.escapeHtml(item.address)}：${this.escapeHtml(item.error)}</div>
+                    <span class="item-link">失败</span>
+                </div>
+            `).join('');
+
             result.innerHTML = `
                 <div class="success-message">
                     <i class="fas fa-check-circle"></i>
-                    <h3>邮箱创建成功！</h3>
+                    <h3>${this.registerMode === 'batch' ? '批量创建完成！' : '邮箱创建成功！'}</h3>
                 </div>
-                <div class="mailbox-info">
-                    <div class="info-item">
-                        <label>邮箱地址：</label>
-                        <div class="info-value">${response.data.address}</div>
-                    </div>
-                    <div class="info-item">
-                        <label>访问令牌：</label>
-                        <div class="token-display-inline">
-                            <code>${response.data.access_token}</code>
-                            <button class="btn-icon" onclick="copyToClipboard('${response.data.access_token}')" title="复制">
-                                <i class="fas fa-copy"></i>
-                            </button>
-                        </div>
-                        <small class="warning-text">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            此令牌仅显示一次，请立即复制保存！
-                        </small>
-                    </div>
-                    <div class="info-item">
-                        <label>过期时间：</label>
-                        <div class="info-value">${this.formatDate(response.data.expires_at)}</div>
-                    </div>
-                    <div class="info-item">
-                        <label>邮箱访问地址：</label>
-                        <div class="info-value">
-                            <a href="/mailbox?address=${encodeURIComponent(response.data.address)}&token=${response.data.access_token}" target="_blank" style="color: var(--primary-color); text-decoration: none;">
-                                ${window.location.origin}/mailbox?address=${encodeURIComponent(response.data.address)}&token=${response.data.access_token}
-                            </a>
-                        </div>
+                <div class="batch-create-result">
+                    <div class="batch-create-summary">${summaryText}</div>
+                    <div class="batch-create-list">
+                        ${batchItemHtml}
+                        ${failedItemHtml}
                     </div>
                 </div>
                 <div class="result-actions">
-                    <button class="btn btn-success" onclick="window.open('/mailbox?address=${encodeURIComponent(response.data.address)}&token=${response.data.access_token}', '_blank')">
-                        <i class="fas fa-external-link-alt"></i>
-                        打开邮箱
-                    </button>
                     <button class="btn btn-primary" onclick="adminManager.switchView('register')">
                         <i class="fas fa-plus"></i>
                         继续创建
@@ -388,10 +479,15 @@ class AdminMailboxManager {
                 </div>
             `;
 
-            // 刷新统计
+            this.showToast('success', this.registerMode === 'batch' ? '批量创建完成' : '邮箱创建成功');
             this.loadStats();
         } catch (error) {
             this.showToast('error', error.message || '创建失败');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHtml;
+            }
         }
     }
     

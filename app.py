@@ -1,10 +1,19 @@
 import os
 import threading
 import time
+import logging
 import config
 from src.backend.flask_app import run_flask_server
 from src.backend.smtp_server import run_smtp_server
 from src.backend import inbox_handler
+
+# 配置日志系统
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 def cleanup_emails_periodically():
     """Background task to clean up expired emails periodically"""
@@ -14,7 +23,7 @@ def cleanup_emails_periodically():
     else:
         cleanup_interval = 3600  # 1 hour for day-based retention
 
-    print(f"Email cleanup will run every {cleanup_interval} seconds")
+    logger.info(f"Email cleanup will run every {cleanup_interval} seconds")
 
     while True:
         try:
@@ -48,9 +57,9 @@ def cleanup_emails_periodically():
 
             if emails_before != emails_after or mailboxes_before != mailboxes_after:
                 inbox_handler.write_inbox(cleaned_inbox)
-                print(f"Cleanup completed - Mailboxes: {mailboxes_before}→{mailboxes_after}, Emails: {emails_before}→{emails_after}")
+                logger.info(f"Cleanup completed - Mailboxes: {mailboxes_before}→{mailboxes_after}, Emails: {emails_before}→{emails_after}")
         except Exception as e:
-            print(f"Error during cleanup: {e}")
+            logger.error(f"Error during cleanup: {e}")
 
         time.sleep(cleanup_interval)
 
@@ -73,11 +82,11 @@ if __name__ == "__main__":
     is_docker = os.path.exists('/.dockerenv') or os.environ.get('DOCKER_CONTAINER', False)
 
     if not check_admin_privileges() and not is_docker:
-        print("Warning: This script should be run with administrator privileges to bind to port 25")
-        print("You can still run it, but SMTP server might not work properly on port 25")
-        print("Continuing anyway...")
+        logger.warning("This script should be run with administrator privileges to bind to port 25")
+        logger.warning("You can still run it, but SMTP server might not work properly on port 25")
+        logger.info("Continuing anyway...")
     elif not check_admin_privileges() and is_docker:
-        print("Running in Docker container - continuing without admin privileges check")
+        logger.info("Running in Docker container - continuing without admin privileges check")
 
     flask_thread = threading.Thread(target=run_flask_server, args=(config.FLASK_HOST, config.FLASK_PORT))
     smtp_thread = threading.Thread(target=run_smtp_server, args=(config.SMTP_HOST, config.SMTP_PORT))
@@ -91,5 +100,5 @@ if __name__ == "__main__":
         flask_thread.join()
         smtp_thread.join()
     except KeyboardInterrupt:
-        print("Stopping server.")
+        logger.info("Stopping server.")
         os._exit(0)

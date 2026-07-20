@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify, render_template
+from werkzeug.security import check_password_hash, generate_password_hash
 import config
 
 # 根据配置选择使用数据库还是JSON文件
@@ -361,8 +362,8 @@ def user_login():
             if not user:
                 return jsonify({"error": "Invalid username or password"}), 401
 
-            # 验证密码（实际项目中应该使用密码哈希验证）
-            if user['password_hash'] != password:
+            # 验证密码 - 使用安全的密码哈希验证
+            if not check_password_hash(user['password_hash'], password):
                 return jsonify({"error": "Invalid username or password"}), 401
 
             # 更新最后登录时间
@@ -613,72 +614,165 @@ def register():
     # Get parameters
     email_input = data.get('email', '').strip()
     retention_days = data.get('retention_days', config.MAILBOX_RETENTION_DAYS)
+    count = data.get('count', 1)
+
+    # 尽量将前端传入参数转换为整数
+    try:
+        retention_days = int(retention_days)
+    except (TypeError, ValueError):
+        pass
+
+    try:
+        count = int(count)
+    except (TypeError, ValueError):
+        pass
 
     # Validate required fields
     if not email_input:
         return jsonify({"error": "Email address or prefix is required"}), 400
 
-    # Check if user provided full email or just prefix
-    if '@' in email_input:
-        # User provided full email address
-        email = email_input
-
-        # Validate email format
-        if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email):
-            return jsonify({"error": "Invalid email address format"}), 400
-    else:
-        # User provided only prefix, add random domain
-        email_prefix = email_input
-
-        # Validate email prefix format (only if it's not a full email)
-        if not re.match(r'^[a-zA-Z0-9_]{3,20}$', email_prefix):
-            return jsonify({"error": "Email prefix must be 3-20 characters, letters, numbers, and underscores only"}), 400
-
-        # Generate full email address with random domain
-        random_domain = random.choice(config.DOMAINS)
-        email = f"{email_prefix}@{random_domain}"
-
     # Validate retention days
     if not isinstance(retention_days, int) or retention_days < 1 or retention_days > 365:
         return jsonify({"error": "Retention days must be between 1 and 365"}), 400
 
+    # Validate count
+    if not isinstance(count, int) or count < 1 or count > 100:
+        return jsonify({"error": "Count must be between 1 and 100"}), 400
+
+    def _is_valid_username(username: str) -> bool:
+        """用户名规则：仅英文和数字，长度3-20"""
+        return bool(re.match(r'^[a-zA-Z0-9]{3,20}$', username))
+
+    def _build_single_email(raw_input: str):
+        """构建单个邮箱地址，支持完整邮箱或前缀"""
+        if '@' in raw_input:
+            if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', raw_input):
+                return None, "Invalid email address format"
+
+            local_part = raw_input.split('@', 1)[0]
+            if not _is_valid_username(local_part):
+                return None, "Username must be 3-20 characters, letters and numbers only"
+
+            return raw_input, None
+
+        email_prefix = raw_input
+        if not _is_valid_username(email_prefix):
+            return None, "Email prefix must be 3-20 characters, letters and numbers only"
+
+        random_domain = random.choice(config.DOMAINS)
+        return f"{email_prefix}@{random_domain}", None
+
+    def _build_batch_emails(prefix: str, batch_count: int):
+        """批量构建邮箱地址，格式：prefix + 序号"""
+        if '@' in prefix:
+            return None, "Batch creation only supports username prefix, not full email"
+
+        if not bool(re.match(r'^[a-zA-Z0-9]+$', prefix)):
+            return None, "Username prefix must contain only letters and numbers"
+
+        suffix_len = max(2, len(str(batch_count)))
+        max_prefix_len = 20 - suffix_len
+        if max_prefix_len < 1:
+            return None, "Batch count is too large for username length constraint"
+
+        if len(prefix) < 1 or len(prefix) > max_prefix_len:
+            return None, f"Prefix length must be 1-{max_prefix_len} for count={batch_count}"
+
+        emails = []
+        for index in range(1, batch_count + 1):
+            username = f"{prefix}{index:0{suffix_len}d}"
+            if not _is_valid_username(username):
+                return None, f"Generated username invalid: {username}"
+            random_domain = random.choice(config.DOMAINS)
+            emails.append(f"{username}@{random_domain}")
+
+        return emails, None
+
+    # 生成待创建邮箱列表
+    if count == 1:
+        email, email_error = _build_single_email(email_input)
+        if email_error:
+            return jsonify({"error": email_error}), 400
+        if not email:
+            return jsonify({"error": "Invalid email input"}), 400
+        target_emails = [email]
+    else:
+        target_emails, batch_error = _build_batch_emails(email_input, count)
+        if batch_error:
+            return jsonify({"error": batch_error}), 400
+        if not target_emails:
+            return jsonify({"error": "No emails generated"}), 400
+
     try:
         if config.USE_DATABASE:
-            # 导入数据库管理器
-            from database import db_manager
+            created_mailboxes = []
+            failed_mailboxes = []
 
-            # 检查邮箱是否已存在
-            existing_mailbox = inbox_handler.get_mailbox_info(email)
-            if existing_mailbox and not existing_mailbox['is_expired']:
+            for target_email in target_emails:
+                # 检查邮箱是否已存在
+                existing_mailbox = inbox_handler.get_mailbox_info(target_email)
+                if existing_mailbox and not existing_mailbox['is_expired']:
+                    failed_mailboxes.append({
+                        "address": target_email,
+                        "error": "Mailbox already exists"
+                    })
+                    continue
+
+                try:
+                    mailbox = inbox_handler.create_or_get_mailbox(
+                        address=target_email,
+                        retention_days=retention_days,
+                        sender_whitelist=[],
+                        created_by_ip=client_ip,
+                        created_source="register"
+                    )
+
+                    created_mailboxes.append({
+                        "mailbox_address": target_email,
+                        "access_token": mailbox['access_token'],
+                        "created_at": mailbox['created_at'],
+                        "expires_at": mailbox['expires_at'],
+                        "retention_days": retention_days
+                    })
+                except Exception as create_error:
+                    failed_mailboxes.append({
+                        "address": target_email,
+                        "error": f"Failed to create mailbox: {str(create_error)}"
+                    })
+
+            if not created_mailboxes:
                 return jsonify({
-                    "error": "Mailbox already exists",
-                    "existing_mailbox": {
-                        "address": existing_mailbox['address'],
-                        "mailbox_id": existing_mailbox['id'],
-                        "created_at": existing_mailbox['created_at'],
-                        "expires_at": existing_mailbox['expires_at']
-                    }
+                    "success": False,
+                    "mailbox_created": False,
+                    "total": count,
+                    "created_count": 0,
+                    "failed_count": len(failed_mailboxes),
+                    "created": [],
+                    "failed": failed_mailboxes,
+                    "error": "No mailbox created"
                 }), 409
-
-            # 创建邮箱
-            mailbox = inbox_handler.create_or_get_mailbox(
-                address=email,
-                retention_days=retention_days,
-                sender_whitelist=[],
-                created_by_ip=client_ip,
-                created_source="register"
-            )
 
             result_data = {
                 "success": True,
                 "mailbox_created": True,
-                "mailbox_address": email,
-                "access_token": mailbox['access_token'],
-                "created_at": mailbox['created_at'],
-                "expires_at": mailbox['expires_at'],
-                "retention_days": retention_days,
-                "message": "Temporary mailbox created successfully"
+                "total": count,
+                "created_count": len(created_mailboxes),
+                "failed_count": len(failed_mailboxes),
+                "created": created_mailboxes,
+                "failed": failed_mailboxes,
+                "message": "Temporary mailboxes created successfully"
             }
+
+            # 兼容单个邮箱创建的旧前端字段
+            if len(created_mailboxes) == 1:
+                first_mailbox = created_mailboxes[0]
+                result_data.update({
+                    "mailbox_address": first_mailbox['mailbox_address'],
+                    "access_token": first_mailbox['access_token'],
+                    "created_at": first_mailbox['created_at'],
+                    "expires_at": first_mailbox['expires_at'],
+                    "retention_days": first_mailbox['retention_days']
+                })
 
             return jsonify(result_data), 201
 

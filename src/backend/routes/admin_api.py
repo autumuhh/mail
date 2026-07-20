@@ -7,6 +7,7 @@ from flask import Blueprint, request, jsonify
 import config
 import sys
 import os
+import re
 
 # 添加backend目录到路径
 backend_dir = os.path.dirname(os.path.dirname(__file__))
@@ -115,6 +116,14 @@ def create_mailbox():
 
         if not address:
             return jsonify({'success': False, 'error': '邮箱地址不能为空'}), 400
+
+        # 用户名规则：仅英文和数字，长度3-20
+        if '@' not in address:
+            return jsonify({'success': False, 'error': '邮箱地址格式不正确'}), 400
+
+        username = address.split('@', 1)[0]
+        if not re.match(r'^[a-zA-Z0-9]{3,20}$', username):
+            return jsonify({'success': False, 'error': '用户名必须是3-20位英文或数字'}), 400
 
         success, message, mailbox = mailbox_service.create_mailbox(
             address=address,

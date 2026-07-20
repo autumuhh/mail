@@ -508,9 +508,24 @@
                     <div class="register-card">
                         <form id="admin-register-form">
                             <div class="form-group">
-                                <label>邮箱地址 *</label>
+                                <label>创建模式</label>
+                                <div class="register-mode-switch" id="register-mode-switch">
+                                    <button type="button" class="mode-btn active" id="reg-mode-single" data-mode="single">
+                                        <i class="fas fa-user"></i>
+                                        单个创建
+                                    </button>
+                                    <button type="button" class="mode-btn" id="reg-mode-batch" data-mode="batch">
+                                        <i class="fas fa-users"></i>
+                                        批量创建
+                                    </button>
+                                </div>
+                                <small>批量模式会自动按“前缀 + 序号”生成用户名</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label>用户名前缀 *</label>
                                 <div class="email-input-group">
-                                    <input type="text" id="reg-email-prefix" required placeholder="username" class="email-prefix-input">
+                                    <input type="text" id="reg-email-prefix" required placeholder="abc123" class="email-prefix-input">
                                     <span class="at-symbol">@</span>
                                     <select id="reg-email-domain" required class="email-domain-select">
                                         <option value="">选择域名...</option>
@@ -519,7 +534,13 @@
                                         <i class="fas fa-random"></i>
                                     </button>
                                 </div>
-                                <small>点击随机按钮生成随机邮箱名，从下拉框选择域名</small>
+                                <small>用户名仅支持英文和数字（3-20位）</small>
+                            </div>
+
+                            <div class="form-group" id="reg-batch-options" style="display: none;">
+                                <label for="reg-batch-count">批量数量 *</label>
+                                <input type="number" id="reg-batch-count" min="2" max="100" value="10" placeholder="输入创建数量">
+                                <small>支持2-100个。示例：前缀 abc + 数量 3，将生成 abc01、abc02、abc03</small>
                             </div>
 
                             <div class="form-group">

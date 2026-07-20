@@ -1547,6 +1547,7 @@ body {
 
     .email-item {
         padding-right: 1rem;
+        padding-left: 1rem;
         min-height: 6rem;
     }
 }
@@ -1624,7 +1625,7 @@ body {
 /* 优化后的邮箱信息界面样式 */
 .info-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.5rem;
     margin-bottom: 2rem;
 }

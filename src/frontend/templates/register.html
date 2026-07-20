@@ -63,17 +63,34 @@
                 <div class="form-group">
                     <label for="email-input">
                         <i class="fas fa-envelope"></i>
-                        邮箱地址 / 前缀
+                        用户名前缀 / 完整邮箱
                     </label>
                     <input
                         type="text"
                         id="email-input"
                         name="email"
-                        placeholder="输入邮箱地址（如：myemail@example.com 或 myemail）"
+                        placeholder="输入邮箱地址（如：abc123@example.com）或前缀（如：abc123）"
                         autocomplete="email"
                         required
                     >
-                    <small class="form-hint">输入完整的邮箱地址（如：myemail@example.com）或仅前缀（如：myemail），可点击上方域名快速选择</small>
+                    <small class="form-hint">用户名仅支持英文和数字。单个创建可输入完整邮箱或前缀，批量创建时请输入前缀。</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="batch-count">
+                        <i class="fas fa-layer-group"></i>
+                        创建数量
+                    </label>
+                    <input
+                        type="number"
+                        id="batch-count"
+                        name="count"
+                        min="1"
+                        max="100"
+                        value="1"
+                        required
+                    >
+                    <small class="form-hint">支持一次创建 1-100 个邮箱。数量大于 1 时，将按“前缀 + 序号”批量生成。</small>
                 </div>
 
                 <div class="form-group">
@@ -125,6 +142,12 @@
                     <div class="progress-fill" id="progress-fill"></div>
                 </div>
                 <p class="progress-text" id="progress-text">正在创建邮箱...</p>
+            </div>
+
+            <div class="batch-result" id="batch-result" style="display: none;">
+                <h3>创建结果</h3>
+                <p id="batch-result-summary"></p>
+                <div class="batch-result-list" id="batch-result-list"></div>
             </div>
 
             <!-- 帮助信息 -->

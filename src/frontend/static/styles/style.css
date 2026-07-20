@@ -35,6 +35,12 @@
     padding: 0;
 }
 
+/* 全局图片响应式 / Global responsive images */
+img {
+    max-width: 100%;
+    height: auto;
+}
+
 /* set global propeties */
 body {
     font-family: var(--font-family);
@@ -47,6 +53,7 @@ body {
     min-height: 100vh;
     padding: 2rem 1rem;
     transition: var(--theme-transition);
+    overflow-x: hidden; /* 防止移动端横向滚动 / Prevent horizontal scroll on mobile */
 }
 
 /* contains entire content of site */

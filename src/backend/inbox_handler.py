@@ -3,7 +3,10 @@ import re
 import os
 import time
 import ipaddress
+import logging
 import config
+
+logger = logging.getLogger(__name__)
 
 # Reads the contents of the inbox.json file and returns it as a dictionary
 def read_inbox() -> dict:
@@ -25,7 +28,13 @@ def read_inbox() -> dict:
                 write_inbox(new_data)
                 return new_data
             return data
-    except:
+    except FileNotFoundError:
+        return {}
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse inbox JSON: {e}")
+        return {}
+    except Exception as e:
+        logger.error(f"Error reading inbox: {e}")
         return {}
 
 # Writes a dictionary to the inbox.json file

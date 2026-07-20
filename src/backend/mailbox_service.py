@@ -154,10 +154,31 @@ class MailboxService:
                 except (KeyError, IndexError):
                     return default
 
+            # 批量获取所有邮箱的统计信息，避免N+1查询
+            mailbox_ids = [row['id'] for row in rows]
+            stats_map = {}
+            if mailbox_ids:
+                # 使用单个查询获取所有邮箱的统计信息
+                placeholders = ','.join(['?' for _ in mailbox_ids])
+                stats_cursor = conn.execute(f'''
+                    SELECT
+                        mailbox_id,
+                        COUNT(*) as total_emails,
+                        COUNT(CASE WHEN is_read = 0 THEN 1 END) as unread_emails
+                    FROM emails
+                    WHERE mailbox_id IN ({placeholders})
+                    GROUP BY mailbox_id
+                ''', mailbox_ids)
+                for stat_row in stats_cursor.fetchall():
+                    stats_map[stat_row['mailbox_id']] = {
+                        'total_emails': stat_row['total_emails'],
+                        'unread_emails': stat_row['unread_emails']
+                    }
+
             mailboxes = []
             for row in rows:
-                # 获取邮件统计
-                stats = self.db.get_mailbox_stats(row['id'])
+                # 从批量查询结果中获取统计信息
+                stats = stats_map.get(row['id'], {'total_emails': 0, 'unread_emails': 0})
 
                 mailboxes.append({
                     'id': row['id'],

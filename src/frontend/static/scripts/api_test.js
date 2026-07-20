@@ -320,6 +320,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (emails.length === 0) {
                     emailsContent.innerHTML = '<p>暂无邮件</p>';
                 } else {
+                    // 安全处理：转义用户输入防止XSS
+                    const escapeHtml = (text) => {
+                        const div = document.createElement('div');
+                        div.textContent = text;
+                        return div.innerHTML;
+                    };
+
                     emails.forEach((email, index) => {
                         console.log('[DEBUG] Email object:', email);
                         const emailId = email.id || `email-${index}-${Date.now()}`;
@@ -327,15 +334,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
                         const emailDiv = document.createElement('div');
                         emailDiv.className = 'email-item';
+
+                        const safeFrom = escapeHtml(email.From || '未知');
+                        const safeSubject = escapeHtml(email.Subject || '无主题');
+                        const safePreview = escapeHtml(getEmailPreview(email.Body || '无内容'));
+                        const safeEmailId = escapeHtml(emailId);
+                        const safeAddress = escapeHtml(viewEmail.value.trim());
+
                         emailDiv.innerHTML = `
                             <div class="email-header">
-                                <span class="email-from">来自: ${email.From || '未知'}</span>
+                                <span class="email-from">来自: ${safeFrom}</span>
                                 <span class="email-time">${formatTime(email.Timestamp)}</span>
                             </div>
-                            <div class="email-subject">${email.Subject || '无主题'}</div>
-                            <div class="email-body">${getEmailPreview(email.Body || '无内容')}</div>
+                            <div class="email-subject">${safeSubject}</div>
+                            <div class="email-body">${safePreview}</div>
                             <div class="email-actions">
-                                <button class="btn btn-secondary view-detail-btn" data-email-id="${emailId}" data-address="${viewEmail.value.trim()}">
+                                <button class="btn btn-secondary view-detail-btn" data-email-id="${safeEmailId}" data-address="${safeAddress}">
                                     <span>查看详情</span>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="m9 18 6-6-6-6"/>
@@ -391,17 +405,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('detail-subject').textContent = email.Subject || '无主题';
                 document.getElementById('detail-time').textContent = formatTime(email.Timestamp);
                 document.getElementById('detail-id').textContent = email.id || emailId;
-                // 处理邮件内容显示
+                // 处理邮件内容显示 - 使用安全的文本渲染防止XSS攻击
                 const bodyContent = email.Body || '无内容';
                 const detailBodyElement = document.getElementById('detail-body-content');
 
-                if (bodyContent.includes('<') && bodyContent.includes('>')) {
-                    // HTML内容，直接渲染
-                    detailBodyElement.innerHTML = bodyContent;
-                } else {
-                    // 纯文本内容，保持换行
-                    detailBodyElement.innerHTML = bodyContent.replace(/\n/g, '<br>');
-                }
+                // 安全处理：始终转义HTML内容防止XSS
+                const escapeHtml = (text) => {
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    return div.innerHTML;
+                };
+
+                // 将换行转换为<br>，但先转义HTML
+                const safeContent = escapeHtml(bodyContent).replace(/\n/g, '<br>');
+                detailBodyElement.innerHTML = safeContent;
 
                 // 显示详情面板
                 document.getElementById('email-detail').style.display = 'block';

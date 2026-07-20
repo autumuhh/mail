@@ -16,6 +16,9 @@ class RegisterManager {
         this.progressFill = document.getElementById('progress-fill');
         this.progressText = document.getElementById('progress-text');
         this.toastContainer = document.getElementById('toast-container');
+        this.batchResult = document.getElementById('batch-result');
+        this.batchResultSummary = document.getElementById('batch-result-summary');
+        this.batchResultList = document.getElementById('batch-result-list');
 
         this.isAdminAuthenticated = false;
         this.adminPasswordValue = '';
@@ -55,10 +58,15 @@ class RegisterManager {
 
         // 实时验证
          const emailInput = document.getElementById('email-input');
+         const batchCountInput = document.getElementById('batch-count');
 
-         if (emailInput) {
-             emailInput.addEventListener('input', () => this.validateEmail());
-         }
+          if (emailInput) {
+              emailInput.addEventListener('input', () => this.validateRegisterInput(true));
+          }
+
+          if (batchCountInput) {
+              batchCountInput.addEventListener('input', () => this.validateRegisterInput(true));
+          }
 
          // 加载可用域名
          this.loadAvailableDomains();
@@ -110,34 +118,80 @@ class RegisterManager {
     }
 
 
-    // 验证邮箱
-     validateEmail() {
-         const emailInput = document.getElementById('email-input').value;
+    // 验证用户名规则（仅英文+数字，3-20位）
+    isValidUsername(username) {
+        return /^[a-zA-Z0-9]{3,20}$/.test(username);
+    }
 
-         if (!emailInput) {
-             this.showToast('请输入邮箱地址或前缀', 'warning', 3000);
-             return false;
-         }
+    // 验证注册输入（支持单个/批量）
+    validateRegisterInput(silent = false) {
+        const emailInputEl = document.getElementById('email-input');
+        const batchCountEl = document.getElementById('batch-count');
+        const emailInput = emailInputEl ? emailInputEl.value.trim() : '';
+        const count = batchCountEl ? parseInt(batchCountEl.value, 10) || 1 : 1;
 
-         // Check if it's a full email or just prefix
-         if (emailInput.includes('@')) {
-             // Full email validation
-             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-             if (!emailRegex.test(emailInput)) {
-                 this.showToast('请输入有效的邮箱地址格式', 'warning', 3000);
-                 return false;
-             }
-         } else {
-             // Prefix validation
-             const prefixRegex = /^[a-zA-Z0-9_]{3,20}$/;
-             if (!prefixRegex.test(emailInput)) {
-                 this.showToast('邮箱前缀必须3-20字符，只能包含字母数字下划线', 'warning', 3000);
-                 return false;
-             }
-         }
+        const showWarning = (message) => {
+            if (!silent) {
+                this.showToast(message, 'warning', 3000);
+            }
+        };
 
-         return true;
-     }
+        if (!emailInput) {
+            showWarning('请输入邮箱地址或前缀');
+            return false;
+        }
+
+        if (count < 1 || count > 100) {
+            showWarning('创建数量必须在1-100之间');
+            return false;
+        }
+
+        // 批量创建只允许前缀
+        if (count > 1) {
+            if (emailInput.includes('@')) {
+                showWarning('批量创建时请输入用户名英文数字前缀，不要输入完整邮箱');
+                return false;
+            }
+
+            if (!/^[a-zA-Z0-9]+$/.test(emailInput)) {
+                showWarning('批量前缀仅支持英文和数字');
+                return false;
+            }
+
+            const suffixLen = Math.max(2, String(count).length);
+            const maxPrefixLen = 20 - suffixLen;
+            if (emailInput.length < 1 || emailInput.length > maxPrefixLen) {
+                showWarning(`当前数量下，前缀长度需为1-${maxPrefixLen}`);
+                return false;
+            }
+
+            return true;
+        }
+
+        // 单个创建：支持完整邮箱或前缀
+        if (emailInput.includes('@')) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(emailInput)) {
+                showWarning('请输入有效的邮箱地址格式');
+                return false;
+            }
+
+            const username = emailInput.split('@')[0];
+            if (!this.isValidUsername(username)) {
+                showWarning('用户名必须为3-20位英文或数字');
+                return false;
+            }
+
+            return true;
+        }
+
+        if (!this.isValidUsername(emailInput)) {
+            showWarning('邮箱前缀必须为3-20位英文或数字');
+            return false;
+        }
+
+        return true;
+    }
 
      // 加载可用域名
      async loadAvailableDomains() {
@@ -249,13 +303,61 @@ class RegisterManager {
         }
     }
 
+    // 渲染批量创建结果
+    renderBatchResult(createdList = [], failedList = [], total = 0) {
+        if (!this.batchResult || !this.batchResultSummary || !this.batchResultList) {
+            return;
+        }
+
+        this.batchResult.style.display = 'block';
+        this.batchResultList.innerHTML = '';
+        this.batchResultSummary.textContent = `总计 ${total} 个，成功 ${createdList.length} 个，失败 ${failedList.length} 个`;
+
+        createdList.forEach((item) => {
+            const address = item.mailbox_address || '';
+            const token = item.access_token || '';
+            const accessUrl = `${window.location.origin}/mailbox?address=${encodeURIComponent(address)}&token=${encodeURIComponent(token)}`;
+
+            const row = document.createElement('div');
+            row.className = 'batch-result-item';
+
+            const addressEl = document.createElement('div');
+            addressEl.className = 'address';
+            addressEl.textContent = `邮箱：${address}`;
+
+            const link = document.createElement('a');
+            link.className = 'access-link';
+            link.href = accessUrl;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.textContent = '打开邮箱';
+
+            row.appendChild(addressEl);
+            row.appendChild(link);
+            this.batchResultList.appendChild(row);
+        });
+
+        failedList.forEach((item) => {
+            const row = document.createElement('div');
+            row.className = 'batch-result-item';
+
+            const failText = document.createElement('div');
+            failText.className = 'address';
+            failText.textContent = `失败：${item.address || 'unknown'}（${item.error || '未知错误'}）`;
+            row.appendChild(failText);
+
+            this.batchResultList.appendChild(row);
+        });
+    }
+
     // 处理注册
     async handleRegister() {
-
         const formData = new FormData(this.form);
-        const emailInput = formData.get('email').trim();
+        const emailInput = String(formData.get('email') || '').trim();
+        const count = parseInt(String(formData.get('count') || '1'), 10) || 1;
         const data = {
             email: emailInput,
+            count,
             retention_days: parseInt(formData.get('retention_days')) || 7,
             agree_terms: formData.get('agree-terms') === 'on'
         };
@@ -272,7 +374,7 @@ class RegisterManager {
         }
 
         // 字段验证
-        if (!this.validateEmail()) {
+        if (!this.validateRegisterInput()) {
             return;
         }
 
@@ -292,7 +394,11 @@ class RegisterManager {
         loadingSpinner.style.display = 'block';
 
         try {
-            this.showProgress('正在创建邮箱...', 25);
+            if (this.batchResult) {
+                this.batchResult.style.display = 'none';
+            }
+
+            this.showProgress('正在创建邮箱...', 20);
 
             // 发送注册请求
             const response = await fetch('/api/register', {
@@ -307,75 +413,22 @@ class RegisterManager {
             const result = await response.json();
 
             if (response.ok && result.success) {
-                this.showProgress('邮箱创建成功！', 75);
-
-                // 注册成功，直接跳转到邮箱管理页面
                 this.showProgress('邮箱创建完成！', 100);
 
-                // 等待一下让用户看到成功状态
-                await new Promise(resolve => setTimeout(resolve, 1500));
+                const createdList = Array.isArray(result.created) ? result.created : [];
+                const failedList = Array.isArray(result.failed) ? result.failed : [];
+                const total = Number.isInteger(result.total) ? result.total : count;
 
-                if (result.mailbox_created && result.access_token) {
-                    // 有邮箱创建成功，显示访问URL
-                    const accessUrl = `${window.location.origin}/mailbox?address=${encodeURIComponent(result.mailbox_address)}&token=${encodeURIComponent(result.access_token)}`;
-
-                    this.showToast('临时邮箱创建成功！', 'success', 3000);
-
-                    // 显示邮箱信息和访问链接
-                    const emailParts = result.mailbox_address.split('@');
-                    const domainInfo = emailParts.length === 2 ? '使用域名：' + emailParts[1] + '<br>' : '';
-
-                    this.showToast(`
-                        <div style="text-align: left;">
-                            <strong>您的临时邮箱：</strong><br>
-                            地址：${result.mailbox_address}<br>
-                            ${domainInfo}
-                            保留时间：${result.retention_days}天<br><br>
-                            <strong>访问链接：</strong><br>
-                            <a href="${accessUrl}" target="_blank" style="color: #007bff; word-break: break-all;">${accessUrl}</a><br><br>
-                            <small>点击链接即可开始使用您的临时邮箱</small>
-                        </div>
-                    `, 'info', 10000);
-
-                    // 同时显示一个"立即访问"按钮
-                    setTimeout(() => {
-                        const accessButton = document.createElement('button');
-                        accessButton.className = 'btn btn-primary';
-                        accessButton.innerHTML = '<i class="fas fa-external-link-alt"></i> 立即访问邮箱';
-                        accessButton.style.cssText = `
-                            position: fixed;
-                            top: 20px;
-                            right: 20px;
-                            z-index: 1000;
-                            padding: 10px 20px;
-                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                            border: none;
-                            border-radius: 25px;
-                            color: white;
-                            cursor: pointer;
-                            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-                            transition: all 0.3s ease;
-                        `;
-                        accessButton.onmouseover = () => accessButton.style.transform = 'translateY(-2px)';
-                        accessButton.onmouseout = () => accessButton.style.transform = 'translateY(0)';
-                        accessButton.onclick = () => window.open(accessUrl, '_blank');
-
-                        document.body.appendChild(accessButton);
-
-                        // 10秒后自动隐藏按钮
-                        setTimeout(() => {
-                            if (accessButton.parentNode) {
-                                accessButton.style.opacity = '0';
-                                accessButton.style.transform = 'translateY(-20px)';
-                                setTimeout(() => accessButton.remove(), 300);
-                            }
-                        }, 10000);
-                    }, 2000);
-
+                if (createdList.length === 1 && failedList.length === 0) {
+                    const mailbox = createdList[0];
+                    const accessUrl = `${window.location.origin}/mailbox?address=${encodeURIComponent(mailbox.mailbox_address)}&token=${encodeURIComponent(mailbox.access_token)}`;
+                    this.showToast(`创建成功：${mailbox.mailbox_address}`, 'success', 3500);
+                    this.showToast(`<a href="${accessUrl}" target="_blank" style="color: #007bff; word-break: break-all;">${accessUrl}</a>`, 'info', 8000);
                 } else {
-                    // 没有邮箱创建成功，显示错误信息
-                    this.showToast('邮箱创建失败，请稍后重试', 'warning', 3000);
+                    this.showToast(`批量创建完成：成功 ${createdList.length} / ${total}`, 'success', 3500);
                 }
+
+                this.renderBatchResult(createdList, failedList, total);
             } else {
                 throw new Error(result.error || '注册失败');
             }
@@ -383,8 +436,9 @@ class RegisterManager {
         } catch (error) {
             console.error('注册错误:', error);
             this.showToast(error.message || '注册失败，请稍后重试', 'error');
-            this.hideProgress();
         } finally {
+            this.hideProgress();
+
             // 恢复按钮状态
             submitBtn.disabled = false;
             btnText.textContent = '创建邮箱';
