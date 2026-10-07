@@ -8,95 +8,100 @@
     <meta name="referrer" content="no-referrer">
     <!-- 管理入口不参与索引，但仍向辅助技术说明页面用途。 -->
     <meta name="description" content="Maildrop 管理后台，用于维护邮箱、审计记录与服务配置。">
-    <title>邮箱管理 - TempMail Admin</title>
+    <title>邮箱管理 - Maildrop Admin</title>
+    <!-- 在首帧绘制前恢复主题，避免暗色偏好先闪出浅色界面。 -->
+    <script src="{{ url_for('static', filename='scripts/theme.js') }}"></script>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='icons/favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/ui_foundation.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/admin_mailbox.css') }}">
 </head>
-<body>
+<body class="admin-page">
+    <a class="skip-link" href="#admin-main">跳到管理内容</a>
     <div class="admin-container">
         <!-- 侧边栏 -->
         <aside class="sidebar">
             <div class="sidebar-header">
                 <div class="logo">
-                    <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#shield"></use></svg>
-                    <span>TempMail Admin</span>
+                    <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#brand"></use></svg>
+                    <span>Maildrop Admin</span>
                 </div>
             </div>
             
-            <nav class="sidebar-nav">
+            <!-- 使用原生按钮保留列表语义，也让键盘激活只触发一次。 -->
+            <nav class="sidebar-nav" aria-label="管理视图">
                 <ul>
-                    <li class="nav-item active" data-view="dashboard" role="button" tabindex="0">
-                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#dashboard"></use></svg>
+                    <li><button type="button" class="nav-item active" data-view="dashboard" aria-controls="dashboard-view" aria-current="page">
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#dashboard"></use></svg>
                         <span>仪表板</span>
-                    </li>
-                    <li class="nav-item" data-view="mailboxes" role="button" tabindex="0">
-                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#inbox"></use></svg>
+                    </button></li>
+                    <li><button type="button" class="nav-item" data-view="mailboxes" aria-controls="mailboxes-view">
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#inbox"></use></svg>
                         <span>邮箱管理</span>
-                    </li>
-                    <li class="nav-item" data-view="audit" role="button" tabindex="0">
-                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#audit"></use></svg>
+                    </button></li>
+                    <li><button type="button" class="nav-item" data-view="audit" aria-controls="audit-view">
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#audit"></use></svg>
                         <span>审计日志</span>
-                    </li>
-                    <li class="nav-item" data-view="security" role="button" tabindex="0">
-                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#shield"></use></svg>
+                    </button></li>
+                    <li><button type="button" class="nav-item" data-view="security" aria-controls="security-view">
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#shield"></use></svg>
                         <span>安全监控</span>
-                    </li>
-                    <li class="nav-item" data-view="register" role="button" tabindex="0">
-                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#user-plus"></use></svg>
+                    </button></li>
+                    <li><button type="button" class="nav-item" data-view="register" aria-controls="register-view">
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#user-plus"></use></svg>
                         <span>邮箱创建</span>
-                    </li>
-                    <li class="nav-item" data-view="sub-admins" role="button" tabindex="0">
-                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#users"></use></svg>
+                    </button></li>
+                    <li><button type="button" class="nav-item" data-view="sub-admins" aria-controls="sub-admins-view">
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#users"></use></svg>
                         <span>子管理员</span>
-                    </li>
-                    <li class="nav-item" data-view="settings" role="button" tabindex="0">
-                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#settings"></use></svg>
+                    </button></li>
+                    <li><button type="button" class="nav-item" data-view="settings" aria-controls="settings-view">
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#settings"></use></svg>
                         <span>系统设置</span>
-                    </li>
+                    </button></li>
                 </ul>
             </nav>
             
             <div class="sidebar-footer">
-                <button class="btn btn-theme-toggle" onclick="toggleTheme()" title="切换主题" aria-label="切换主题">
-                    <span class="theme-icon sun-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="/static/icons/maildrop-icons.svg#sun"></use></svg></span>
-                    <span class="theme-icon moon-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="/static/icons/maildrop-icons.svg#theme"></use></svg></span>
+                <button class="btn btn-theme-toggle" type="button" onclick="toggleTheme()" title="切换主题" aria-label="切换主题">
+                    <span class="theme-icon sun-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#sun"></use></svg></span>
+                    <span class="theme-icon moon-icon" aria-hidden="true"><svg class="icon" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#theme"></use></svg></span>
                     <span class="theme-text">切换主题</span>
                 </button>
-                <button class="btn btn-logout" onclick="logout()">
-                    <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#logout"></use></svg>
+                <!-- 无障碍名称保留完整可见标签，语音操作才能准确对应按钮。 -->
+                <button class="btn btn-logout" type="button" aria-label="退出登录（管理员）" onclick="logout()">
+                    <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#logout"></use></svg>
                     <span>退出登录</span>
                 </button>
             </div>
         </aside>
 
         <!-- 主内容区 -->
-        <main class="main-content">
+        <main class="main-content" id="admin-main">
             <!-- 登录视图 -->
             <div class="view login-view active" id="login-view">
                 <div class="login-container">
                     <div class="login-card">
                         <div class="login-header">
-                            <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#shield"></use></svg>
-                            <h2>管理员登录</h2>
-                            <p>TempMail 临时邮箱管理系统</p>
+                            <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#shield"></use></svg>
+                            <h1>管理员登录</h1>
+                            <p>Maildrop · 管理工作台</p>
                         </div>
                         <form id="login-form">
                             <div class="form-group">
                                 <label for="admin-password">
-                                    <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#lock"></use></svg>
+                                    <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#lock"></use></svg>
                                     管理员密码
                                 </label>
                                 <input type="password" id="admin-password" placeholder="请输入管理员密码" required autocomplete="current-password">
                             </div>
                             <button type="submit" class="btn btn-primary btn-block">
-                                <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#arrow-right"></use></svg>
+                                <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#arrow-right"></use></svg>
                                 <span>登录</span>
                             </button>
                         </form>
-                        <div id="login-error" class="error-message"></div>
+                        <div id="login-error" class="error-message" role="alert"></div>
                         <div class="login-footer">
-                            <p><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#info"></use></svg> 请使用管理员密码登录系统</p>
+                            <p><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#info"></use></svg> 请使用管理员密码登录系统</p>
                         </div>
                     </div>
                 </div>
@@ -108,19 +113,19 @@
                     <!-- 欢迎横幅 -->
                     <div class="welcome-banner">
                         <div class="welcome-content">
-                            <h1><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#activity"></use></svg> 欢迎回来</h1>
-                            <p>TempMail 管理控制台</p>
+                            <h1 tabindex="-1"><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#activity"></use></svg> 管理工作台</h1>
+                            <p>管理邮箱生命周期、安全策略与访问权限。</p>
                         </div>
                         <div class="welcome-time">
-                            <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#clock"></use></svg>
+                            <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#clock"></use></svg>
                             <span id="current-time"></span>
                         </div>
                     </div>
 
                     <div class="stats-grid">
                         <div class="stat-card">
-                            <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                                <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#inbox"></use></svg>
+                            <div class="stat-icon">
+                                <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#inbox"></use></svg>
                             </div>
                             <div class="stat-content">
                                 <div class="stat-value" id="stat-total-mailboxes">0</div>
@@ -129,8 +134,8 @@
                         </div>
                         
                         <div class="stat-card">
-                            <div class="stat-icon" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);">
-                                <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#check-circle"></use></svg>
+                            <div class="stat-icon">
+                                <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#check-circle"></use></svg>
                             </div>
                             <div class="stat-content">
                                 <div class="stat-value" id="stat-active-mailboxes">0</div>
@@ -139,8 +144,8 @@
                         </div>
                         
                         <div class="stat-card">
-                            <div class="stat-icon" style="background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);">
-                                <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#clock"></use></svg>
+                            <div class="stat-icon">
+                                <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#clock"></use></svg>
                             </div>
                             <div class="stat-content">
                                 <div class="stat-value" id="stat-expired-mailboxes">0</div>
@@ -149,8 +154,8 @@
                         </div>
                         
                         <div class="stat-card">
-                            <div class="stat-icon" style="background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);">
-                                <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#alert-circle"></use></svg>
+                            <div class="stat-icon">
+                                <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#alert-circle"></use></svg>
                             </div>
                             <div class="stat-content">
                                 <div class="stat-value" id="stat-disabled-mailboxes">0</div>
@@ -159,8 +164,8 @@
                         </div>
                         
                         <div class="stat-card">
-                            <div class="stat-icon" style="background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);">
-                                <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#mail"></use></svg>
+                            <div class="stat-icon">
+                                <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#mail"></use></svg>
                             </div>
                             <div class="stat-content">
                                 <div class="stat-value" id="stat-total-emails">0</div>
@@ -169,8 +174,8 @@
                         </div>
                         
                         <div class="stat-card">
-                            <div class="stat-icon" style="background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%);">
-                                <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#mail"></use></svg>
+                            <div class="stat-icon">
+                                <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#mail"></use></svg>
                             </div>
                             <div class="stat-content">
                                 <div class="stat-value" id="stat-unread-emails">0</div>
@@ -181,94 +186,94 @@
 
                     <div class="dashboard-panels">
                         <!-- 快速操作 -->
-                        <div class="quick-actions-section" style="margin-bottom: 0;">
-                            <h3><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#activity"></use></svg> 快速操作</h3>
-                            <div class="quick-actions-grid" style="grid-template-columns: repeat(2, 1fr);">
+                        <div class="quick-actions-section">
+                            <h2><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#activity"></use></svg> 快速操作</h2>
+                            <div class="quick-actions-grid">
                                 <button class="quick-action-card" onclick="document.querySelector('[data-view=register]').click()">
-                                    <div class="quick-action-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#plus"></use></svg>
+                                    <div class="quick-action-icon">
+                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#plus"></use></svg>
                                     </div>
                                     <div class="quick-action-content">
-                                        <h4>创建邮箱</h4>
+                                        <strong class="quick-action-title">创建邮箱</strong>
                                         <p>新临时邮箱</p>
                                     </div>
                                 </button>
 
                                 <button class="quick-action-card" onclick="document.querySelector('[data-view=mailboxes]').click()">
-                                    <div class="quick-action-icon" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);">
-                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#list"></use></svg>
+                                    <div class="quick-action-icon">
+                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#list"></use></svg>
                                     </div>
                                     <div class="quick-action-content">
-                                        <h4>邮箱列表</h4>
+                                        <strong class="quick-action-title">邮箱列表</strong>
                                         <p>管理所有邮箱</p>
                                     </div>
                                 </button>
 
                                 <button class="quick-action-card" onclick="document.querySelector('[data-view=audit]').click()">
-                                    <div class="quick-action-icon" style="background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);">
-                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#audit"></use></svg>
+                                    <div class="quick-action-icon">
+                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#audit"></use></svg>
                                     </div>
                                     <div class="quick-action-content">
-                                        <h4>审计日志</h4>
+                                        <strong class="quick-action-title">审计日志</strong>
                                         <p>系统操作记录</p>
                                     </div>
                                 </button>
 
                                 <button class="quick-action-card" onclick="document.querySelector('[data-view=settings]').click()">
-                                    <div class="quick-action-icon" style="background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);">
-                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#settings"></use></svg>
+                                    <div class="quick-action-icon">
+                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#settings"></use></svg>
                                     </div>
                                     <div class="quick-action-content">
-                                        <h4>系统设置</h4>
+                                        <strong class="quick-action-title">系统设置</strong>
                                         <p>配置参数</p>
                                     </div>
                                 </button>
                             </div>
                         </div>
 
-                        <!-- 系统信息 -->
-                        <div class="system-info-section" style="margin-bottom: 0;">
-                            <h3><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#info"></use></svg> 系统信息</h3>
-                            <div class="info-cards-grid" style="grid-template-columns: 1fr;">
+                        <!-- 只展示真实响应；没有版本或运行时长接口时不伪造指标。 -->
+                        <div class="system-info-section">
+                            <h2><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#info"></use></svg> 系统信息</h2>
+                            <div class="info-cards-grid">
                                 <div class="info-card">
                                     <div class="info-icon">
-                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#server"></use></svg>
+                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#server"></use></svg>
                                     </div>
                                     <div class="info-content">
-                                        <div class="info-label">系统状态</div>
+                                        <div class="info-label">统计快照</div>
                                         <div class="info-value">
-                                            <span class="status-badge active" style="padding: 2px 8px; font-size: 12px;">运行中</span>
+                                            <span id="stats-status">尚未读取</span>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="info-card">
                                     <div class="info-icon">
-                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#database"></use></svg>
+                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#database"></use></svg>
                                     </div>
                                     <div class="info-content">
-                                        <div class="info-label">数据库</div>
-                                        <div class="info-value" style="font-size: 14px;">SQLite</div>
+                                        <div class="info-label">存储配置</div>
+                                        <div class="info-value" >由服务端管理</div>
                                     </div>
                                 </div>
 
                                 <div class="info-card">
                                     <div class="info-icon">
-                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#layers"></use></svg>
+                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#layers"></use></svg>
                                     </div>
                                     <div class="info-content">
                                         <div class="info-label">版本</div>
-                                        <div class="info-value" style="font-size: 14px;">v1.0.0</div>
+                                        <div class="info-value" >服务端未提供</div>
                                     </div>
                                 </div>
 
                                 <div class="info-card">
                                     <div class="info-icon">
-                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#calendar"></use></svg>
+                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#calendar"></use></svg>
                                     </div>
                                     <div class="info-content">
                                         <div class="info-label">运行时间</div>
-                                        <div class="info-value" id="uptime" style="font-size: 14px;">计算中...</div>
+                                        <div class="info-value" id="uptime">服务端未提供</div>
                                     </div>
                                 </div>
                             </div>
@@ -280,14 +285,14 @@
             <!-- 邮箱管理视图 -->
             <div class="view mailboxes-view" id="mailboxes-view" style="display: none;">
                 <div class="view-header">
-                    <h2><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#inbox"></use></svg> 邮箱管理</h2>
+                    <h1 tabindex="-1"><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#inbox"></use></svg> 邮箱管理</h1>
                     <div class="view-actions">
-                        <button class="btn btn-danger" id="batch-delete-btn" onclick="batchDeleteMailboxes()" style="display: none;">
-                            <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#trash"></use></svg>
+                        <button class="btn btn-danger" id="batch-delete-btn" onclick="batchDeleteMailboxes(this)" style="display: none;">
+                            <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#trash"></use></svg>
                             批量删除 (<span id="selected-count">0</span>)
                         </button>
                         <button class="btn btn-primary" onclick="document.querySelector('[data-view=register]').click()">
-                            <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#plus"></use></svg>
+                            <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#plus"></use></svg>
                             创建邮箱
                         </button>
                     </div>
@@ -296,7 +301,7 @@
                 <!-- 搜索和筛选 -->
                 <div class="filter-bar">
                     <div class="search-box">
-                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#search"></use></svg>
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#search"></use></svg>
                         <input type="text" id="search-input" placeholder="搜索邮箱地址或ID...">
                     </div>
                     <div class="filter-buttons">
@@ -307,7 +312,7 @@
                     </div>
                     <div class="source-filter">
                         <label for="source-filter-select">
-                            <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#filter"></use></svg>
+                            <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#filter"></use></svg>
                             来源：
                         </label>
                         <select id="source-filter-select" onchange="changeSourceFilter(this.value)">
@@ -320,7 +325,7 @@
                     </div>
                     <div class="page-size-selector">
                         <label for="page-size-select">
-                            <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#list"></use></svg>
+                            <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#list"></use></svg>
                             每页显示：
                         </label>
                         <select id="page-size-select" onchange="changePageSize(this.value)">
@@ -331,18 +336,21 @@
                         </select>
                     </div>
                     <button class="btn btn-secondary" onclick="refreshMailboxList()">
-                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#refresh"></use></svg>
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#refresh"></use></svg>
                         刷新
                     </button>
                 </div>
                 
                 <!-- 邮箱列表 -->
-                <div class="mailbox-list-container">
+                <!-- 完整数据保留表格，窄屏用独立滚动区域而不是整页横移。 -->
+                    <p class="table-hint">横向滑动查看完整列与操作；键盘可聚焦表格后使用方向键。</p>
+                    <div class="mailbox-list-container" tabindex="0" role="region" aria-label="邮箱数据，可横向滚动">
                     <table class="mailbox-table">
                         <thead>
                             <tr>
-                                <th style="width: 40px;">
-                                    <input type="checkbox" id="select-all-checkbox" onchange="toggleSelectAll(this)">
+                                <!-- 选择列也提供标题与操作名称，避免读屏得到空表头。 -->
+                                <th style="width: 64px;" aria-label="选择邮箱">
+                                    <label class="table-select"><input type="checkbox" id="select-all-checkbox" aria-label="选择全部邮箱" onchange="toggleSelectAll(this)"></label>
                                 </th>
                                 <th>邮箱地址</th>
                                 <th>状态</th>
@@ -357,7 +365,7 @@
                         <tbody id="mailbox-list">
                             <tr>
                                 <td colspan="9" class="loading-row">
-                                    <svg class="icon is-spinning" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#spinner"></use></svg>
+                                    <svg class="icon is-spinning" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#spinner"></use></svg>
                                     加载中...
                                 </td>
                             </tr>
@@ -374,14 +382,15 @@
             <!-- 审计日志视图 -->
             <div class="view audit-view" id="audit-view" style="display: none;">
                 <div class="view-header">
-                    <h2><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#audit"></use></svg> 审计日志</h2>
+                    <h1 tabindex="-1"><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#audit"></use></svg> 审计日志</h1>
                     <button class="btn btn-secondary" onclick="refreshAuditLogs()">
-                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#refresh"></use></svg>
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#refresh"></use></svg>
                         刷新
                     </button>
                 </div>
                 
-                <div class="audit-log-container">
+                <p class="table-hint">横向滑动查看完整列；键盘可聚焦表格后使用方向键。</p>
+                    <div class="audit-log-container" tabindex="0" role="region" aria-label="审计日志数据，可横向滚动">
                     <table class="audit-table">
                         <thead>
                             <tr>
@@ -396,7 +405,7 @@
                         <tbody id="audit-log-list">
                             <tr>
                                 <td colspan="6" class="loading-row">
-                                    <svg class="icon is-spinning" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#spinner"></use></svg>
+                                    <svg class="icon is-spinning" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#spinner"></use></svg>
                                     加载中...
                                 </td>
                             </tr>
@@ -408,17 +417,18 @@
             <!-- 安全监控视图 -->
             <div class="view security-view" id="security-view" style="display: none;">
                 <div class="view-header">
-                    <h2><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#shield"></use></svg> 安全监控</h2>
+                    <h1 tabindex="-1"><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#shield"></use></svg> 安全监控</h1>
                     <button class="btn btn-secondary" onclick="refreshSecurityInfo()">
-                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#refresh"></use></svg>
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#refresh"></use></svg>
                         刷新
                     </button>
                 </div>
 
                 <!-- 被封禁的IP -->
                 <div class="security-section">
-                    <h3><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#alert-circle"></use></svg> 被封禁的IP地址</h3>
-                    <div class="blocked-ips-container">
+                    <h2><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#alert-circle"></use></svg> 被封禁的IP地址</h2>
+                    <p class="table-hint">横向滑动查看完整列；键盘可聚焦表格后使用方向键。</p>
+                    <div class="blocked-ips-container" tabindex="0" role="region" aria-label="封禁 IP 数据，可横向滚动">
                         <table class="security-table">
                             <thead>
                                 <tr>
@@ -430,7 +440,7 @@
                             <tbody id="blocked-ips-list">
                                 <tr>
                                     <td colspan="3" class="loading-row">
-                                        <svg class="icon is-spinning" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#spinner"></use></svg>
+                                        <svg class="icon is-spinning" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#spinner"></use></svg>
                                         加载中...
                                     </td>
                                 </tr>
@@ -441,11 +451,11 @@
 
                 <!-- 创建来源统计 -->
                 <div class="security-section">
-                    <h3><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#dashboard"></use></svg> 邮箱创建来源统计</h3>
+                    <h2><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#dashboard"></use></svg> 邮箱创建来源统计</h2>
                     <div class="source-stats-container">
                         <div class="stats-grid" id="source-stats-grid">
                             <div class="stat-card">
-                                <div class="stat-icon"><svg class="icon is-spinning" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#spinner"></use></svg></div>
+                                <div class="stat-icon"><svg class="icon is-spinning" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#spinner"></use></svg></div>
                                 <div class="stat-info">
                                     <div class="stat-label">加载中...</div>
                                     <div class="stat-value">-</div>
@@ -457,12 +467,12 @@
 
                 <!-- 封禁配置 -->
                 <div class="security-section">
-                    <h3><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#settings"></use></svg> 封禁配置</h3>
+                    <h2><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#settings"></use></svg> 封禁配置</h2>
                     <div class="config-form">
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="config-block-duration">
-                                    <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#clock"></use></svg>
+                                    <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#clock"></use></svg>
                                     封禁时长（秒）
                                 </label>
                                 <input type="number" id="config-block-duration" min="60" max="86400" step="60" value="300">
@@ -470,7 +480,7 @@
                             </div>
                             <div class="form-group">
                                 <label for="config-max-attempts">
-                                    <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#alert-triangle"></use></svg>
+                                    <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#alert-triangle"></use></svg>
                                     最大失败次数
                                 </label>
                                 <input type="number" id="config-max-attempts" min="1" max="10" value="3">
@@ -478,7 +488,7 @@
                             </div>
                             <div class="form-group">
                                 <label for="config-attempt-window">
-                                    <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#hourglass"></use></svg>
+                                    <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#hourglass"></use></svg>
                                     尝试窗口时间（秒）
                                 </label>
                                 <input type="number" id="config-attempt-window" min="30" max="600" step="30" value="60">
@@ -486,16 +496,16 @@
                             </div>
                         </div>
                         <div class="config-note">
-                            <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#info"></use></svg>
+                            <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#info"></use></svg>
                             在窗口时间内失败次数超过最大值将被封禁指定时长
                         </div>
                         <div class="config-actions">
                             <button class="btn btn-primary" onclick="saveSecurityConfig()">
-                                <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#save"></use></svg>
+                                <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#save"></use></svg>
                                 保存配置
                             </button>
                             <button class="btn btn-secondary" onclick="loadSecurityConfig()">
-                                <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#refresh"></use></svg>
+                                <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#refresh"></use></svg>
                                 重置
                             </button>
                         </div>
@@ -506,7 +516,7 @@
             <!-- 邮箱创建视图：沿用 register 内部标识，避免破坏既有路由与统计契约。 -->
             <div class="view register-view" id="register-view" style="display: none;">
                 <div class="view-header">
-                    <h2><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#user-plus"></use></svg> 邮箱创建</h2>
+                    <h1 tabindex="-1"><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#user-plus"></use></svg> 邮箱创建</h1>
                 </div>
 
                 <div class="register-content">
@@ -514,7 +524,7 @@
                         <form id="admin-register-form">
                             <div class="form-group">
                                 <label>创建模式 *</label>
-                                <div class="register-mode-toggle">
+                                <div class="register-mode-toggle" role="radiogroup" aria-label="创建模式">
                                     <label class="mode-option">
                                         <input type="radio" name="reg-create-mode" value="single" checked>
                                         <span>单个创建</span>
@@ -529,7 +539,7 @@
 
                             <div class="form-group" id="reg-batch-strategy-group" hidden>
                                 <label>批量用户名规则 *</label>
-                                <div class="register-mode-toggle batch-strategy-toggle">
+                                <div class="register-mode-toggle batch-strategy-toggle" role="radiogroup" aria-label="批量用户名规则">
                                     <label class="mode-option">
                                         <input type="radio" name="reg-batch-strategy" value="random" checked>
                                         <span>随机姓名与域名</span>
@@ -545,13 +555,13 @@
                             <div class="form-group" id="reg-email-address-group">
                                 <label id="reg-email-address-label">邮箱地址 *</label>
                                 <div class="email-input-group">
-                                    <input type="text" id="reg-email-prefix" required placeholder="username" class="email-prefix-input">
+                                    <input type="text" id="reg-email-prefix" aria-label="邮箱用户名前缀" required placeholder="username" class="email-prefix-input">
                                     <span class="at-symbol">@</span>
-                                    <select id="reg-email-domain" required class="email-domain-select">
+                                    <select id="reg-email-domain" aria-label="邮箱域名" required class="email-domain-select">
                                         <option value="">选择域名...</option>
                                     </select>
                                     <button type="button" class="btn btn-icon btn-random" id="reg-random-btn" title="随机生成" aria-label="随机生成邮箱用户名">
-                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#swap"></use></svg>
+                                        <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#swap"></use></svg>
                                     </button>
                                 </div>
                                 <small>用户名仅允许英文/数字，长度 3–20；随机生成会生成“英文名+英文姓+4位数字”</small>
@@ -615,7 +625,7 @@
                             </div>
 
                             <button type="submit" class="btn btn-primary btn-block">
-                                <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#plus"></use></svg>
+                                <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#plus"></use></svg>
                                 创建邮箱
                             </button>
                         </form>
@@ -630,15 +640,17 @@
             <!-- 子管理员管理视图 -->
             <div class="view sub-admins-view" id="sub-admins-view" style="display: none;">
                 <div class="view-header">
-                    <h2><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#users"></use></svg> 子管理员管理</h2>
-                    <button class="btn btn-primary" onclick="showCreateSubAdminModal()">
-                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#plus"></use></svg>
+                    <h1 tabindex="-1"><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#users"></use></svg> 子管理员管理</h1>
+                    <button class="btn btn-primary" onclick="showCreateSubAdminModal(this)">
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#plus"></use></svg>
                         添加子管理员
                     </button>
                 </div>
 
                 <div class="sub-admins-content">
-                    <div class="table-container">
+                    <!-- 完整数据保留表格，窄屏用独立滚动区域而不是整页横移。 -->
+                    <p class="table-hint">横向滑动查看完整列与操作；键盘可聚焦表格后使用方向键。</p>
+                    <div class="table-container" tabindex="0" role="region" aria-label="子管理员数据，可横向滚动">
                         <table class="data-table" id="sub-admins-table">
                             <thead>
                                 <tr>
@@ -655,7 +667,7 @@
                             <tbody id="sub-admins-tbody">
                                 <tr>
                                     <td colspan="8" class="loading-cell">
-                                        <svg class="icon is-spinning" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#spinner"></use></svg> 加载中...
+                                        <svg class="icon is-spinning" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#spinner"></use></svg> 加载中...
                                     </td>
                                 </tr>
                             </tbody>
@@ -667,24 +679,25 @@
             <!-- 系统设置视图 -->
             <div class="view settings-view" id="settings-view" style="display: none;">
                 <div class="view-header">
-                    <h2><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#settings"></use></svg> 系统设置</h2>
+                    <h1 tabindex="-1"><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#settings"></use></svg> 系统设置</h1>
                 </div>
 
                 <div class="settings-content">
                     <div class="setting-group">
-                        <h3>IP白名单设置</h3>
-                        <p class="setting-description">管理允许访问系统的IP地址</p>
+                        <h2>IP白名单设置</h2>
+                        <!-- 没有在线修改接口时明确配置边界，不让返回链接伪装成设置操作。 -->
+                        <p class="setting-description">IP 白名单由部署配置管理，此页不提供在线修改。</p>
                         <a href="/admin" class="btn btn-primary">
-                            <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#globe"></use></svg>
-                            配置IP白名单
+                            <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#globe"></use></svg>
+                            返回管理首页
                         </a>
                     </div>
 
                     <div class="setting-group">
-                        <h3>API测试</h3>
+                        <h2>API测试</h2>
                         <p class="setting-description">测试系统API功能</p>
                         <a href="/api-test" class="btn btn-primary">
-                            <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#code"></use></svg>
+                            <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#code"></use></svg>
                             API测试页面
                         </a>
                     </div>
@@ -697,7 +710,7 @@
     <div class="modal" id="sub-admin-modal">
         <div class="modal-content modal-content--medium">
             <div class="modal-header">
-                <h3 id="sub-admin-modal-title">添加子管理员</h3>
+                <h2 id="sub-admin-modal-title">添加子管理员</h2>
                 <button class="modal-close" onclick="closeSubAdminModal()" title="关闭子管理员对话框" aria-label="关闭子管理员对话框">&times;</button>
             </div>
             <form id="sub-admin-form">
@@ -718,7 +731,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label>发件人白名单</label>
+                    <label for="sub-admin-sender-whitelist">发件人白名单</label>
                     <textarea id="sub-admin-sender-whitelist" rows="3" placeholder="每行一个域名，例如：&#10;example.com&#10;test.org&#10;留空表示不限制"></textarea>
                     <small>创建的邮箱只能接收这些域名的邮件，每行一个域名，留空表示不限制</small>
                 </div>
@@ -744,7 +757,7 @@
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeSubAdminModal()">取消</button>
                     <button type="submit" class="btn btn-primary">
-                        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons/maildrop-icons.svg#save"></use></svg>
+                        <svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#save"></use></svg>
                         保存
                     </button>
                 </div>
@@ -754,8 +767,6 @@
 
     <!-- Toast 通知 -->
     <div class="toast-container" id="toast-container"></div>
-
-    <script src="{{ url_for('static', filename='scripts/theme.js') }}?v=3"></script>
     <script src="{{ url_for('static', filename='scripts/ui_components.js') }}"></script>
     <script src="{{ url_for('static', filename='scripts/admin_mailbox.js') }}"></script>
 </body>

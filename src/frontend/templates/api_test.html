@@ -9,6 +9,8 @@
     <!-- 即使禁止索引，也向辅助技术说明该工具仅提供只读调试。 -->
     <meta name="description" content="Maildrop 只读 API 调试台，用于安全检查邮箱信息与收件箱响应。">
     <title>只读 API 调试台 · Maildrop</title>
+    <!-- 在首帧绘制前恢复主题，避免暗色偏好先闪出浅色界面。 -->
+    <script src="{{ url_for('static', filename='scripts/theme.js') }}"></script>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='icons/favicon.svg') }}">
     <!-- 共享设计令牌先加载，页面 CSS 只负责调试台布局。 -->
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/ui_foundation.css') }}">
@@ -18,9 +20,10 @@
     <a class="skip-link" href="#main-content">跳到主要内容</a>
 
     <header class="page-topbar" aria-label="页面导航">
-        <a class="brand-link" href="/" aria-label="返回 Maildrop 公开入口">
-            <svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#code"></use></svg>
-            <span>Maildrop API</span>
+        <!-- 辅助名称包含可见品牌文字，避免语音与读屏操作名称不一致。 -->
+        <a class="brand-link" href="/" aria-label="Maildrop / API，返回公开入口">
+            <svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#brand"></use></svg>
+            <span>Maildrop <small class="brand-caption">/ API</small></span>
         </a>
         <nav class="top-actions" aria-label="快捷入口">
             <button class="soft-button soft-button-quiet" id="security-dialog-open" type="button" data-dialog-open="security-dialog">
@@ -42,7 +45,8 @@
                 <h1 id="page-title">只读 API 调试台</h1>
                 <p class="intro">用邮箱地址与密钥换取临时 Bearer 令牌，再查询邮箱信息或收件箱。页面不会创建、修改、删除或发送任何数据。</p>
             </div>
-            <div class="hero-facts" aria-label="安全特性">
+            <!-- 普通文字块使用原生内容，不给无语义角色的 div 额外命名。 -->
+            <div class="hero-facts">
                 <span><svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#database"></use></svg>只读请求</span>
                 <span><svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#lock"></use></svg>凭据仅内存</span>
                 <span><svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#code"></use></svg>文本化输出</span>
@@ -156,10 +160,8 @@
                     </button>
                 </div>
                 <div class="console-toolbar" aria-hidden="true">
-                    <span class="console-dot dot-danger"></span>
-                    <span class="console-dot dot-warning"></span>
-                    <span class="console-dot dot-success"></span>
-                    <span class="console-label">response.json</span>
+                    <!-- 输出区保持真实工具语义，不模拟另一个操作系统的窗口。 -->
+                    <span class="console-label">response.json</span><span>JSON / READ ONLY</span>
                 </div>
                 <pre id="api-output" tabindex="0" aria-live="polite">等待请求...</pre>
             </section>
@@ -187,8 +189,6 @@
             </div>
         </div>
     </dialog>
-
-    <script src="{{ url_for('static', filename='scripts/theme.js') }}"></script>
     <script src="{{ url_for('static', filename='scripts/ui_components.js') }}"></script>
     <script src="{{ url_for('static', filename='scripts/api_test.js') }}"></script>
 </body>

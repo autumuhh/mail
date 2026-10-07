@@ -1,43 +1,41 @@
-/*
- * Maildrop 全站设计基础。
- * 统一令牌和交互状态，避免各页面继续复制主题变量并产生视觉漂移。
- */
+/* 编辑式基础：以排版、边界和留白分层；兼容旧令牌名，避免业务组件因换肤失效。 */
 :root {
     color-scheme: light;
-    --bg-start: #eef3f1;
-    --bg-end: #e5edea;
-    --surface: #edf2f0;
-    --surface-strong: #f7faf8;
-    --surface-muted: #e2ebe7;
+    --bg-start: #f7f7f2;
+    --bg-end: #f7f7f2;
+    --surface: #ffffff;
+    --surface-strong: #ffffff;
+    --surface-muted: #f0f2eb;
     --surface-flat: #ffffff;
-    --primary: #2f746d;
-    --primary-strong: #245e58;
-    --primary-soft: #d7e6e2;
-    --text: #18312f;
-    --text-muted: #5d706d;
-    --text-faint: #5d706d;
-    --success: #276b56;
-    --success-soft: #d8ebe3;
-    --warning: #8a5a16;
-    --warning-soft: #f5e8cf;
-    --danger: #a63b3b;
-    --danger-soft: #f2dede;
-    --info: #244f87;
-    --info-soft: #dbe6f4;
-    --border: rgba(47, 90, 82, 0.18);
-    --border-strong: rgba(47, 90, 82, 0.32);
-    --highlight: rgba(255, 255, 255, 0.78);
-    --shadow-dark: rgba(42, 75, 69, 0.16);
-    --shadow-raised: 12px 12px 24px var(--shadow-dark), -12px -12px 24px var(--highlight);
+    --primary: #236552;
+    --primary-strong: #194b3d;
+    --primary-soft: #d7f2d9;
+    --on-primary: #ffffff;
+    --text: #172824;
+    --text-muted: #5d6b66;
+    --text-faint: #5d6b66;
+    --success: #236552;
+    --success-soft: #e4f3e6;
+    --warning: #825010;
+    --warning-soft: #fff0d9;
+    --danger: #a33636;
+    --danger-soft: #fae8e5;
+    --info: #28577b;
+    --info-soft: #e7eff6;
+    --border: #dce2da;
+    --border-strong: #7c9085;
+    --highlight: transparent;
+    --shadow-dark: rgba(23, 40, 36, 0.14);
+    --shadow-raised: 0 16px 48px var(--shadow-dark);
     --shadow-large: var(--shadow-raised);
-    --shadow-soft: 8px 8px 18px rgba(42, 75, 69, 0.14), -8px -8px 18px rgba(255, 255, 255, 0.7);
-    --shadow-small: 5px 5px 12px rgba(42, 75, 69, 0.13), -5px -5px 12px rgba(255, 255, 255, 0.65);
-    --shadow-inset: inset 4px 4px 10px rgba(42, 75, 69, 0.15), inset -4px -4px 10px rgba(255, 255, 255, 0.72);
-    --focus: rgba(47, 116, 109, 0.34);
-    --radius-xl: 28px;
-    --radius-lg: 20px;
-    --radius-md: 16px;
-    --radius-sm: 12px;
+    --shadow-soft: none;
+    --shadow-small: none;
+    --shadow-inset: none;
+    --focus: #236552;
+    --radius-xl: 20px;
+    --radius-lg: 12px;
+    --radius-md: 8px;
+    --radius-sm: 8px;
     --radius-pill: 999px;
     --space-1: 4px;
     --space-2: 8px;
@@ -46,8 +44,11 @@
     --space-5: 24px;
     --space-6: 32px;
     --space-7: 48px;
+    --space-8: 64px;
     --ease: 180ms cubic-bezier(0.22, 0.61, 0.36, 1);
+    --ease-state: 320ms cubic-bezier(0.22, 0.61, 0.36, 1);
     --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --font-mono: ui-monospace, "Cascadia Code", "SFMono-Regular", Consolas, monospace;
     --z-nav: 20;
     --z-toast: 40;
     --z-dialog: 50;
@@ -55,69 +56,61 @@
 
 :root[data-theme="dark"] {
     color-scheme: dark;
-    --bg-start: #1e2927;
-    --bg-end: #18221f;
-    --surface: #202d2a;
-    --surface-strong: #293834;
-    --surface-muted: #1b2825;
-    --surface-flat: #25322f;
-    --primary: #83c4bb;
-    --primary-strong: #a0d7d0;
-    --primary-soft: #29433e;
-    --text: #eef6f3;
-    --text-muted: #b3c3bf;
-    --text-faint: #b3c3bf;
-    --success: #88c9ad;
-    --success-soft: #28463b;
-    --warning: #f1c578;
-    --warning-soft: #493b24;
-    --danger: #f0a0a5;
-    --danger-soft: #4d3034;
-    --info: #a8c7ee;
-    --info-soft: #293b53;
-    --border: rgba(143, 176, 168, 0.2);
-    --border-strong: rgba(158, 194, 185, 0.36);
-    --highlight: rgba(83, 111, 104, 0.18);
-    --shadow-dark: rgba(4, 10, 8, 0.48);
-    --shadow-raised: 12px 12px 24px var(--shadow-dark), -10px -10px 24px var(--highlight);
-    --shadow-soft: 8px 8px 18px rgba(3, 9, 7, 0.43), -8px -8px 18px rgba(81, 108, 101, 0.16);
-    --shadow-small: 5px 5px 12px rgba(3, 9, 7, 0.4), -5px -5px 12px rgba(81, 108, 101, 0.14);
-    --shadow-inset: inset 4px 4px 10px rgba(2, 7, 6, 0.44), inset -4px -4px 10px rgba(84, 113, 105, 0.14);
-    --focus: rgba(131, 196, 187, 0.42);
+    --bg-start: #111916;
+    --bg-end: #111916;
+    --surface: #19231f;
+    --surface-strong: #202d26;
+    --surface-muted: #202d26;
+    --surface-flat: #19231f;
+    --primary: #b9e8c8;
+    --primary-strong: #cef5d9;
+    --primary-soft: #2a4233;
+    --on-primary: #122218;
+    --text: #edf3ed;
+    --text-muted: #b0bdb4;
+    --text-faint: #b0bdb4;
+    --success: #b9e8c8;
+    --success-soft: #263d30;
+    --warning: #f1c98f;
+    --warning-soft: #3e3222;
+    --danger: #f1b0ab;
+    --danger-soft: #3c2826;
+    --info: #b5d4f0;
+    --info-soft: #253747;
+    --border: #35473b;
+    --border-strong: #879a8b;
+    --shadow-dark: rgba(0, 0, 0, 0.32);
+    --focus: #b9e8c8;
 }
 
 @media (prefers-color-scheme: dark) {
     :root[data-theme="auto"] {
         color-scheme: dark;
-        --bg-start: #1e2927;
-        --bg-end: #18221f;
-        --surface: #202d2a;
-        --surface-strong: #293834;
-        --surface-muted: #1b2825;
-        --surface-flat: #25322f;
-        --primary: #83c4bb;
-        --primary-strong: #a0d7d0;
-        --primary-soft: #29433e;
-        --text: #eef6f3;
-        --text-muted: #b3c3bf;
-        --text-faint: #b3c3bf;
-        --success: #88c9ad;
-        --success-soft: #28463b;
-        --warning: #f1c578;
-        --warning-soft: #493b24;
-        --danger: #f0a0a5;
-        --danger-soft: #4d3034;
-        --info: #a8c7ee;
-        --info-soft: #293b53;
-        --border: rgba(143, 176, 168, 0.2);
-        --border-strong: rgba(158, 194, 185, 0.36);
-        --highlight: rgba(83, 111, 104, 0.18);
-        --shadow-dark: rgba(4, 10, 8, 0.48);
-        --shadow-raised: 12px 12px 24px var(--shadow-dark), -10px -10px 24px var(--highlight);
-        --shadow-soft: 8px 8px 18px rgba(3, 9, 7, 0.43), -8px -8px 18px rgba(81, 108, 101, 0.16);
-        --shadow-small: 5px 5px 12px rgba(3, 9, 7, 0.4), -5px -5px 12px rgba(81, 108, 101, 0.14);
-        --shadow-inset: inset 4px 4px 10px rgba(2, 7, 6, 0.44), inset -4px -4px 10px rgba(84, 113, 105, 0.14);
-        --focus: rgba(131, 196, 187, 0.42);
+        --bg-start: #111916;
+        --bg-end: #111916;
+        --surface: #19231f;
+        --surface-strong: #202d26;
+        --surface-muted: #202d26;
+        --surface-flat: #19231f;
+        --primary: #b9e8c8;
+        --primary-strong: #cef5d9;
+        --primary-soft: #2a4233;
+        --on-primary: #122218;
+        --text: #edf3ed;
+        --text-muted: #b0bdb4;
+        --text-faint: #b0bdb4;
+        --success: #b9e8c8;
+        --success-soft: #263d30;
+        --warning: #f1c98f;
+        --warning-soft: #3e3222;
+        --danger: #f1b0ab;
+        --danger-soft: #3c2826;
+        --info: #b5d4f0;
+        --info-soft: #253747;
+        --border: #35473b;
+        --border-strong: #879a8b;
+        --shadow-dark: rgba(0, 0, 0, 0.32);
+        --focus: #b9e8c8;
     }
 }
 
@@ -138,7 +131,7 @@ body {
     min-height: 100vh;
     margin: 0;
     color: var(--text);
-    background: linear-gradient(145deg, var(--bg-start), var(--bg-end));
+    background: var(--bg-start);
     font-family: var(--font-sans);
     font-size: 16px;
     line-height: 1.55;
@@ -151,6 +144,13 @@ input,
 select,
 textarea {
     font: inherit;
+}
+
+/* 原生占位文字在暗色表面过暗；统一主题颜色并移除浏览器默认半透明。 */
+input::placeholder,
+textarea::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
 }
 
 button,
@@ -174,12 +174,19 @@ a {
     text-underline-offset: 0.18em;
 }
 
+/* 大标题在窄屏与文字放大时平衡断行，避免末行只剩一个字。 */
+h1,
+h2 {
+    text-wrap: balance;
+}
+
 img,
 svg {
     max-width: 100%;
 }
 
-.icon {
+.icon,
+.ui-icon {
     width: 1.15rem;
     height: 1.15rem;
     flex: 0 0 auto;
@@ -209,7 +216,7 @@ svg {
 
 .soft-card,
 .ui-card {
-    border: 1px solid rgba(255, 255, 255, 0.42);
+    border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     background: var(--surface);
     box-shadow: var(--shadow-soft);
@@ -239,8 +246,8 @@ svg {
     .ui-button:not(:disabled):hover,
     .soft-card.is-interactive:hover,
     .ui-card.is-interactive:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-raised);
+        transform: translateY(-1px);
+        border-color: var(--border-strong);
     }
 }
 
@@ -252,13 +259,12 @@ svg {
 .soft-card.is-interactive:active,
 .ui-card.is-interactive:active {
     transform: translateY(1px);
-    box-shadow: var(--shadow-inset);
 }
 
 .ui-field {
     width: 100%;
     min-height: 44px;
-    border: 1px solid transparent;
+    border: 1px solid var(--border);
     border-radius: var(--radius-md);
     color: var(--text);
     background: var(--surface);
@@ -465,12 +471,13 @@ dialog.ui-dialog::backdrop {
 
 @media (max-width: 480px) {
     :root {
-        --radius-xl: 22px;
-        --radius-lg: 18px;
+        --radius-xl: 20px;
+        --radius-lg: 12px;
     }
 
+    /* 窄屏仍使用 16px 输入字号，避免移动浏览器在聚焦时自动放大。 */
     body {
-        font-size: 15px;
+        font-size: 16px;
     }
 }
 
@@ -488,3 +495,92 @@ dialog.ui-dialog::backdrop {
         transition-duration: 0.01ms !important;
     }
 }
+
+/* 共享的展示组件只定义外观，不引入新的业务状态或页面框架。 */
+[hidden] { display: none !important; }
+button { color: inherit; }
+:where(input, select, textarea) { font-size: 16px; }
+::selection { color: var(--text); background: var(--primary-soft); }
+:where(h1, h2, h3, p, dd) { overflow-wrap: anywhere; }
+:where(h1, h2, h3) { letter-spacing: -0.035em; }
+:where(code, pre, kbd) { font-family: var(--font-mono); }
+.skip-link {
+    position: fixed; top: 12px; left: 12px; z-index: 100;
+    padding: 12px 16px; border-radius: var(--radius-md);
+    color: var(--on-primary); background: var(--primary);
+    transform: translateY(-180%); text-decoration: none;
+}
+.skip-link:focus { transform: translateY(0); }
+.eyebrow, .step-label {
+    margin: 0 0 8px; color: var(--text-muted);
+    font: 600 12px/1.4 var(--font-mono); letter-spacing: 0.1em;
+}
+.page-topbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    width: min(1240px, calc(100% - 48px)); min-height: 88px;
+    margin: 0 auto; border-bottom: 1px solid var(--border);
+}
+.brand-link, .brand, .back-link {
+    display: inline-flex; align-items: center; gap: 10px; min-height: 44px;
+    color: var(--text); text-decoration: none; font-weight: 750;
+}
+.brand-link, .brand { font-size: 20px; letter-spacing: -0.06em; }
+.brand-link > .ui-icon, .brand-symbol {
+    width: 32px; height: 32px; color: var(--primary);
+}
+.brand-caption { color: var(--text-muted); font: 12px/1.4 var(--font-mono); letter-spacing: 0.02em; }
+.soft-panel, .ui-card { border: 1px solid var(--border); background: var(--surface); box-shadow: none; border-radius: var(--radius-xl); }
+.soft-button, .button, .btn, .icon-button, .primary-button {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 44px; padding: 10px 16px; border: 1px solid var(--border);
+    border-radius: var(--radius-md); color: var(--text); background: var(--surface);
+    font-size: 14px; font-weight: 650; line-height: 1.4; text-decoration: none;
+}
+.icon-button { width: 44px; padding: 0; flex: 0 0 auto; }
+.soft-button-primary, .button-primary, .btn-primary, .primary-button {
+    color: var(--on-primary); border-color: var(--primary); background: var(--primary);
+}
+.soft-button-quiet { border-color: transparent; background: transparent; }
+.soft-button-secondary { color: var(--primary-strong); }
+.button-danger, .btn-danger { color: var(--danger); border-color: var(--border); background: var(--surface); }
+.full-width, .btn-block { width: 100%; }
+.input-shell {
+    display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 14px;
+    color: var(--text-muted); background: var(--surface); border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md); transition: border-color var(--ease), outline-color var(--ease);
+}
+.input-shell input, .input-shell select {
+    width: 100%; min-width: 0; min-height: 50px; padding: 0; border: 0; outline: 0;
+    color: var(--text); background: transparent; font-size: 16px;
+}
+.input-shell input::placeholder { color: var(--text-muted); opacity: 1; }
+.input-shell:focus-within { outline: 2px solid var(--focus); outline-offset: 3px; }
+.input-shell.is-invalid, .input-shell:has([aria-invalid="true"]) { border-color: var(--danger); }
+.input-shell :focus-visible { outline: 0; }
+.step-index {
+    display: grid; width: 40px; height: 40px; flex: 0 0 auto; place-items: center;
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    color: var(--primary-strong); background: var(--surface-muted); font: 14px var(--font-mono);
+}
+.dialog-card { position: relative; padding: 32px; }
+.dialog-close { position: absolute; top: 16px; right: 16px; }
+.dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+.ui-dialog[open], .modal.is-open .modal-content { animation: ui-surface-in var(--ease-state) both; }
+@keyframes ui-surface-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@media (hover: hover) and (pointer: fine) {
+    .soft-button:not(:disabled):hover, .button:not(:disabled):hover, .btn:not(:disabled):hover, .icon-button:not(:disabled):hover { border-color: var(--border-strong); background: var(--surface-muted); }
+    .soft-button-primary:not(:disabled):hover, .button-primary:not(:disabled):hover, .btn-primary:not(:disabled):hover, .primary-button:not(:disabled):hover { background: var(--primary-strong); border-color: var(--primary-strong); }
+    .button-danger:not(:disabled):hover, .btn-danger:not(:disabled):hover { background: var(--danger-soft); border-color: var(--danger); }
+}
+@media (max-width: 720px) {
+    .page-topbar { width: calc(100% - 32px); min-height: 72px; }
+    .brand-caption { display: none; }
+}
+@media (max-width: 480px) { .dialog-card { padding: 24px; } }
+/* 此规则置于共享动效之后，确保减少动效确实覆盖新增的组件转场。 */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
+/* 次要操作也使用同一节奏，不另造弹跳动效。 */
+.soft-button { transition: color var(--ease), background-color var(--ease), border-color var(--ease); }

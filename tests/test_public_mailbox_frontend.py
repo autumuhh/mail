@@ -54,14 +54,14 @@ class PublicMailboxFrontendContractTest(unittest.TestCase):
             with self.subTest(forbidden=forbidden):
                 self.assertNotIn(forbidden, sources)
 
-    def test_neumorphic_tokens_and_responsive_rules_exist(self):
+    def test_editorial_tokens_and_responsive_rules_exist(self):
         # 核心令牌集中到共享基础，避免页面继续复制同一组主题变量。
         foundation = read('src/frontend/static/styles/ui_foundation.css').lower()
         for token in (
-            '--bg-start: #eef3f1',
-            '--bg-end: #e5edea',
-            '--surface: #edf2f0',
-            '--primary: #2f746d',
+            '--bg-start: #f7f7f2',
+            '--bg-end: #f7f7f2',
+            '--surface: #ffffff',
+            '--primary: #236552',
             '--shadow-raised:',
             '--shadow-inset:',
             '--ease: 180ms',

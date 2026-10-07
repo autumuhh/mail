@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 240" fill="none">
+  <!-- 原创投递几何：留白、折角和邮戳构成品牌识别，不包含用户数据。 -->
+  <path d="M16 206h488" stroke="#879a8b" stroke-opacity=".5"/>
+  <path d="M55 58h262v145H55z" fill="#d7f2d9"/>
+  <path d="m55 58 131 100L317 58M55 203l83-81m179 81-83-81" stroke="#236552" stroke-width="1.5"/>
+  <path d="M326 97h89v107h-89z" fill="#f0f2eb" stroke="#879a8b"/>
+  <path d="M340 116h61m-61 11h42m-42 11h51" stroke="#879a8b"/>
+  <circle cx="407" cy="64" r="37" stroke="#236552" stroke-width="1.5"/>
+  <circle cx="407" cy="64" r="29" stroke="#236552" stroke-dasharray="2 4"/>
+  <path d="m393 65 9 9 17-20" stroke="#236552" stroke-width="2"/>
+  <path d="M441 55h45m-45 8h55m-55 8h40" stroke="#879a8b"/>
+  <path d="M20 28h28m-14-14v28M481 169h20m-10-10v20" stroke="#879a8b"/>
+</svg>

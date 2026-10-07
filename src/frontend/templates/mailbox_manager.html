@@ -8,11 +8,15 @@
     <!-- 为搜索摘要与辅助技术明确收件箱用途。 -->
     <meta name="description" content="Maildrop 临时邮箱收件箱，用于查看、管理和删除已接收邮件。">
     <title>收件箱 · Maildrop</title>
+    <!-- 在首帧绘制前恢复主题，避免暗色偏好先闪出浅色界面。 -->
+    <script src="{{ url_for('static', filename='scripts/theme.js') }}"></script>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='icons/favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/ui_foundation.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/mailbox_manager.css') }}">
 </head>
-<body>
+<body class="mailbox-page">
+    <!-- 鉴权与阅读视图会切换，跳转目标必须始终指向当前可见内容。 -->
+    <a class="skip-link" href="#auth-title">跳到主要内容</a>
 
     <main class="auth-state" id="auth-state" aria-live="polite">
         <section class="auth-card">
@@ -21,7 +25,7 @@
             </div>
             <div class="spinner" id="auth-spinner" aria-hidden="true"></div>
             <p class="eyebrow">SECURE ACCESS</p>
-            <h1 id="auth-title">正在验证邮箱</h1>
+            <h1 id="auth-title" tabindex="-1">正在验证邮箱</h1>
             <p id="auth-message">正在使用当前访问地址重新认证，请稍候。</p>
             <div class="auth-actions" id="auth-actions" hidden>
                 <button class="button button-primary" id="retry-auth" type="button">重新验证</button>
@@ -35,7 +39,7 @@
             <!-- 等宽两翼让邮箱地址不受左右操作数量影响，始终处于桌面视口中心。 -->
             <div class="topbar-inner">
                 <a class="brand" href="/" aria-label="Maildrop 登录首页">
-                    <span class="brand-icon"><svg class="icon"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#mail"></use></svg></span>
+                    <span class="brand-icon"><svg class="icon"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#brand"></use></svg></span>
                     <span>Maildrop</span>
                 </a>
 
@@ -102,7 +106,7 @@
                     <div class="view-heading">
                         <div>
                             <p class="eyebrow">INBOX</p>
-                            <h2 id="inbox-title">收件箱</h2>
+                            <h2 id="inbox-title" tabindex="-1">收件箱</h2>
                             <p class="view-subtitle" id="inbox-summary">正在加载邮件…</p>
                         </div>
                         <div class="heading-actions">
@@ -118,7 +122,8 @@
                     <div class="mail-card">
                         <div class="mail-toolbar">
                             <label class="select-all" title="选择当前列表中的全部邮件">
-                                <input id="select-all" type="checkbox">
+                                <!-- 小屏隐藏文字后仍保留明确的操作名称。 -->
+                                <input id="select-all" type="checkbox" aria-label="选择当前列表中的全部邮件">
                                 <span>全选</span>
                             </label>
                             <div class="search-box">
@@ -151,7 +156,7 @@
                     <article class="detail-card">
                         <header class="message-header">
                             <p class="message-status" id="detail-status">邮件详情</p>
-                            <h2 id="detail-subject">—</h2>
+                            <h2 id="detail-subject" tabindex="-1">—</h2>
                             <dl class="message-meta">
                                 <div><dt>发件人</dt><dd id="detail-from">—</dd></div>
                                 <div><dt>收件人</dt><dd id="detail-to">—</dd></div>
@@ -166,7 +171,7 @@
                     <div class="view-heading">
                         <div>
                             <p class="eyebrow">MAILBOX INFO</p>
-                            <h2 id="info-title">邮箱信息</h2>
+                            <h2 id="info-title" tabindex="-1">邮箱信息</h2>
                             <p class="view-subtitle">访问状态与邮件概览</p>
                         </div>
                     </div>
@@ -221,7 +226,6 @@
     </dialog>
 
     <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
-    <script src="{{ url_for('static', filename='scripts/theme.js') }}"></script>
     <script src="{{ url_for('static', filename='scripts/ui_components.js') }}"></script>
     <script src="{{ url_for('static', filename='scripts/mailbox_manager.js') }}"></script>
 </body>

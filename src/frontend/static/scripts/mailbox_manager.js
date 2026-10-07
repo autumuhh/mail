@@ -14,7 +14,13 @@ const state = {
     activeView: 'inbox',
     searchQuery: '',
     pollTimer: null,
-    loadingEmails: false
+    loadingEmails: false,
+    hasLoadedEmails: false,
+    returnFocusId: null,
+    inboxScrollY: 0,
+    pendingReadIds: new Set(),
+    pendingDeleteIds: new Set(),
+    confirmationPending: false
 };
 
 class ApiError extends Error {
@@ -138,7 +144,8 @@ function bindInterfaceEvents() {
     });
 
     document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && state.activeView === 'detail') {
+        // 确认弹窗打开时 Escape 只关闭弹窗，不改变后方阅读视图。
+        if (event.key === 'Escape' && state.activeView === 'detail' && !document.querySelector('dialog[open]')) {
             event.preventDefault();
             returnFromDetail();
         }
@@ -147,7 +154,13 @@ function bindInterfaceEvents() {
     window.addEventListener('popstate', handleHistoryChange);
 }
 
+// 键盘跳转不能落入已隐藏的鉴权区、收件区或阅读区。
+function setSkipTarget(targetId) {
+    document.querySelector('.skip-link').setAttribute('href', `#${targetId}`);
+}
+
 function revealApplication() {
+    setSkipTarget('inbox-title');
     document.getElementById('auth-state').hidden = true;
     document.getElementById('mailbox-app').hidden = false;
     document.getElementById('mailbox-address').textContent = state.address;
@@ -156,6 +169,7 @@ function revealApplication() {
 }
 
 function showAuthLoading() {
+    setSkipTarget('auth-title');
     const authState = document.getElementById('auth-state');
     authState.hidden = false;
     document.getElementById('mailbox-app').hidden = true;
@@ -166,6 +180,7 @@ function showAuthLoading() {
 }
 
 function showAuthError(error) {
+    setSkipTarget('auth-title');
     const status = error instanceof ApiError ? error.status : 0;
     const messages = {
         401: '邮箱密钥不正确，请检查后重试。',
@@ -241,6 +256,7 @@ async function loadEmails(showLoading = false) {
     list.setAttribute('aria-busy', 'true');
 
     try {
+        const previousIds = new Set(state.emails.map((email) => String(email.id)));
         const data = await apiFetch(`/api/get_inbox?address=${encodeURIComponent(state.address)}`);
         const emails = Array.isArray(data) ? data : (Array.isArray(data.emails) ? data.emails : []);
         state.emails = emails;
@@ -257,7 +273,12 @@ async function loadEmails(showLoading = false) {
             showView('inbox');
         }
 
-        renderEmailList();
+        // 仅对后续请求中新出现的 ID 提示；搜索、已读与轮询重绘不重复播放入场。
+        const newIds = state.hasLoadedEmails
+            ? new Set(emails.filter((email) => !previousIds.has(String(email.id))).map((email) => String(email.id)))
+            : new Set();
+        state.hasLoadedEmails = true;
+        renderEmailList(newIds);
         updateCounters();
     } finally {
         state.loadingEmails = false;
@@ -267,8 +288,10 @@ async function loadEmails(showLoading = false) {
 
 async function refreshAll() {
     const button = document.getElementById('refresh-button');
+    if (button.disabled) return;
+    // 手动刷新使用共享忙碌状态，向读屏传达等待并保留按钮尺寸。
     button.classList.add('is-loading');
-    button.disabled = true;
+    MaildropUI.setBusy(button, true);
 
     try {
         await Promise.all([loadMailboxInfo(), loadEmails(false)]);
@@ -277,7 +300,7 @@ async function refreshAll() {
         handleRequestError(error, '刷新失败，请稍后重试。');
     } finally {
         button.classList.remove('is-loading');
-        button.disabled = false;
+        MaildropUI.setBusy(button, false);
     }
 }
 
@@ -305,33 +328,54 @@ function getFilteredEmails() {
     });
 }
 
-function renderEmailList() {
+function renderEmailList(newIds = new Set()) {
     const list = document.getElementById('email-list');
     const emails = getFilteredEmails();
+    const active = document.activeElement;
+    const focusedRow = active?.closest('.email-row');
+    const oldRows = Array.from(list.querySelectorAll('.email-row'));
+    const focusedIndex = focusedRow ? oldRows.indexOf(focusedRow) : -1;
+    const focusRole = active?.dataset.focusRole || 'open';
+    const scrollY = window.scrollY;
+    const scrollX = window.scrollX;
+    const listScroll = list.scrollTop;
     list.replaceChildren();
 
     if (!emails.length) {
         const searching = Boolean(state.searchQuery.trim());
-        renderListState(
-            searching ? 'search' : 'empty',
+        renderListState(searching ? 'search' : 'empty',
             searching ? '没有匹配的邮件' : '收件箱还是空的',
-            searching ? '换一个关键词试试。' : '新邮件到达后会自动显示在这里。'
-        );
-        updateSelectionControls(emails);
-        return;
+            searching ? '换一个关键词试试。' : '新邮件到达后会自动显示在这里。');
+    } else {
+        const fragment = document.createDocumentFragment();
+        emails.forEach((email) => {
+            const row = createEmailRow(email);
+            if (newIds.has(String(email.id))) row.classList.add('is-new');
+            fragment.appendChild(row);
+        });
+        list.appendChild(fragment);
     }
-
-    const fragment = document.createDocumentFragment();
-    emails.forEach((email) => fragment.appendChild(createEmailRow(email)));
-    list.appendChild(fragment);
     updateSelectionControls(emails);
+
+    // 重建 DOM 后恢复同一操作的焦点；被删除时落到相邻邮件，而不是回到页面起点。
+    if (focusedRow && focusedIndex >= 0) {
+        const sameRow = list.querySelector(`[data-email-id="${cssEscape(focusedRow.dataset.emailId)}"]`);
+        const nextRow = list.querySelectorAll('.email-row')[Math.min(focusedIndex, emails.length - 1)];
+        const target = sameRow?.querySelector(`[data-focus-role="${focusRole}"]`)
+            || nextRow?.querySelector('.email-open') || document.getElementById('inbox-title');
+        target.focus({ preventScroll: true });
+    }
+    list.scrollTop = listScroll;
+    window.scrollTo({ left: scrollX, top: scrollY, behavior: 'instant' });
 }
 
 function createEmailRow(email) {
     const id = String(email.id);
     const row = document.createElement('article');
     const checkbox = document.createElement('input');
+    const selectLabel = document.createElement('label');
     const openButton = document.createElement('button');
+    const readStatus = document.createElement('span');
     const sender = document.createElement('span');
     const subjectWrap = document.createElement('span');
     const subject = document.createElement('span');
@@ -344,18 +388,25 @@ function createEmailRow(email) {
     row.className = `email-row${email.is_read ? '' : ' is-unread'}${state.selectedIds.has(id) ? ' is-selected' : ''}`;
     row.dataset.emailId = id;
 
+    selectLabel.className = 'email-select';
+    selectLabel.appendChild(checkbox);
+    checkbox.dataset.focusRole = 'select';
     checkbox.type = 'checkbox';
     checkbox.checked = state.selectedIds.has(id);
     checkbox.setAttribute('aria-label', `选择邮件：${email.Subject || '无主题'}`);
     checkbox.addEventListener('change', () => toggleEmailSelection(id, checkbox.checked));
 
+    openButton.dataset.focusRole = 'open';
     openButton.type = 'button';
     openButton.className = 'email-open';
-    openButton.setAttribute('aria-label', `查看邮件：${email.Subject || '无主题'}`);
+    // 保留可见发件人、主题与摘要构成的原生名称；只补充不可见的已读状态。
+    readStatus.className = 'sr-only';
+    readStatus.textContent = `${email.is_read ? '已读' : '未读'}，`;
     openButton.addEventListener('click', () => openEmailDetail(id));
 
     sender.className = 'email-sender';
     sender.textContent = email.From || '未知发件人';
+    sender.title = sender.textContent;
     subjectWrap.className = 'email-subject-wrap';
     subject.className = 'email-subject';
     subject.textContent = email.Subject || '（无主题）';
@@ -366,13 +417,17 @@ function createEmailRow(email) {
     time.className = 'email-time';
     time.dateTime = toIsoDate(email.Timestamp);
     time.textContent = formatRelativeDate(email.Timestamp, email.Sent);
-    openButton.append(sender, subjectWrap, time);
+    openButton.append(readStatus, sender, subjectWrap, time);
 
     actions.className = 'email-actions';
+    readButton.dataset.focusRole = 'read';
+    readButton.disabled = state.pendingReadIds.has(id);
+    deleteButton.dataset.focusRole = 'delete';
+    deleteButton.disabled = state.pendingDeleteIds.has(id);
     readButton.addEventListener('click', () => setEmailRead(id, !Boolean(email.is_read)));
-    deleteButton.addEventListener('click', () => deleteOneEmail(id));
+    deleteButton.addEventListener('click', () => deleteOneEmail(id, deleteButton));
     actions.append(readButton, deleteButton);
-    row.append(checkbox, openButton, actions);
+    row.append(selectLabel, openButton, actions);
     return row;
 }
 
@@ -407,7 +462,7 @@ function renderListState(type, title, message) {
     stateBox.className = 'list-state';
     inner.className = 'list-state-inner';
     icon.className = 'state-icon';
-    icon.appendChild(createIcon(type === 'search' ? 'search' : type === 'loading' ? 'refresh' : 'inbox'));
+    icon.appendChild(createIcon(type === 'search' ? 'search' : type === 'loading' ? 'refresh' : 'brand'));
     heading.textContent = title;
     copy.textContent = message;
     inner.append(icon, heading, copy);
@@ -466,10 +521,13 @@ function updateSelectionControls(filteredEmails = getFilteredEmails()) {
     selectAll.checked = selectableIds.length > 0 && selectedVisible === selectableIds.length;
     selectAll.indeterminate = selectedVisible > 0 && selectedVisible < selectableIds.length;
     selectAll.disabled = selectableIds.length === 0;
-    deleteButton.disabled = state.selectedIds.size === 0;
-    deleteButton.querySelector('span').textContent = state.selectedIds.size
-        ? `删除选中（${state.selectedIds.size}）`
-        : '删除选中';
+    const deleting = deleteButton.getAttribute('aria-busy') === 'true';
+    deleteButton.disabled = deleting || state.selectedIds.size === 0;
+    if (!deleting) {
+        deleteButton.querySelector('span').textContent = state.selectedIds.size
+            ? `删除选中（${state.selectedIds.size}）`
+            : '删除选中';
+    }
 }
 
 function updateCounters() {
@@ -487,10 +545,14 @@ function updateCounters() {
 
 async function setEmailRead(id, isRead, options = {}) {
     const email = state.emails.find((item) => String(item.id) === String(id));
-    if (!email || Boolean(email.is_read) === isRead) {
+    if (!email || Boolean(email.is_read) === isRead || state.pendingReadIds.has(String(id))) {
         return;
     }
 
+    // 行内状态变更只允许一个在途请求；轮询重绘的按钮也遵循同一忙碌状态。
+    state.pendingReadIds.add(String(id));
+    const button = document.querySelector(`.email-row[data-email-id="${cssEscape(String(id))}"] [data-focus-role="read"]`);
+    if (button) MaildropUI.setBusy(button, true);
     try {
         await apiFetch('/api/mark_email_read', {
             method: 'POST',
@@ -511,6 +573,10 @@ async function setEmailRead(id, isRead, options = {}) {
         }
     } catch (error) {
         handleRequestError(error, '更新邮件状态失败。');
+    } finally {
+        state.pendingReadIds.delete(String(id));
+        const current = document.querySelector(`.email-row[data-email-id="${cssEscape(String(id))}"] [data-focus-role="read"]`);
+        if (current) MaildropUI.setBusy(current, false);
     }
 }
 
@@ -520,6 +586,9 @@ async function markAllRead() {
         return;
     }
 
+    const button = document.getElementById('mark-all-read');
+    if (button.disabled) return;
+    MaildropUI.setBusy(button, true, '更新中…');
     try {
         await apiFetch('/api/mark_all_read', {
             method: 'POST',
@@ -531,46 +600,76 @@ async function markAllRead() {
         showToast('全部邮件已标记为已读。', 'success');
     } catch (error) {
         handleRequestError(error, '标记全部已读失败。');
+    } finally {
+        MaildropUI.setBusy(button, false);
     }
 }
 
-async function deleteOneEmail(id) {
+async function deleteOneEmail(id, opener = document.activeElement) {
     const email = state.emails.find((item) => String(item.id) === String(id));
-    if (!email || !await requestConfirmation(`确定删除“${email.Subject || '无主题'}”吗？此操作无法撤销。`)) {
+    if (!email || state.pendingDeleteIds.has(String(id)) || !await requestConfirmation(`确定删除“${email.Subject || '无主题'}”吗？此操作无法撤销。`, opener)) {
         return;
     }
 
+    const indexBeforeDelete = getFilteredEmails().findIndex(item => String(item.id) === String(id));
     try {
+        // 确认后立即锁定该邮件，防止轮询或连续点击重复提交删除。
+        state.pendingDeleteIds.add(String(id));
+        const button = document.querySelector(`.email-row[data-email-id="${cssEscape(String(id))}"] [data-focus-role="delete"]`);
+        if (button) MaildropUI.setBusy(button, true);
         await apiFetch('/api/delete_email', {
             method: 'POST',
             body: JSON.stringify({ address: state.address, email_id: id })
         });
         removeEmailsLocally([String(id)]);
+        // 按钮禁用会让浏览器先移走焦点，因此删除完成后显式定位相邻邮件。
+        if (state.activeView === 'inbox') {
+            const rows = document.querySelectorAll('.email-row');
+            (rows[Math.min(Math.max(indexBeforeDelete, 0), rows.length - 1)]?.querySelector('.email-open')
+                || document.getElementById('inbox-title')).focus({ preventScroll: true });
+        }
         showToast('邮件已删除。', 'success');
     } catch (error) {
         handleRequestError(error, '删除邮件失败。');
+    } finally {
+        state.pendingDeleteIds.delete(String(id));
+        const button = document.querySelector(`.email-row[data-email-id="${cssEscape(String(id))}"] [data-focus-role="delete"]`);
+        if (button) MaildropUI.setBusy(button, false);
     }
 }
 
 async function deleteSelectedEmails() {
+    const button = document.getElementById('delete-selected');
+    if (button.disabled) return;
     const ids = Array.from(state.selectedIds);
-    if (!ids.length || !await requestConfirmation(`确定删除选中的 ${ids.length} 封邮件吗？此操作无法撤销。`)) {
+    if (!ids.length || !await requestConfirmation(`确定删除选中的 ${ids.length} 封邮件吗？此操作无法撤销。`, button)) {
         return;
     }
 
     try {
+        MaildropUI.setBusy(button, true, '删除中…');
+        ids.forEach(id => state.pendingDeleteIds.add(String(id)));
         await apiFetch('/api/delete_emails_batch', {
             method: 'POST',
             body: JSON.stringify({ address: state.address, email_ids: ids })
         });
         removeEmailsLocally(ids);
+        // 批量操作按钮将变为禁用，将焦点交给仍存在的邮件或列表标题。
+        (document.querySelector('.email-row .email-open') || document.getElementById('inbox-title')).focus({ preventScroll: true });
         showToast(`已删除 ${ids.length} 封邮件。`, 'success');
     } catch (error) {
         handleRequestError(error, '批量删除失败。');
+    } finally {
+        ids.forEach(id => state.pendingDeleteIds.delete(String(id)));
+        MaildropUI.setBusy(button, false);
+        updateSelectionControls();
     }
 }
 
-function requestConfirmation(message) {
+function requestConfirmation(message, opener = document.activeElement) {
+    // 同一时刻只允许一个确认流程，避免多个 Promise 共享同一组按钮。
+    if (state.confirmationPending) return Promise.resolve(false);
+    state.confirmationPending = true;
     const dialog = document.getElementById('confirm-dialog');
     const messageNode = document.getElementById('confirm-message');
     const acceptButton = document.getElementById('confirm-accept');
@@ -584,6 +683,7 @@ function requestConfirmation(message) {
                 return;
             }
             settled = true;
+            state.confirmationPending = false;
             acceptButton.removeEventListener('click', accept);
             cancelButton.removeEventListener('click', cancel);
             dialog.removeEventListener('cancel', cancelNative);
@@ -600,12 +700,18 @@ function requestConfirmation(message) {
         acceptButton.addEventListener('click', accept);
         cancelButton.addEventListener('click', cancel);
         dialog.addEventListener('cancel', cancelNative);
-        MaildropUI.openDialog(dialog);
+        MaildropUI.openDialog(dialog, opener);
     });
 }
 
 function removeEmailsLocally(ids) {
     const idSet = new Set(ids.map(String));
+    const filtered = getFilteredEmails();
+    const oldIndex = filtered.findIndex((email) => String(email.id) === state.currentEmailId);
+    if (oldIndex >= 0) {
+        const remaining = filtered.filter((email) => !idSet.has(String(email.id)));
+        state.returnFocusId = String(remaining[Math.min(oldIndex, remaining.length - 1)]?.id || '');
+    }
     state.emails = state.emails.filter((email) => !idSet.has(String(email.id)));
     ids.forEach((id) => state.selectedIds.delete(String(id)));
 
@@ -628,6 +734,8 @@ function openEmailDetail(id, pushHistory = true) {
         return;
     }
 
+    state.returnFocusId = String(id);
+    if (state.activeView === 'inbox') state.inboxScrollY = window.scrollY;
     state.currentEmailId = String(id);
     renderEmailDetail(email);
     showView('detail');
@@ -652,7 +760,7 @@ function renderEmailDetail(email) {
 function updateDetailReadButton(email) {
     const button = document.getElementById('toggle-read');
     button.querySelector('span').textContent = email.is_read ? '标记未读' : '标记已读';
-    button.setAttribute('aria-label', email.is_read ? '将当前邮件标记为未读' : '将当前邮件标记为已读');
+    // 按钮已有完整可见文字，保留原生名称，避免 aria-label 与操作文字不一致。
     document.getElementById('detail-status').textContent = email.is_read ? '已读邮件' : '未读邮件';
 }
 
@@ -699,7 +807,7 @@ function buildIsolatedHtml(rawHtml) {
         "base-uri 'none'"
     ].join('; ');
 
-    return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${csp}"><meta name="referrer" content="no-referrer"><style>html{color-scheme:light}body{margin:0;padding:22px;color:#243430;background:#fff;font:14px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow-wrap:anywhere}img{max-width:100%;height:auto}a{color:#2f746d;text-decoration:underline}pre{white-space:pre-wrap}table{max-width:100%;border-collapse:collapse}</style></head><body>${safeBody}</body></html>`;
+    return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${csp}"><meta name="referrer" content="no-referrer"><style>html{color-scheme:light}body{margin:0;padding:22px;color:#243430;background:#fff;font:16px/1.75 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow-wrap:anywhere}img{max-width:100%;height:auto}a{color:#236552;text-decoration:underline}pre{white-space:pre-wrap}table{max-width:100%;border-collapse:collapse}</style></head><body>${safeBody}</body></html>`;
 }
 
 function sanitizeEmailMarkup(rawHtml) {
@@ -749,9 +857,9 @@ function toggleCurrentReadState() {
     }
 }
 
-function deleteCurrentEmail() {
+function deleteCurrentEmail(event) {
     if (state.currentEmailId) {
-        deleteOneEmail(state.currentEmailId);
+        deleteOneEmail(state.currentEmailId, event?.currentTarget || document.activeElement);
     }
 }
 
@@ -764,6 +872,7 @@ function navigateToView(view) {
 }
 
 function showView(view) {
+    const previousView = state.activeView;
     state.activeView = view;
     document.querySelectorAll('.view').forEach((element) => {
         const active = element.id === `${view}-view`;
@@ -784,8 +893,18 @@ function showView(view) {
     if (view !== 'detail') {
         state.currentEmailId = null;
     }
+    setSkipTarget(view === 'detail' ? 'detail-subject' : view === 'info' ? 'info-title' : 'inbox-title');
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+    if (view === 'inbox' && previousView === 'detail') {
+        // 返回阅读前的位置，删除当前邮件后同样恢复到相邻的有效操作。
+        const target = document.querySelector(`.email-row[data-email-id="${cssEscape(state.returnFocusId || '')}"] .email-open`)
+            || document.getElementById('inbox-title');
+        target.focus({ preventScroll: true });
+        window.scrollTo({ top: state.inboxScrollY, behavior: 'instant' });
+    } else {
+        window.scrollTo({ top: 0, behavior: reduceMotion ? 'instant' : 'smooth' });
+        if (view === 'detail') document.getElementById('detail-subject').focus({ preventScroll: true });
+    }
 }
 
 function handleHistoryChange(event) {

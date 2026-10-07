@@ -5,7 +5,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const addressInput = document.getElementById('mailbox-address');
     const keyInput = document.getElementById('mailbox-key');
     const passwordToggle = document.getElementById('password-toggle');
-    addressInput.focus();
+    // 触屏设备不抢占焦点，避免首次打开页面就被软键盘遮挡主操作。
+    if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        addressInput.focus({ preventScroll: true });
+    }
 
     form.addEventListener('submit', handleSubmit);
     addressInput.addEventListener('input', () => clearFieldError(addressInput, 'address-error'));

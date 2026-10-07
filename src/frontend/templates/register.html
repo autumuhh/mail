@@ -8,6 +8,8 @@
     <!-- 为搜索摘要与辅助技术明确邮箱创建页用途。 -->
     <meta name="description" content="通过 Maildrop 管理授权创建临时邮箱并生成专属只读访问链接。">
     <title>创建临时邮箱 · Maildrop</title>
+    <!-- 在首帧绘制前恢复主题，避免暗色偏好先闪出浅色界面。 -->
+    <script src="{{ url_for('static', filename='scripts/theme.js') }}"></script>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='icons/favicon.svg') }}">
     <!-- 基础设计令牌必须先于页面样式加载，便于页面只覆盖自身布局。 -->
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/ui_foundation.css') }}">
@@ -18,7 +20,7 @@
 
     <header class="page-topbar" aria-label="页面导航">
         <a class="brand-link" href="/" aria-label="返回 Maildrop 首页">
-            <svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#mail"></use></svg>
+            <svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#brand"></use></svg>
             <span>Maildrop</span>
         </a>
         <nav class="topbar-actions" aria-label="快捷入口">
@@ -73,7 +75,8 @@
                     <h1 id="register-title">创建临时邮箱</h1>
                     <p class="subtitle">填写地址与保留期限，创建后立即获得邮箱密钥和固定访问链接。</p>
                 </div>
-                <div class="header-badge" aria-label="当前状态：管理员已验证">
+                <!-- 可见状态文字已经提供名称，不以不支持的 aria-label 覆盖它。 -->
+                <div class="header-badge">
                     <span class="status-dot" aria-hidden="true"></span>
                     管理员已验证
                 </div>
@@ -134,11 +137,14 @@
                         </div>
 
                         <div class="form-group checkbox-group">
-                            <label class="checkbox-label">
-                                <input type="checkbox" id="agree-terms" name="agree-terms" required>
-                                <span>我已阅读并同意</span>
+                            <!-- 说明按钮与复选标签分开，避免嵌套可交互控件影响点击和读屏。 -->
+                            <div class="checkbox-label">
+                                <label for="agree-terms">
+                                    <input type="checkbox" id="agree-terms" name="agree-terms" required>
+                                    <span>我已阅读并同意</span>
+                                </label>
                                 <button class="inline-link" type="button" data-dialog-open="policy-dialog">服务条款与隐私说明</button>
-                            </label>
+                            </div>
                         </div>
 
                         <button type="submit" class="soft-button soft-button-primary full-width register-btn" id="register-btn">
@@ -151,7 +157,7 @@
                     <div class="register-progress" id="register-progress" role="status" aria-live="polite" hidden>
                         <div class="progress-meta">
                             <p class="progress-text" id="progress-text">正在创建邮箱…</p>
-                            <span id="progress-value">0%</span>
+                            <span id="progress-value"></span>
                         </div>
                         <div class="progress-bar" aria-hidden="true">
                             <div class="progress-fill" id="progress-fill"></div>
@@ -159,7 +165,8 @@
                     </div>
                 </section>
 
-                <aside class="guide-grid" aria-label="创建说明">
+                <!-- 说明是主内容的一部分，使用具名 section 避免嵌套辅助地标。 -->
+                <section class="guide-grid" aria-label="创建说明">
                     <article class="guide-card soft-panel guide-card-featured">
                         <svg class="ui-icon" aria-hidden="true"><use href="{{ url_for('static', filename='icons/maildrop-icons.svg') }}#globe"></use></svg>
                         <p class="eyebrow">FLEXIBLE</p>
@@ -176,7 +183,7 @@
                         <h2>密钥访问</h2>
                         <p>创建完成后请妥善保存密钥；固定访问链接本身属于敏感凭据。</p>
                     </article>
-                </aside>
+                </section>
             </div>
 
             <footer class="register-footer soft-panel">
@@ -242,8 +249,6 @@
 
     <!-- 保留原容器 ID 供兼容与无脚本降级；共享组件负责实际 Toast 呈现。 -->
     <div class="toast-container" id="toast-container" aria-live="polite" aria-atomic="true"></div>
-
-    <script src="{{ url_for('static', filename='scripts/theme.js') }}"></script>
     <script src="{{ url_for('static', filename='scripts/ui_components.js') }}"></script>
     <script src="{{ url_for('static', filename='scripts/register.js') }}"></script>
 </body>
