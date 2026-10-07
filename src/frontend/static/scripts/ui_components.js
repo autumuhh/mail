@@ -9,6 +9,7 @@
 
     const iconAliases = Object.freeze({
         mail: 'mail',
+        brand: 'brand',
         'mail-open': 'mail',
         inbox: 'inbox',
         key: 'key',
@@ -183,7 +184,9 @@
     function getFocusableElements(container) {
         return Array.from(container.querySelectorAll(
             'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
-        )).filter((element) => !element.hidden && element.getAttribute('aria-hidden') !== 'true');
+        )).filter((element) => element.getClientRects().length && !element.hidden
+            && element.getAttribute('aria-hidden') !== 'true'
+            && getComputedStyle(element).visibility !== 'hidden');
     }
 
     function handleDialogKeydown(event) {
@@ -221,6 +224,12 @@
         }
     }
 
+    function handleNativeDialogCancel(event) {
+        // Escape 也走统一关闭流程，保证所有内核归还焦点并清理打开者记录。
+        event.preventDefault();
+        closeDialog(event.currentTarget);
+    }
+
     function openDialog(dialog, opener = document.activeElement) {
         if (!(dialog instanceof HTMLElement)) {
             return false;
@@ -247,7 +256,10 @@
             }
             dialog.setAttribute('aria-describedby', description.id);
         }
+        // 原生 dialog 也限制 Tab 在页面内循环，避免经过浏览器工具栏。
+        dialog.addEventListener('keydown', handleDialogKeydown);
         if (dialog instanceof HTMLDialogElement) {
+            dialog.addEventListener('cancel', handleNativeDialogCancel);
             if (!dialog.open) {
                 dialog.showModal();
             }
@@ -257,7 +269,6 @@
             dialog.setAttribute('role', dialog.getAttribute('role') || 'dialog');
             dialog.setAttribute('aria-modal', 'true');
             dialog.setAttribute('aria-hidden', 'false');
-            dialog.addEventListener('keydown', handleDialogKeydown);
         }
 
         const focusable = getFocusableElements(dialog);
@@ -281,6 +292,8 @@
             dialog.removeEventListener('keydown', handleDialogKeydown);
         }
 
+        dialog.removeEventListener('keydown', handleDialogKeydown);
+        dialog.removeEventListener('cancel', handleNativeDialogCancel);
         const opener = dialogOpeners.get(dialog);
         dialogOpeners.delete(dialog);
         if (opener && opener.isConnected) {
@@ -295,14 +308,22 @@
         }
 
         const isBusy = Boolean(busy);
+        const hadFocus = document.activeElement === element;
         element.setAttribute('aria-busy', String(isBusy));
         if ('disabled' in element) {
             element.disabled = isBusy;
         }
 
         if (isBusy) {
-            if (!element.dataset.uiOriginalHtml) {
+            if (!('uiOriginalHtml' in element.dataset)) {
                 element.dataset.uiOriginalHtml = element.innerHTML;
+                element.dataset.uiHadFocus = String(hadFocus);
+                // 忙碌文字变化时保留原按钮尺寸，避免邻近操作与光标位置跳动。
+                element.dataset.uiMinWidth = element.style.minWidth;
+                element.dataset.uiMinHeight = element.style.minHeight;
+                const bounds = element.getBoundingClientRect();
+                element.style.minWidth = `${bounds.width}px`;
+                element.style.minHeight = `${bounds.height}px`;
             }
             element.replaceChildren();
             const spinner = document.createElement('span');
@@ -314,9 +335,20 @@
                 text.textContent = label;
                 element.appendChild(text);
             }
-        } else if (element.dataset.uiOriginalHtml) {
+        } else if ('uiOriginalHtml' in element.dataset) {
             element.innerHTML = element.dataset.uiOriginalHtml;
             delete element.dataset.uiOriginalHtml;
+            element.style.minWidth = element.dataset.uiMinWidth || '';
+            element.style.minHeight = element.dataset.uiMinHeight || '';
+            delete element.dataset.uiMinWidth;
+            delete element.dataset.uiMinHeight;
+            // 禁用按钮会移走焦点；只有用户没有转到别处且没有弹窗时才恢复。
+            if (element.dataset.uiHadFocus === 'true' && element.isConnected
+                && document.activeElement === document.body
+                && !document.querySelector('dialog[open], [role="dialog"].is-open')) {
+                element.focus({ preventScroll: true });
+            }
+            delete element.dataset.uiHadFocus;
         }
     }
 

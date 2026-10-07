@@ -77,15 +77,16 @@ class RegisterManager {
     showProgress(message, percentage = 0) {
         const safePercentage = Math.max(0, Math.min(100, Number(percentage) || 0));
         this.progressContainer.hidden = false;
-        this.progressFill.style.width = `${safePercentage}%`;
+        // 单次请求没有可测进度，展示真实阶段而不是虚构百分比。
+        this.progressFill.style.width = safePercentage === 100 ? '100%' : '36%';
         this.progressText.textContent = message;
-        this.progressValue.textContent = `${safePercentage}%`;
+        this.progressValue.textContent = safePercentage === 100 ? '完成' : '处理中';
     }
 
     hideProgress() {
         this.progressContainer.hidden = true;
         this.progressFill.style.width = '0%';
-        this.progressValue.textContent = '0%';
+        this.progressValue.textContent = '';
     }
 
     showToast(message, type = 'info', duration = 5000) {

@@ -9,3 +9,7 @@ __pycache__/
 
 # 三术项目记忆仅用于本地协作，避免把开发上下文提交到仓库
 .sanshu-memory/
+
+# 浏览器报告与辅助检测依赖仅供本地验收，不包含业务数据。
+reports/ui-redesign/
+.ui-qa/

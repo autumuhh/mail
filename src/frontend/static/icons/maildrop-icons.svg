@@ -1,5 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg">
   <!-- 本地图标精简为线性描边，避免第三方字体请求泄露凭据页地址。 -->
+  <!-- 信封折角构成 M 的负空间：用于品牌，不替换表示邮件动作的通用图标。 -->
+  <symbol id="brand" viewBox="0 0 36 36"><path d="M4 7h8l6 7 6-7h8v22h-8V17l-6 6-6-6v12H4z" fill="currentColor" stroke="none"/></symbol>
   <symbol id="mail" viewBox="0 0 24 24"><path d="M3 6.75h18v10.5H3zM4 7.5l8 6 8-6"/></symbol>
   <symbol id="inbox" viewBox="0 0 24 24"><path d="M4 4h16l2 10v6H2v-6zM2 14h6l2 3h4l2-3h6"/></symbol>
   <symbol id="key" viewBox="0 0 24 24"><circle cx="8" cy="12" r="4"/><path d="M12 12h9m-3 0v3m-3-3v2"/></symbol>

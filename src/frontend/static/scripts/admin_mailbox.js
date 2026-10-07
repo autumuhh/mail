@@ -54,7 +54,7 @@ function confirmAdminAction({
         modal.innerHTML = `
             <div class="modal-content modal-content--compact">
                 <div class="modal-header">
-                    <h3>${uiIcon(danger ? 'warning' : 'question')} ${escapeHtml(title)}</h3>
+                    <h2>${uiIcon(danger ? 'warning' : 'question')} ${escapeHtml(title)}</h2>
                     <button class="modal-close" type="button" data-action="close" title="关闭对话框" aria-label="关闭对话框">
                         ${uiIcon('close')}
                     </button>
@@ -93,6 +93,7 @@ class AdminMailboxManager {
         this.authToken = sessionStorage.getItem('admin_token');
         localStorage.removeItem('admin_token');
         this.currentView = 'login';
+        this.clockTimer = null;
         this.currentPage = 1;
         this.pageSize = 20;
         this.currentStatus = 'all';
@@ -115,7 +116,6 @@ class AdminMailboxManager {
         if (this.authToken) {
             this.showMainContent();
             this.loadStats();
-            this.startClock();
         } else {
             this.showLoginView();
         }
@@ -125,6 +125,8 @@ class AdminMailboxManager {
     }
 
     startClock() {
+        // 登录前后共用一个时钟，避免重复计时器与首次登录时间空白。
+        if (this.clockTimer) return;
         const updateTime = () => {
             const now = new Date();
             const timeString = now.toLocaleString('zh-CN', {
@@ -142,7 +144,7 @@ class AdminMailboxManager {
             }
         };
         updateTime();
-        setInterval(updateTime, 1000);
+        this.clockTimer = setInterval(updateTime, 1000);
     }
     
     bindEvents() {
@@ -165,12 +167,8 @@ class AdminMailboxManager {
                 const view = e.currentTarget.dataset.view;
                 if (view) {
                     this.switchView(view);
-                }
-            });
-            item.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    item.click();
+                    // 键盘切换视图后进入标题，方便直接继续浏览内容。
+                    if (e.detail === 0) document.querySelector(`#${view}-view h1`)?.focus({ preventScroll: true });
                 }
             });
         });
@@ -334,6 +332,8 @@ class AdminMailboxManager {
     }
     
     async login() {
+        const loginButton = document.querySelector('#login-form button[type=submit]');
+        if (loginButton.disabled) return;
         const password = document.getElementById('admin-password').value;
         const errorDiv = document.getElementById('login-error');
         
@@ -346,7 +346,8 @@ class AdminMailboxManager {
         this.authToken = password;
         sessionStorage.setItem('admin_token', password);
         
-        // 验证token
+        // 真实认证等待期间锁定操作，避免重复请求与布局跳动。
+        MaildropUI.setBusy(loginButton, true, '验证中…');
         try {
             const response = await this.apiRequest('/api/admin/stats');
             if (response.success) {
@@ -359,6 +360,8 @@ class AdminMailboxManager {
             this.authToken = null;
             sessionStorage.removeItem('admin_token');
             this.showError(errorDiv, '密码错误');
+        } finally {
+            MaildropUI.setBusy(loginButton, false);
         }
     }
     
@@ -380,13 +383,18 @@ class AdminMailboxManager {
     showMainContent() {
         document.getElementById('login-view').style.display = 'none';
         document.querySelector('.sidebar').style.display = 'flex';
+        this.startClock();
         this.switchView('dashboard');
     }
     
     switchView(viewName) {
         // 更新导航状态
         document.querySelectorAll('.nav-item').forEach(item => {
-            item.classList.toggle('active', item.dataset.view === viewName);
+            const active = item.dataset.view === viewName;
+            item.classList.toggle('active', active);
+            // 视觉选中态同时传达给读屏，内部 register 标识不变。
+            if (active) item.setAttribute('aria-current', 'page');
+            else item.removeAttribute('aria-current');
         });
 
         // 更新视图显示
@@ -891,7 +899,7 @@ class AdminMailboxManager {
             result.innerHTML = `
                 <div class="success-message">
                     ${uiIcon('check-circle')}
-                    <h3>邮箱创建成功！</h3>
+                    <h2>邮箱创建成功！</h2>
                 </div>
                 <div class="mailbox-info">
                     <div class="info-item">
@@ -1034,7 +1042,7 @@ class AdminMailboxManager {
                 result.innerHTML = `
                     <div class="success-message batch-completion-message ${completionType}">
                         ${uiIcon(completionIcon)}
-                        <h3>${completionTitle}</h3>
+                        <h2>${completionTitle}</h2>
                         <p class="batch-completion-text">已完成 ${total}/${total}</p>
                     </div>
 
@@ -1122,6 +1130,7 @@ class AdminMailboxManager {
             const response = await this.apiRequest('/api/admin/stats');
             const stats = response.data;
             
+            document.getElementById('stats-status').textContent = '统计已更新';
             document.getElementById('stat-total-mailboxes').textContent = stats.total_mailboxes;
             document.getElementById('stat-active-mailboxes').textContent = stats.active_mailboxes;
             document.getElementById('stat-expired-mailboxes').textContent = stats.expired_mailboxes;
@@ -1188,12 +1197,13 @@ class AdminMailboxManager {
             return `
                 <tr>
                     <td>
-                        <input type="checkbox" class="mailbox-checkbox" value="${escapeHtml(mailbox.id)}">
+                        <!-- 扩大复选操作区域，不改变批量选择的数据契约。 -->
+                        <label class="table-select"><input type="checkbox" class="mailbox-checkbox" aria-label="选择邮箱 ${escapeHtml(mailbox.address)}" value="${escapeHtml(mailbox.id)}"></label>
                     </td>
                     <td data-label="邮箱地址">
                         <div class="mailbox-address">
                             <span class="mailbox-address-text" title="${escapeHtml(mailbox.address)}">${escapeHtml(mailbox.address)}</span>
-                            ${mailbox.whitelist_enabled ? `<span class="mailbox-shield-indicator" title="已启用白名单" aria-label="已启用白名单">${uiIcon('shield', 'mailbox-shield-icon')}</span>` : ''}
+                            ${mailbox.whitelist_enabled ? `<!-- 白名单是纯图标提示，需要图像角色让辅助名称生效。 --><span class="mailbox-shield-indicator" role="img" title="已启用白名单" aria-label="已启用白名单">${uiIcon('shield', 'mailbox-shield-icon')}</span>` : ''}
                         </div>
                     </td>
                     <td data-label="状态"><span class="status-badge ${statusClass}">${statusText}</span></td>
@@ -1233,11 +1243,11 @@ class AdminMailboxManager {
             if (!mailbox) return;
 
             if (button.dataset.action === 'view') {
-                this.viewMailbox(mailbox.id);
+                this.viewMailbox(mailbox.id, button);
             } else if (button.dataset.action === 'edit') {
-                this.editMailbox(mailbox.id);
+                this.editMailbox(mailbox.id, button);
             } else if (button.dataset.action === 'delete') {
-                this.deleteMailbox(mailbox.id);
+                this.deleteMailbox(mailbox.id, button);
             }
         };
         tbody.onchange = (event) => {
@@ -1368,7 +1378,7 @@ function showTokenModal(mailbox) {
     modal.innerHTML = `
         <div class="modal-content modal-content--compact">
             <div class="modal-header">
-                <h3>邮箱创建成功</h3>
+                <h2>邮箱创建成功</h2>
             </div>
             <div class="modal-body">
                 <div class="token-display">
@@ -1419,9 +1429,10 @@ function copyToClipboard(text) {
 }
 
 // 添加到AdminMailboxManager类
-AdminMailboxManager.prototype.viewMailbox = async function(mailboxId) {
+AdminMailboxManager.prototype.viewMailbox = async function(mailboxId, opener = document.activeElement) {
     // 在异步详情请求前保存列表触发按钮，后续串联确认框时才能把焦点还给原位置。
-    const viewOpener = document.activeElement;
+    // WebKit 鼠标点击不保证聚焦按钮，使用调用方提供的真实触发元素。
+    const viewOpener = opener;
     try {
         const response = await this.apiRequest(`/api/admin/mailboxes/${encodeURIComponent(mailboxId)}`);
         const mailbox = response.data;
@@ -1438,7 +1449,7 @@ AdminMailboxManager.prototype.viewMailbox = async function(mailboxId) {
         modal.innerHTML = `
             <div class="modal-content modal-content--wide">
                 <div class="modal-header">
-                    <h3>${uiIcon('inbox')} 邮箱详情</h3>
+                    <h2>${uiIcon('inbox')} 邮箱详情</h2>
                     <button class="modal-close" type="button" data-action="close" title="关闭对话框" aria-label="关闭对话框">
                         ${uiIcon('close')}
                     </button>
@@ -1605,7 +1616,7 @@ AdminMailboxManager.prototype.viewMailbox = async function(mailboxId) {
     }
 };
 
-AdminMailboxManager.prototype.editMailbox = async function(mailboxId) {
+AdminMailboxManager.prototype.editMailbox = async function(mailboxId, opener = document.activeElement) {
     try {
         const response = await this.apiRequest(`/api/admin/mailboxes/${encodeURIComponent(mailboxId)}`);
         const mailbox = response.data;
@@ -1617,7 +1628,7 @@ AdminMailboxManager.prototype.editMailbox = async function(mailboxId) {
         modal.innerHTML = `
             <div class="modal-content modal-content--medium">
                 <div class="modal-header">
-                    <h3>编辑邮箱</h3>
+                    <h2>编辑邮箱</h2>
                     <button class="modal-close" type="button" data-action="close" title="关闭对话框" aria-label="关闭对话框">
                         ${uiIcon('close')}
                     </button>
@@ -1626,7 +1637,7 @@ AdminMailboxManager.prototype.editMailbox = async function(mailboxId) {
                     <form id="edit-mailbox-form">
                         <div class="form-group">
                             <label>邮箱地址</label>
-                            <input type="text" data-role="mailbox-address" disabled>
+                            <input type="text" data-role="mailbox-address" aria-label="邮箱地址" disabled>
                         </div>
                         <div class="form-group">
                             <label for="edit-retention-days">保留天数</label>
@@ -1676,7 +1687,7 @@ AdminMailboxManager.prototype.editMailbox = async function(mailboxId) {
         modal.querySelector('[data-action="save"]').addEventListener('click', () => {
             this.saveMailboxEdit(mailboxId, modal);
         });
-        openAdminModal(modal);
+        openAdminModal(modal, opener);
     } catch (error) {
         this.showToast('error', '加载邮箱信息失败');
     }
@@ -1729,14 +1740,14 @@ AdminMailboxManager.prototype.saveMailboxEdit = async function(mailboxId, modal)
     }
 };
 
-AdminMailboxManager.prototype.deleteMailbox = async function(mailboxId) {
+AdminMailboxManager.prototype.deleteMailbox = async function(mailboxId, opener = document.activeElement) {
     // 显示确认模态框
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.innerHTML = `
         <div class="modal-content modal-content--compact">
             <div class="modal-header">
-                <h3>确认删除</h3>
+                <h2>确认删除</h2>
                 <button class="modal-close" type="button" data-action="close" title="关闭对话框" aria-label="关闭对话框">
                     ${uiIcon('close')}
                 </button>
@@ -1771,7 +1782,7 @@ AdminMailboxManager.prototype.deleteMailbox = async function(mailboxId) {
     modal.querySelector('[data-action="confirm"]').addEventListener('click', () => {
         this.confirmDeleteMailbox(mailboxId, modal);
     });
-    openAdminModal(modal);
+    openAdminModal(modal, opener);
 };
 
 AdminMailboxManager.prototype.confirmDeleteMailbox = async function(mailboxId, modal) {
@@ -1826,7 +1837,7 @@ AdminMailboxManager.prototype.loadAuditLogs = async function() {
             const button = event.target.closest('button[data-log-index]');
             if (!button || !tbody.contains(button)) return;
             const log = logs[Number(button.dataset.logIndex)];
-            if (log) this.showAuditDetail(log);
+            if (log) this.showAuditDetail(log, button);
         };
     } catch (error) {
         console.error('加载审计日志失败:', error);
@@ -1835,14 +1846,14 @@ AdminMailboxManager.prototype.loadAuditLogs = async function() {
     }
 };
 
-AdminMailboxManager.prototype.showAuditDetail = function(log) {
+AdminMailboxManager.prototype.showAuditDetail = function(log, opener = document.activeElement) {
     const modal = document.createElement('div');
     modal.className = 'modal';
 
     modal.innerHTML = `
         <div class="modal-content modal-content--medium">
                 <div class="modal-header">
-                    <h3>${uiIcon('info')} 审计日志详情</h3>
+                    <h2>${uiIcon('info')} 审计日志详情</h2>
                     <button class="modal-close" type="button" data-action="close" title="关闭对话框" aria-label="关闭对话框">
                     ${uiIcon('close')}
                 </button>
@@ -1893,7 +1904,7 @@ AdminMailboxManager.prototype.showAuditDetail = function(log) {
     modal.querySelectorAll('[data-action="close"]').forEach(button => {
         button.addEventListener('click', () => closeAndRemoveAdminModal(modal));
     });
-    openAdminModal(modal);
+    openAdminModal(modal, opener);
 };
 
 // 全选/取消全选
@@ -1921,7 +1932,7 @@ function updateBatchDeleteButton() {
 }
 
 // 批量删除邮箱
-async function batchDeleteMailboxes() {
+async function batchDeleteMailboxes(opener = document.activeElement) {
     const checkboxes = document.querySelectorAll('.mailbox-checkbox:checked');
     const mailboxIds = Array.from(checkboxes).map(cb => cb.value);
 
@@ -1936,7 +1947,7 @@ async function batchDeleteMailboxes() {
     modal.innerHTML = `
         <div class="modal-content modal-content--compact">
             <div class="modal-header">
-                <h3>确认批量删除</h3>
+                <h2>确认批量删除</h2>
                 <button class="modal-close" type="button" data-action="close" title="关闭对话框" aria-label="关闭对话框">
                     ${uiIcon('close')}
                 </button>
@@ -1994,7 +2005,7 @@ async function batchDeleteMailboxes() {
             adminManager.showToast('error', '批量删除失败: ' + error.message);
         }
     };
-    openAdminModal(modal);
+    openAdminModal(modal, opener);
 }
 
 // 重置邮箱token
@@ -2020,7 +2031,7 @@ async function resetMailboxToken(mailboxId, opener = document.activeElement) {
         modal.innerHTML = `
             <div class="modal-content modal-content--compact">
                 <div class="modal-header">
-                    <h3>${uiIcon('key')} 新的访问令牌</h3>
+                    <h2>${uiIcon('key')} 新的访问令牌</h2>
                     <button class="modal-close" type="button" data-action="close" title="关闭对话框" aria-label="关闭对话框">
                         ${uiIcon('close')}
                     </button>
@@ -2121,7 +2132,7 @@ async function loadBlockedIPs() {
             const button = event.target.closest('button[data-ip-index]');
             if (!button || !tbody.contains(button)) return;
             const item = blockedIPs[Number(button.dataset.ipIndex)];
-            if (item) unblockIP(item.ip);
+            if (item) unblockIP(item.ip, button);
         };
     } catch (error) {
         tbody.innerHTML = '<tr><td colspan="3" class="error-row">加载失败</td></tr>';
@@ -2130,11 +2141,12 @@ async function loadBlockedIPs() {
 }
 
 // 解除IP封禁
-async function unblockIP(ip) {
+async function unblockIP(ip, opener = document.activeElement) {
     if (!await confirmAdminAction({
         title: '解除 IP 封禁',
         message: `确定要解除 ${ip} 的封禁吗？`,
         confirmLabel: '解除封禁',
+        opener,
     })) {
         return;
     }
@@ -2164,23 +2176,19 @@ async function loadSourceStats() {
         const sourceConfig = {
             'admin': {
                 label: '管理员创建',
-                icon: 'user-shield',
-                gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                icon: 'user-shield'
             },
             'register': {
                 label: '自助创建',
-                icon: 'user-plus',
-                gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+                icon: 'user-plus'
             },
             'api_v2': {
                 label: 'API创建',
-                icon: 'code',
-                gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+                icon: 'code'
             },
             'unknown': {
                 label: '未知来源',
-                icon: 'question',
-                gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
+                icon: 'question'
             }
         };
 
@@ -2194,7 +2202,8 @@ async function loadSourceStats() {
             total += safeCount;
             html += `
                 <div class="stat-card">
-                    <div class="stat-icon" style="background: ${config.gradient};">
+                    <!-- 统计来源不代表风险等级，统一品牌色避免伪造语义。 -->
+                    <div class="stat-icon">
                         ${uiIcon(config.icon)}
                     </div>
                     <div class="stat-info">
@@ -2208,7 +2217,7 @@ async function loadSourceStats() {
         // 添加总计卡片
         html += `
             <div class="stat-card">
-                <div class="stat-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                <div class="stat-icon">
                     ${uiIcon('inbox')}
                 </div>
                 <div class="stat-info">
@@ -2375,15 +2384,16 @@ function displaySubAdmins(subAdmins) {
         const admin = rows[Number(button.dataset.adminIndex)];
         if (!admin) return;
         if (button.dataset.action === 'edit') {
-            editSubAdmin(admin.id);
+            editSubAdmin(admin.id, button);
         } else if (button.dataset.action === 'delete') {
-            deleteSubAdmin(admin.id, admin.token);
+            deleteSubAdmin(admin.id, admin.token, button);
         }
     };
 }
 
 // 显示创建子管理员模态框
-async function showCreateSubAdminModal() {
+// 在异步读取域名前保留触发按钮，保证 Safari 与键盘关闭后都有明确落点。
+async function showCreateSubAdminModal(opener = document.activeElement) {
     document.getElementById('sub-admin-modal-title').textContent = '添加子管理员';
     document.getElementById('sub-admin-id').value = '';
     document.getElementById('sub-admin-token').value = '';
@@ -2396,11 +2406,11 @@ async function showCreateSubAdminModal() {
     // 加载可用域名
     await loadDomainsForSubAdmin();
 
-    window.MaildropUI.openDialog(document.getElementById('sub-admin-modal'));
+    window.MaildropUI.openDialog(document.getElementById('sub-admin-modal'), opener);
 }
 
 // 编辑子管理员
-async function editSubAdmin(subAdminId) {
+async function editSubAdmin(subAdminId, opener = document.activeElement) {
     try {
         const response = await adminManager.apiRequest('/api/admin/sub-admins');
 
@@ -2428,7 +2438,7 @@ async function editSubAdmin(subAdminId) {
             // 加载可用域名并选中已分配的域名
             await loadDomainsForSubAdmin(admin.domains);
 
-            window.MaildropUI.openDialog(document.getElementById('sub-admin-modal'));
+            window.MaildropUI.openDialog(document.getElementById('sub-admin-modal'), opener);
         }
     } catch (error) {
         console.error('加载子管理员信息失败:', error);
@@ -2557,12 +2567,13 @@ async function saveSubAdmin(event) {
 }
 
 // 删除子管理员
-async function deleteSubAdmin(subAdminId, token) {
+async function deleteSubAdmin(subAdminId, token, opener = document.activeElement) {
     if (!await confirmAdminAction({
         title: '删除子管理员',
         message: `确定要删除子管理员 "${token}" 吗？`,
         confirmLabel: '确认删除',
         danger: true,
+        opener,
     })) {
         return;
     }
